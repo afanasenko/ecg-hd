@@ -1,5 +1,6 @@
 import sys
 import os
+import re
 
 from PyQt4 import QtCore, QtGui
 from PyQt4.QtGui import QFileDialog
@@ -30,8 +31,12 @@ class ApplicationWindow(QtGui.QMainWindow):
 
         for f in os.listdir(dirname):
             fullfile = os.path.join(dirname, f)
+            # Не выводим каталоги
             if os.path.isfile(fullfile):
-                self.ui.fileList.addItem(f)
+                # Выводим только .dat файлы
+                file_re = re.compile(r'.*\.dat$')
+                if file_re.match(f) is not None:
+                    self.ui.fileList.addItem(f)
 
         # Отображение имени текущего каталога на ярлычке
         max_len = 50
