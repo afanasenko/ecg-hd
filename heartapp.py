@@ -2,9 +2,8 @@ import sys
 import os
 
 from PyQt4 import QtCore, QtGui
-from PyQt4.QtGui import QMainWindow, QFileDialog
-from ui_ecg_mainwindow import Ui_MainWindow
-from guiclasses import MyStaticMplCanvas
+from PyQt4.QtGui import QFileDialog
+from ui_mainwindow import Ui_MainWindow
 
 """
 """
