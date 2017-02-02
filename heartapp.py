@@ -20,9 +20,11 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.directorySelect.clicked.connect(self.changeCurrentDirectory)
         self.listFiles('.')
 
-        #self.sc = MyStaticMplCanvas(self.ui.plotArea)
+        self.loaded_signal = None
+        self.loaded_signal_header = None
 
         self.ui.fileList.itemClicked.connect(self.chooseFile)
+        self.ui.channelsDropdown.currentIndexChanged.connect(self.plotSignal)
 
 
     def listFiles(self, dirname):
@@ -55,15 +57,14 @@ class ApplicationWindow(QtGui.QMainWindow):
             recordname = '.'.join(full_file_name.split('.')[:-1])
 
             # Чтение сигнала
-
             sig, fields = wfdb.rdsamp(recordname)
-            if sig is None:
-                print("????")
+            # Не очень понятна обработка ошибок чтения
+
+            self.loaded_signal = sig
+            self.loaded_signal_header = fields
 
             self.updateChannelCombo(sig)
-            self.plotSignal(sig, fields)
-
-
+            self.plotSignal()
 
     # Реакция на выбор каталога
     def changeCurrentDirectory(self):
@@ -77,13 +78,13 @@ class ApplicationWindow(QtGui.QMainWindow):
             self.ui.channelsDropdown.clear()
             self.ui.channelsDropdown.addItems([str(x+1) for x in range(numch)])
 
-    def plotSignal(self, sig, fields):
+    def plotSignal(self):
         chan = self.ui.channelsDropdown.currentIndex()
-        fs = fields.get("fs", "unknown")
+        fs = self.loaded_signal_header.get("fs", "unknown")
         self.ui.samplingFreq.setText(str(fs))
-        self.ui.signalUnits.setText(fields["units"][chan])
+        self.ui.signalUnits.setText(self.loaded_signal_header["units"][chan])
         samples = 3000  # Если это больше, чем размер файла - ошибки не будет
-        self.ui.plotArea.plot_signal(sig[0:samples, 0], fs)
+        self.ui.plotArea.plot_signal(self.loaded_signal[0:samples, chan], fs)
 
 if __name__ == "__main__":
 
