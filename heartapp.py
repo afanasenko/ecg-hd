@@ -59,28 +59,31 @@ class ApplicationWindow(QtGui.QMainWindow):
             sig, fields = wfdb.rdsamp(recordname)
             if sig is None:
                 print("????")
-            self.updateChannelCombo(sig)
 
-            chan = 0
-            fs = fields.get("fs", "unknown")
-            self.ui.samplingFreq.setText(str(fs))
-            self.ui.signalUnits.setText(fields["units"][chan])
-            samples = 3000  # Если это больше, чем размер файла - ошибки не будет
-            self.ui.plotArea.plot_signal(sig[0:samples,0], fs)
+            self.updateChannelCombo(sig)
+            self.plotSignal(sig, fields)
+
+
 
     # Реакция на выбор каталога
     def changeCurrentDirectory(self):
         dirname = QFileDialog.getExistingDirectory()
-        if dirname is not None:
+        if dirname and dirname is not None:
             self.listFiles(dirname)
-
 
     def updateChannelCombo(self, sig):
         numch = sig.shape[1]
         if self.ui.channelsDropdown.count() != numch:
-            i = self.ui.channelsDropdown.currentIndex()
-            print(i)
+            self.ui.channelsDropdown.clear()
+            self.ui.channelsDropdown.addItems([str(x+1) for x in range(numch)])
 
+    def plotSignal(self, sig, fields):
+        chan = self.ui.channelsDropdown.currentIndex()
+        fs = fields.get("fs", "unknown")
+        self.ui.samplingFreq.setText(str(fs))
+        self.ui.signalUnits.setText(fields["units"][chan])
+        samples = 3000  # Если это больше, чем размер файла - ошибки не будет
+        self.ui.plotArea.plot_signal(sig[0:samples, 0], fs)
 
 if __name__ == "__main__":
 
