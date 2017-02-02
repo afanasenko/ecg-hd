@@ -57,6 +57,9 @@ class ApplicationWindow(QtGui.QMainWindow):
             # Чтение сигнала
 
             sig, fields = wfdb.rdsamp(recordname)
+            if sig is None:
+                print("????")
+            self.updateChannelCombo(sig)
 
             chan = 0
             fs = fields.get("fs", "unknown")
@@ -70,6 +73,13 @@ class ApplicationWindow(QtGui.QMainWindow):
         dirname = QFileDialog.getExistingDirectory()
         if dirname is not None:
             self.listFiles(dirname)
+
+
+    def updateChannelCombo(self, sig):
+        numch = sig.shape[1]
+        if self.ui.channelsDropdown.count() != numch:
+            i = self.ui.channelsDropdown.currentIndex()
+            print(i)
 
 
 if __name__ == "__main__":
