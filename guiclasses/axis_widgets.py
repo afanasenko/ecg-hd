@@ -25,10 +25,11 @@ class axesWidget(FigureCanvas):
         #
         FigureCanvas.__init__(self, fig)
         self.setParent(parent)
-
-        FigureCanvas.setSizePolicy(self,
-                                   QtGui.QSizePolicy.Expanding,
-                                   QtGui.QSizePolicy.Expanding)
+        FigureCanvas.setSizePolicy(
+            self,
+            QtGui.QSizePolicy.Expanding,
+            QtGui.QSizePolicy.Expanding
+        )
         FigureCanvas.updateGeometry(self)
 
         self.compute_initial_figure()
