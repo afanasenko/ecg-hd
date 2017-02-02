@@ -1,6 +1,7 @@
 import sys
 import os
 import re
+import wfdb
 
 from PyQt4 import QtCore, QtGui
 from PyQt4.QtGui import QFileDialog
@@ -49,8 +50,14 @@ class ApplicationWindow(QtGui.QMainWindow):
         if lwi is not None:
             # Полное имя выбранного файла
             full_file_name = os.path.join(self.cur_dir, lwi.text())
-            print(full_file_name)
-            self.ui.plotArea.compute_initial_figure()
+
+            # Отрезаем расширение для чтения с помощью wfdb
+            recordname = '.'.join(full_file_name.split('.')[:-1])
+
+            # Чтение сигнала
+            sig, fields = wfdb.rdsamp(recordname)
+            samples = 3000  # Если это больше, чем размер файла - ошибки не будет
+            self.ui.plotArea.plot_signal(sig[0:samples,0], fields["fs"])
 
     # Реакция на выбор каталога
     def changeCurrentDirectory(self):

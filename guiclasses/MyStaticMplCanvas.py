@@ -6,6 +6,7 @@ from PyQt4 import QtGui, QtCore
 from numpy import arange, sin, pi
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
+import numpy as np
 
 """
     Обертка над одинарным графиком из matplotlib,
@@ -34,7 +35,10 @@ class axesWidget(FigureCanvas):
 
     
     def compute_initial_figure(self):
-        t = arange(0.0, 3.0, 0.01)
-        s = sin(2 * pi * t + random.random())
-        self.axes.plot(t, s)
         self.draw()
+
+    def plot_signal(self, x, fs):
+        t = np.array(range(0, x.shape[0])) / fs
+        self.axes.plot(t, x)
+        self.draw()
+        pass
