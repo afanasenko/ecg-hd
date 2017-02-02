@@ -106,7 +106,7 @@
           </widget>
          </item>
          <item row="2" column="1">
-          <widget class="QComboBox" name="comboBox">
+          <widget class="QComboBox" name="channelsDropdown">
            <item>
             <property name="text">
              <string>1</string>
@@ -211,7 +211,7 @@
   <customwidget>
    <class>axesWidget</class>
    <extends>QWidget</extends>
-   <header>guiclasses.MyStaticMplCanvas</header>
+   <header>guiclasses.axes_widgets</header>
    <container>1</container>
   </customwidget>
  </customwidgets>
