@@ -55,9 +55,13 @@ class ApplicationWindow(QtGui.QMainWindow):
             recordname = '.'.join(full_file_name.split('.')[:-1])
 
             # Чтение сигнала
+
             sig, fields = wfdb.rdsamp(recordname)
+
+            chan = 0
             fs = fields.get("fs", "unknown")
             self.ui.samplingFreq.setText(str(fs))
+            self.ui.signalUnits.setText(fields["units"][chan])
             samples = 3000  # Если это больше, чем размер файла - ошибки не будет
             self.ui.plotArea.plot_signal(sig[0:samples,0], fs)
 
