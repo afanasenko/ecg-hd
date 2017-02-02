@@ -56,8 +56,10 @@ class ApplicationWindow(QtGui.QMainWindow):
 
             # Чтение сигнала
             sig, fields = wfdb.rdsamp(recordname)
+            fs = fields.get("fs", "unknown")
+            self.ui.samplingFreq.setText(str(fs))
             samples = 3000  # Если это больше, чем размер файла - ошибки не будет
-            self.ui.plotArea.plot_signal(sig[0:samples,0], fields["fs"])
+            self.ui.plotArea.plot_signal(sig[0:samples,0], fs)
 
     # Реакция на выбор каталога
     def changeCurrentDirectory(self):
