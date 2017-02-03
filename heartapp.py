@@ -2,6 +2,7 @@ import sys
 import os
 import re
 import wfdb
+import json
 
 from PyQt4 import QtCore, QtGui
 from PyQt4.QtGui import QFileDialog
@@ -80,16 +81,29 @@ class ApplicationWindow(QtGui.QMainWindow):
 
     def plotSignal(self):
         chan = self.ui.channelsDropdown.currentIndex()
-        fs = self.loaded_signal_header.get("fs", "unknown")
+        fs = self.loaded_signal_header.get("fs", 360)
         self.ui.samplingFreq.setText(str(fs))
         self.ui.signalUnits.setText(self.loaded_signal_header["units"][chan])
-        samples = 3000  # Если это больше, чем размер файла - ошибки не будет
+
+        samples = int(self.config_data["display"]["defaultTimeSpan"] * fs)
+        # Если samples больше, чем размер файла - ошибки не будет
         self.ui.plotArea.plot_signal(self.loaded_signal[0:samples, chan], fs)
+
+    def loadConfig(self, filename):
+        self.config_data = {}
+        with open(filename, "r") as fp:
+            try:
+                self.config_data = json.load(fp)
+            except:
+                print("Unable to load config")
+
 
 if __name__ == "__main__":
 
     qApp = QtGui.QApplication(sys.argv)
     wnd = ApplicationWindow()
+    wnd.loadConfig("config.json")
+
     wnd.show()
     sys.exit(qApp.exec())
 
