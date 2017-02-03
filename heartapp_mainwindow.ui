@@ -147,7 +147,7 @@
           <enum>QFormLayout::FieldsStayAtSizeHint</enum>
          </property>
          <item row="1" column="0" colspan="2">
-          <widget class="QCheckBox" name="checkBox_2">
+          <widget class="QCheckBox" name="autoProcessing">
            <property name="text">
             <string>Process automatically (after loading file)</string>
            </property>
@@ -177,7 +177,7 @@
           <widget class="QLineEdit" name="minRinterval"/>
          </item>
          <item row="5" column="1">
-          <widget class="QPushButton" name="pushButton">
+          <widget class="QPushButton" name="refreshSignal">
            <property name="text">
             <string>Refresh</string>
            </property>
