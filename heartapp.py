@@ -8,6 +8,8 @@ from PyQt4 import QtCore, QtGui
 from PyQt4.QtGui import QFileDialog
 from ui_mainwindow import Ui_MainWindow
 
+from sigsegment import extract_short_peaks
+
 """
 """
 class ApplicationWindow(QtGui.QMainWindow):
@@ -26,6 +28,8 @@ class ApplicationWindow(QtGui.QMainWindow):
 
         self.ui.fileList.itemClicked.connect(self.chooseFile)
         self.ui.channelsDropdown.currentIndexChanged.connect(self.plotSignal)
+
+        self.ui.refreshSignal.clicked.connect(self.plotSignal)
 
 
     def listFiles(self, dirname):
@@ -87,7 +91,36 @@ class ApplicationWindow(QtGui.QMainWindow):
 
         samples = int(self.config_data["display"]["defaultTimeSpan"] * fs)
         # Если samples больше, чем размер файла - ошибки не будет
-        self.ui.plotArea.plot_signal(self.loaded_signal[0:samples, chan], fs)
+
+        if self.ui.autoProcessing.isChecked():
+            # Считывание параметров привязки
+            unbias_wnd = 0
+            if self.ui.zeroBaseline.isChecked():
+                try:
+                    unbias_wnd = int(self.ui.biasWindowLen.text())
+                except:
+                    print("Unable to convert value")
+
+            try:
+                pk_interval = int(self.ui.minRinterval.text())
+            except:
+                pk_interval = self.config_data["rDetect"]["peakIntervalMs"]
+                print("Unable to convert value")
+
+            pk_len = self.config_data["rDetect"]["peakLengthMs"]
+
+            pks = extract_short_peaks(
+                self.loaded_signal[0:samples, chan],
+                fs,
+                unbias_wnd,
+                pk_len,
+                pk_interval
+            )
+
+            self.ui.plotArea.plot_signal_with_markup(self.loaded_signal[0:samples, chan], pks, fs)
+        else:
+            self.ui.plotArea.plot_signal(self.loaded_signal[0:samples, chan], fs)
+
 
     def loadConfig(self, filename):
         self.config_data = {}
@@ -97,6 +130,9 @@ class ApplicationWindow(QtGui.QMainWindow):
             except:
                 print("Unable to load config")
 
+        if self.config_data:
+            self.ui.biasWindowLen.setText(str(self.config_data["preProcessing"]["biasWindowMs"]))
+            self.ui.minRinterval.setText(str(self.config_data["rDetect"]["peakIntervalMs"]))
 
 if __name__ == "__main__":
 
