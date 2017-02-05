@@ -1,10 +1,14 @@
 import sys
 import os
 import re
+import wfdb
+import json
 
 from PyQt4 import QtCore, QtGui
 from PyQt4.QtGui import QFileDialog
 from ui_mainwindow import Ui_MainWindow
+
+from sigsegment import extract_short_peaks
 
 """
 """
@@ -19,9 +23,13 @@ class ApplicationWindow(QtGui.QMainWindow):
         self.ui.directorySelect.clicked.connect(self.changeCurrentDirectory)
         self.listFiles('.')
 
-        #self.sc = MyStaticMplCanvas(self.ui.plotArea)
+        self.loaded_signal = None
+        self.loaded_signal_header = None
 
         self.ui.fileList.itemClicked.connect(self.chooseFile)
+        self.ui.channelsDropdown.currentIndexChanged.connect(self.plotSignal)
+
+        self.ui.refreshSignal.clicked.connect(self.plotSignal)
 
 
     def listFiles(self, dirname):
@@ -49,20 +57,89 @@ class ApplicationWindow(QtGui.QMainWindow):
         if lwi is not None:
             # Полное имя выбранного файла
             full_file_name = os.path.join(self.cur_dir, lwi.text())
-            print(full_file_name)
-            self.ui.plotArea.compute_initial_figure()
+
+            # Отрезаем расширение для чтения с помощью wfdb
+            recordname = '.'.join(full_file_name.split('.')[:-1])
+
+            # Чтение сигнала
+            sig, fields = wfdb.rdsamp(recordname)
+            # Не очень понятна обработка ошибок чтения
+
+            self.loaded_signal = sig
+            self.loaded_signal_header = fields
+
+            self.updateChannelCombo(sig)
+            self.plotSignal()
 
     # Реакция на выбор каталога
     def changeCurrentDirectory(self):
         dirname = QFileDialog.getExistingDirectory()
-        if dirname is not None:
+        if dirname and dirname is not None:
             self.listFiles(dirname)
 
+    def updateChannelCombo(self, sig):
+        numch = sig.shape[1]
+        if self.ui.channelsDropdown.count() != numch:
+            self.ui.channelsDropdown.clear()
+            self.ui.channelsDropdown.addItems([str(x+1) for x in range(numch)])
+
+    def plotSignal(self):
+        chan = self.ui.channelsDropdown.currentIndex()
+        fs = self.loaded_signal_header.get("fs", 360)
+        self.ui.samplingFreq.setText(str(fs))
+        self.ui.signalUnits.setText(self.loaded_signal_header["units"][chan])
+
+        samples = int(self.config_data["display"]["defaultTimeSpan"] * fs)
+        # Если samples больше, чем размер файла - ошибки не будет
+
+        if self.ui.autoProcessing.isChecked():
+            # Считывание параметров привязки
+            unbias_wnd = 0
+            if self.ui.zeroBaseline.isChecked():
+                try:
+                    unbias_wnd = int(self.ui.biasWindowLen.text())
+                except:
+                    print("Unable to convert value")
+
+            try:
+                pk_interval = int(self.ui.minRinterval.text())
+            except:
+                pk_interval = self.config_data["rDetect"]["peakIntervalMs"]
+                print("Unable to convert value")
+
+            pk_len = self.config_data["rDetect"]["peakLengthMs"]
+
+            pks = extract_short_peaks(
+                self.loaded_signal[0:samples, chan],
+                fs,
+                unbias_wnd,
+                pk_len,
+                pk_interval
+            )
+
+            self.ui.plotArea.plot_signal_with_markup(self.loaded_signal[0:samples, chan], pks, fs)
+        else:
+            self.ui.plotArea.plot_signal(self.loaded_signal[0:samples, chan], fs)
+
+
+    def loadConfig(self, filename):
+        self.config_data = {}
+        with open(filename, "r") as fp:
+            try:
+                self.config_data = json.load(fp)
+            except:
+                print("Unable to load config")
+
+        if self.config_data:
+            self.ui.biasWindowLen.setText(str(self.config_data["preProcessing"]["biasWindowMs"]))
+            self.ui.minRinterval.setText(str(self.config_data["rDetect"]["peakIntervalMs"]))
 
 if __name__ == "__main__":
 
     qApp = QtGui.QApplication(sys.argv)
     wnd = ApplicationWindow()
+    wnd.loadConfig("config.json")
+
     wnd.show()
     sys.exit(qApp.exec())
 
