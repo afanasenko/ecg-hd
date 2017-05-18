@@ -8,11 +8,11 @@ import os
     Mapper, if we need to change input format
     Output: class_mark | features
 """
-def mapper_main():
+def mapper_main(delim):
 
     for line in sys.stdin:
 
-        p = [x.strip() for x in line.split('\t')]
+        p = [x.strip() for x in line.split(delim)]
         features = p[:-1]
         class_mark = p[-1]
 
@@ -161,13 +161,58 @@ def projection_vector(s_w, s_b):
     p_v = eig_list[0][1].reshape(n,1)
     return p_v
 
+def build_options():
+    parser = argparse.ArgumentParser()
+    nowtime = time.time()
+
+    parser.add_argument(
+        '-d', '--delimiter',
+        default='\t',
+        type=str,
+        help='Delimiter of input file'
+    )
+    parser.add_option(
+        '-c', '--command',
+        type='string',
+        dest='command',
+        default='mapper',
+        help='Command to launch mapper, reducer for means or for scatter matrix'
+    )
+    parser.add_argument(
+        '-i', '--input-dir',
+        default='',
+        type=str,
+        help='Root input folder'
+    )
+    parser.add_argument(
+        '-o', '--output-dir',
+        default='',
+        type=str,
+        help='Root output folder'
+    )
+
+    options, other_params = parser.parse_known_args()
+    return options
+
 def main():
+    options = build_options()
+    delim = options.delimiter
+    cmd = options.command
+
+    if cmd == "mapper":
+        mapper_main(delim)
+    elif cmd == "reducer_m":
+        means_reducer()
+    elif cmd == "reducer_s":
+        scatter_within_reducer(mean_v, n_features)
+
     sample_data = read_mean_files(sys.stdin)   
     n_features = len(sample_data[sample_data.keys()[0]][1:])
     mean_v = {class_mark: [] for class_mark in sample_data}
     all_obj = 0
     overallmean = np.zeros((n_features, 1)) 
     s_b = np.zeros((n_features, n_features))
+
     # compute mean vectors for each class and overall mean
     for class_mark, data in sample_data.items():
         n_obj = data[0]
@@ -175,6 +220,7 @@ def main():
         all_obj += n_obj
         overallmean += mean_v[class_mark].reshape(n_features,1)
     overallmean = overallmean / all_obj
+    
     # compute between class scatter matrix
     for class_mark, data in sample_data.items():
         s_b += data[0] * (mean_v[class_mark].reshape(n_features, 1) - overallmean).dot((mean_v[class_mark].reshape(n_features,1) - overallmean).T)
