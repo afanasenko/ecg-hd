@@ -139,7 +139,7 @@ def extract_short_peaks(x, fs, bias_window_ms=250, peak_length_ms=20, peak_inter
     return np.array(pks) 
 
 
-def main_new(recordname, show):
+def main_new(recordname, chan, show):
     print("processing " + recordname)
     # загрузка данных
     outname = recordname.split("/")[-1] + "_features.tsv"
@@ -147,10 +147,10 @@ def main_new(recordname, show):
     sampto = 3000 # The final sample number to read for each channel
     peak_length = 20
     peak_interval_ms = 690
-    bias_ms = 1200
+    bias_ms = 1.9*peak_interval_ms
     #sig, fields=wfdb.rdsamp(recordname, sampto=sampto)
     sig, fields=wfdb.rdsamp(recordname, sampto=450000)
-    x = sig[:, 0]
+    x = sig[:, chan]
     x -= np.mean(x)
     fs = fields["fs"] # sampling frequency (in samples per second per signal)
     print("Sampling frequency: {} Hz".format(fs))
@@ -188,7 +188,7 @@ def main_new(recordname, show):
         tw = [0, 0]
         rw = [cyc_begin, 0]
         pw = [0, 0]
-        tt = 0.09#q[0]
+        tt = 0.095#q[0]
         ttm = 0.2*tt
         ta = 0
         ra = 0
@@ -279,7 +279,7 @@ def main_new(recordname, show):
         axarr[0].plot(rp_show / fs, rp_val, "b+", markersize=6)
         axarr[0].plot(tp_show / fs, tp_val, "m+", markersize=6)
         axarr[0].plot(t, prefilt[:sampto], "g", alpha=0.5)
-        axarr[0].set_title("ECG segmentation")
+        axarr[0].set_title("ECG segmentation: {}".format(recordname.split('/')[-1]))
         axarr[0].set_xlabel("time (s)")
         axarr[0].set_ylabel(fields["units"][0])
 
@@ -290,4 +290,4 @@ def main_new(recordname, show):
 
 
 if __name__ == "__main__":
-    main_new('./ecg_data/e0103', True)
+    main_new('./ecg_data/e0118', 0, True)
