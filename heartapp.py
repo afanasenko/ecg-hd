@@ -3,6 +3,7 @@ import os
 import re
 import wfdb
 import json
+import numpy as np
 
 from PyQt4 import QtCore, QtGui
 from PyQt4.QtGui import QFileDialog
@@ -41,8 +42,8 @@ class ApplicationWindow(QtGui.QMainWindow):
             fullfile = os.path.join(dirname, f)
             # Не выводим каталоги
             if os.path.isfile(fullfile):
-                # Выводим только .dat файлы
-                file_re = re.compile(r'.*\.dat$')
+                # Выводим только .hea файлы
+                file_re = re.compile(r'.*\.hea$')
                 if file_re.match(f) is not None:
                     self.ui.fileList.addItem(f)
 
@@ -86,7 +87,10 @@ class ApplicationWindow(QtGui.QMainWindow):
     def plotSignal(self):
         chan = self.ui.channelsDropdown.currentIndex()
         fs = self.loaded_signal_header.get("fs", 360)
-        self.ui.samplingFreq.setText(str(fs))
+        self.ui.samplingFreq.setText(str(fs) + " Hz")
+
+        dur = np.ceil(len(self.loaded_signal[:, chan]) / fs)
+        self.ui.signalDuration.setText(str(dur) + " s")
         self.ui.signalUnits.setText(self.loaded_signal_header["units"][chan])
 
         samples = int(self.config_data["display"]["defaultTimeSpan"] * fs)

@@ -7,6 +7,78 @@ import wfdb
 import matplotlib.pyplot as plt
 import sys
 
+
+def erode(x,n):
+    """
+    Эрозия обычная
+    :param x:
+    :param n:
+    :return:
+    """
+
+    r = max(1, np.floor(n/2))
+    output = np.zeros(x.shape)
+
+    for i in range(len(x)):
+        i1 = max(0, i-n)
+        i2 = min(len(x)-1, i+n)
+        output[i] = min(x[i1:i2])
+
+    return output
+
+
+def conditional_dilate(x, mask, n=3):
+    """
+     Условное наращивание. Выходной сигнал не превосходит значений сигнала mask
+     :param x:
+     :param mask:
+     :param n: ширина структурного элемента
+     :return: (output, changed). Changed - флаг того, что сигнал изменился
+    """
+
+    r = int(max(1, np.floor(n/2)))
+    output = np.zeros(x.shape)
+    changed = False
+    nc = 0
+
+    for i in range(len(x)):
+        i1 = max(0, i-r)
+        i2 = min(len(x)-1, i+r)
+        dil = max(x[i1:i2])
+        # сравнение с маской
+        dil = min(dil, mask[i])
+        if dil != x[i]:
+            changed = True
+            nc += 1
+
+        output[i] = dil
+
+    #sys.stdout.write("{}, ".format(nc))
+    return output, changed
+
+def open_by_reconstruction(x, strel_size):
+    """
+     Морфологическое открытие через реконструкцию. "Срезает" положительные выбросы
+     :param x:
+     :param fs:
+     :return:
+    """
+
+    marker = erode(x, strel_size)
+    progress = True
+
+    while progress:
+        marker, progress = conditional_dilate(marker, mask=x, n=strel_size)
+
+    return marker
+
+
+def extract_peaks_morpho(x, fs, peak_length_ms=20):
+    samples_per_ms = fs/1000
+    elsize = max(3, round(samples_per_ms * peak_length_ms))
+    return open_by_reconstruction(x, elsize)
+
+
 def extract_short_peaks(x, fs, bias_window_ms=250, peak_length_ms=20, peak_interval_ms=500):
     """
     extract_short_peaks локализует всплески сигнала с продолжительностью меньше заданной
@@ -53,7 +125,7 @@ def extract_short_peaks(x, fs, bias_window_ms=250, peak_length_ms=20, peak_inter
     peak_threshold = 0   # размерность не определена и вообще это самый подлый параметр, от него надо избавляться.
     # для хороших сигналов можно попробовать порог 0, он универсальный
     
-    search_window = samples_per_ms * 10  # 10 миллисекунд
+    search_window = samples_per_ms * 100  # 10 миллисекунд
 
     for pos in extrema[0]:
         if hfsignal[pos] > peak_threshold:
@@ -66,31 +138,156 @@ def extract_short_peaks(x, fs, bias_window_ms=250, peak_length_ms=20, peak_inter
     # результат можно преобразовать в миллисекунды по формуле 1000 * pks / fs
     return np.array(pks) 
 
-def main():
+
+def main_new(recordname, show):
+    print("processing " + recordname)
     # загрузка данных
-    recordname = sys.argv[1] # The name of the WFDB record to be read (without any file extensions)
-    sampto = int(sys.argv[2]) # The final sample number to read for each channel
-    peak_interval_ms = int(sys.argv[3])
-    sig, fields=wfdb.rdsamp(recordname, sampto=sampto)
-    x = sig[:,0]
+    outname = recordname.split("/")[-1] + "_features.tsv"
+
+    sampto = 3000 # The final sample number to read for each channel
+    peak_length = 20
+    peak_interval_ms = 690
+    bias_ms = 1200
+    #sig, fields=wfdb.rdsamp(recordname, sampto=sampto)
+    sig, fields=wfdb.rdsamp(recordname, sampto=450000)
+    x = sig[:, 0]
+    x -= np.mean(x)
     fs = fields["fs"] # sampling frequency (in samples per second per signal)
+    print("Sampling frequency: {} Hz".format(fs))
+    print("Duration: {} s".format(len(x) / fs))
 
-    pks = extract_short_peaks(x, fs, peak_interval_ms=peak_interval_ms)
-    A = [x[i] for i in pks]
-    I = [(pks[i+1] - pks[i])/1000 for i in range(len(pks)-1)]
+    basel = extract_peaks_morpho(x, fs, peak_length_ms=3*peak_length)
 
-    plt.style.use("ggplot")
-    t=np.array(range(0,sig.shape[0]))/fs
-    fig_size = plt.rcParams["figure.figsize"]
-    fig_size[0] = 12
-    fig_size[1] = 6
-    plt.rcParams["figure.figsize"] = fig_size
-    plt.plot(t, x)
-    plt.plot(pks/fs, A, "b+", markersize=6)
-    #plt.plot(pks/fs, np.zeros(len(pks)), "gd", markersize=6)
-    plt.title("MIT-BIH Arrhythmia record")
-    plt.xlabel("time/s")
-    plt.ylabel(fields["units"][0])
-    plt.show()
+    # немного сглаживаем биномиальным фильтром
+    binfilt = [0.25, 0.5, 0.25]
+
+    prefilt = signal.convolve(x - basel, binfilt, mode="same")
+
+    rpeaks = extract_short_peaks(x, fs, bias_window_ms=bias_ms, peak_interval_ms=peak_interval_ms)
+
+
+    dist, bins = np.histogram(prefilt, 25)
+    #axarr[1].plot(bins[:-1], dist, "r")
+    q = np.percentile(prefilt, [87, 90, 95])
+    print("\n")
+    print(q)
+
+    cycvalid = 0
+
+    cdata = []
+
+    tpeaks = []
+    tamp = []
+    ramp = []
+
+    for ncyc in range(len(rpeaks)-1):
+        cyc_begin = rpeaks[ncyc]
+        cyc_end = min(len(prefilt), rpeaks[ncyc+1])
+        state = 0
+
+        tw = [0, 0]
+        rw = [cyc_begin, 0]
+        pw = [0, 0]
+        tt = 0.09#q[0]
+        ttm = 0.2*tt
+        ta = 0
+        ra = 0
+
+        for i in range(cyc_begin, cyc_end):
+            # R-wave
+            if state == 0:
+                if prefilt[i] < tt:
+                    state = 1
+                    rw[1] = i
+                    ra = prefilt[cyc_begin]
+            # R-T segment
+            elif state == 1:
+                if prefilt[i] > tt:
+                    state = 2
+
+                    j = i
+                    while j>rw[1] and prefilt[j]>ttm:
+                        j -= 1
+                    tw[0] = j
+
+            # T-wave
+            elif state == 2:
+                if prefilt[i] < tt:
+                    state = 3
+                    tw[1] = i
+                    ta = max(prefilt[tw[0]:tw[1]])
+                    tp = tw[0] + np.argmax(prefilt[tw[0]:tw[1]])
+                    tpeaks.append(tp)
+
+            # T-P segment
+            elif state == 3:
+                if prefilt[i] > tt:
+                    state = 4
+                    pw[0] = i
+                # задний фронт T-зубца
+                j = tw[1]
+                while j < i and prefilt[j] > ttm:
+                    j += 1
+                tw[1] = j
+
+            # P-wave
+            elif state == 4:
+                if prefilt[i] < tt:
+                    state = 5
+                    pw[1] = i
+            # P-Q segment
+            elif state == 5:
+                if prefilt[i] > tt:
+                    state = 6
+
+        if state == 6:
+            cycvalid += 1
+            #print("cycle {:04}: state {}, tdur {}".format(ncyc, state, tw[1] - tw[0]))
+            cdata.append([
+                ra,
+                (rw[1] - rw[0]) / fs,
+                ta,
+                (tw[1]-tw[0])/fs
+            ])
+
+            ramp.append(ra)
+            tamp.append(ta)
+
+    with open(outname, "w") as fp:
+        for samp in cdata:
+            fp.write("\t".join([str(x) for x in samp]) + "\n")
+
+    print("{} of {} T-waves recognized".format(cycvalid, len(rpeaks)))
+
+    if show:
+        plt.style.use("ggplot")
+        t = np.arange(0, sampto) / fs
+        fig_size = plt.rcParams["figure.figsize"]
+        fig_size[0] = 12
+        fig_size[1] = 6
+        plt.rcParams["figure.figsize"] = fig_size
+        fig, axarr = plt.subplots(2, 1)
+        axarr[0].plot(t, x[:sampto], 'r')
+        plt.hold(True)
+
+        rp_show = np.array([x for x in rpeaks if x < sampto])
+        rp_val = [x[i] for i in rp_show]
+
+        tp_show = np.array([x for x in tpeaks if x < sampto])
+        tp_val = [x[i] for i in tp_show]
+
+        axarr[0].plot(rp_show / fs, rp_val, "b+", markersize=6)
+        axarr[0].plot(tp_show / fs, tp_val, "m+", markersize=6)
+        axarr[0].plot(t, prefilt[:sampto], "g", alpha=0.5)
+        axarr[0].set_title("ECG segmentation")
+        axarr[0].set_xlabel("time (s)")
+        axarr[0].set_ylabel(fields["units"][0])
+
+        axarr[1].scatter(tamp, ramp)
+
+        print("look at the plots")
+        plt.show()
+
+
 if __name__ == "__main__":
-    main()
+    main_new('./ecg_data/e0103', True)
