@@ -113,7 +113,7 @@ class ApplicationWindow(QtGui.QMainWindow):
 
             pk_len = self.config_data["rDetect"]["peakLengthMs"]
 
-            pks = extract_short_peaks(
+            pks, bks, hfs = extract_short_peaks(
                 self.loaded_signal[0:samples, chan],
                 fs,
                 unbias_wnd,

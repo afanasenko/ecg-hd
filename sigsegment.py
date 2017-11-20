@@ -99,9 +99,11 @@ def extract_short_peaks(x, fs, bias_window_ms=250, peak_length_ms=20, peak_inter
         h = h / sum(h)
 
         # огибающая (фон) вычисляется путем свертки со сглаживающей апертурой и затем вычитается из входного сигнала
-        lfsignal = x - signal.convolve(x, h, mode="same")
+        bks = signal.convolve(x, h, mode="same")
+        lfsignal = x - bks
     else:
         lfsignal = np.array(x, 'float')
+        bks = None
 
     # Готовим высокочастотный препарат, подчеркивающий короткие выбросы
 
@@ -136,7 +138,7 @@ def extract_short_peaks(x, fs, bias_window_ms=250, peak_length_ms=20, peak_inter
             pks.append(n1 + delta)
 
     # результат можно преобразовать в миллисекунды по формуле 1000 * pks / fs
-    return np.array(pks) 
+    return np.array(pks), bks, hfsignal
 
 
 def main_new(recordname, chan, show):
@@ -163,7 +165,7 @@ def main_new(recordname, chan, show):
 
     prefilt = signal.convolve(x - basel, binfilt, mode="same")
 
-    rpeaks = extract_short_peaks(x, fs, bias_window_ms=bias_ms, peak_interval_ms=peak_interval_ms)
+    rpeaks, bks, hfs = extract_short_peaks(x, fs, bias_window_ms=bias_ms, peak_interval_ms=peak_interval_ms)
 
 
     dist, bins = np.histogram(prefilt, 25)
@@ -260,14 +262,15 @@ def main_new(recordname, chan, show):
     print("{} of {} T-waves recognized".format(cycvalid, len(rpeaks)))
 
     if show:
-        plt.style.use("ggplot")
+        #plt.style.use("ggplot")
         t = np.arange(0, sampto) / fs
         fig_size = plt.rcParams["figure.figsize"]
+        plt.rcParams["figure.facecolor"] = "white"
         fig_size[0] = 12
         fig_size[1] = 6
         plt.rcParams["figure.figsize"] = fig_size
-        fig, axarr = plt.subplots(2, 1)
-        axarr[0].plot(t, x[:sampto], 'r')
+        fig, axarr = plt.subplots(1, 1)
+        axarr.plot(t, x[:sampto], 'r')
         plt.hold(True)
 
         rp_show = np.array([x for x in rpeaks if x < sampto])
@@ -276,18 +279,90 @@ def main_new(recordname, chan, show):
         tp_show = np.array([x for x in tpeaks if x < sampto])
         tp_val = [x[i] for i in tp_show]
 
-        axarr[0].plot(rp_show / fs, rp_val, "b+", markersize=6)
-        axarr[0].plot(tp_show / fs, tp_val, "m+", markersize=6)
-        axarr[0].plot(t, prefilt[:sampto], "g", alpha=0.5)
-        axarr[0].set_title("ECG segmentation: {}".format(recordname.split('/')[-1]))
-        axarr[0].set_xlabel("time (s)")
-        axarr[0].set_ylabel(fields["units"][0])
+        axarr.plot(rp_show / fs, rp_val, "k*", markersize=6)
+        axarr.plot(tp_show / fs, tp_val, "k+", markersize=6, linewidth=2)
+        #axarr[0].plot(t, prefilt[:sampto], "g", alpha=0.5)
+        #axarr[0].set_title("ECG segmentation: {}".format(recordname.split('/')[-1]))
+        axarr.set_xlabel("время, с")
+        axarr.set_ylabel("напряжение, мВ")
 
-        axarr[1].scatter(tamp, ramp)
+        #axarr[1].scatter(tamp, ramp)
 
         print("look at the plots")
         plt.show()
 
 
+def main_showstages(recordname, chan):
+    print("processing " + recordname)
+
+
+    sampto = 3000 # The final sample number to read for each channel
+    peak_length = 20
+    peak_interval_ms = 690
+    bias_ms = 1.9*peak_interval_ms
+    peak_length_ms = 15
+    #sig, fields=wfdb.rdsamp(recordname, sampto=sampto)
+    sig, fields=wfdb.rdsamp(recordname, sampto=450000)
+    x = sig[:, chan]
+    x -= np.mean(x)
+    fs = fields["fs"] # sampling frequency (in samples per second per signal)
+
+    #basel = extract_peaks_morpho(x, fs, peak_length_ms=3*peak_length)
+
+    # немного сглаживаем биномиальным фильтром
+    #binfilt = [0.25, 0.5, 0.25]
+
+    #prefilt = signal.convolve(x - basel, binfilt, mode="same")
+
+    rpeaks, bks, hfs = extract_short_peaks(
+        x,
+        fs,
+        bias_window_ms=bias_ms,
+        peak_length_ms=peak_length_ms,
+        peak_interval_ms=peak_interval_ms
+    )
+
+
+    dist, bins = np.histogram(x, 25)
+    #axarr[1].plot(bins[:-1], dist, "r")
+    q = np.percentile(x, [87, 90, 95])
+    print("\n")
+    print(q)
+
+    #plt.style.use("ggplot")
+    t = np.arange(0, sampto) / fs
+    fig_size = plt.rcParams["figure.figsize"]
+    fig_size[0] = 12
+    fig_size[1] = 6
+    plt.rcParams["figure.figsize"] = fig_size
+    plt.rcParams["figure.facecolor"] = "white"
+    ax1 = plt.subplot(211)
+    ax2 = plt.subplot(212, sharex=ax1)
+
+    ax1.plot(t, x[sampto:2*sampto], 'r')
+    plt.hold(True)
+
+    #rp_show = np.array([x for x in rpeaks if x < sampto])
+    #rp_val = [x[i] for i in rp_show]
+
+    #tp_show = np.array([x for x in tpeaks if x < sampto])
+    #tp_val = [x[i] for i in tp_show]
+
+    #axarr.plot(rp_show / fs, rp_val, "b+", markersize=6)
+    #axarr.plot(tp_show / fs, tp_val, "m+", markersize=6)
+    ax1.plot(t, bks[sampto:2*sampto], "k", linewidth=2)
+    ax2.plot(t, hfs[sampto:2*sampto], "k")
+    #axarr.set_title("ECG segmentation: {}".format(recordname.split('/')[-1]))
+    ax1.set_xlabel("время, с")
+    ax1.set_ylabel("напряжение, мВ")
+    ax1.legend(["входной сигнал", "низкочастотный фон"])
+    ax2.set_xlabel("время, с")
+    ax2.set_ylabel("напряжение, мВ")
+
+    print("look at the plots")
+    plt.show()
+
 if __name__ == "__main__":
     main_new('./ecg_data/e0118', 0, True)
+
+    #main_showstages('./ecg_data/e0602', 0)
