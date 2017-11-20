@@ -1,0 +1,13 @@
+{
+  "preProcessing": {
+    "biasWindowMs": 900
+  },
+  "rDetect":
+  {
+    "peakLengthMs": 20,
+    "peakIntervalMs": 590
+  },
+  "display": {
+    "defaultTimeSpan": 5
+  }
+}
