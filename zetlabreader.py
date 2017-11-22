@@ -1,4 +1,4 @@
-#coding: utf-8
+# coding: utf-8
 
 import io
 import os
@@ -10,13 +10,13 @@ import xml.etree.ElementTree as ET
 
 def load_xml_header(basename):
     kv = {}
-    xmlname = basename+".xml"
+    xmlname = basename + ".xml"
     if os.path.isfile(xmlname):
         tree = ET.parse(xmlname)
         root = tree.getroot()
         desc = root.find("Signal")
         if desc is not None:
-            kv["FRQ"] = int(desc.get("frequency",1))
+            kv["FRQ"] = int(desc.get("frequency", 1))
             kv["ABSVOLT"] = float(desc.get("minlevel", 1))
             kv["CONVERT"] = desc.get("conversion", "mV")
             kv["NAME"] = desc.get("name", "unknown")
@@ -52,14 +52,14 @@ def readbin(f):
 
     return scale*np.array(data), fs, kv.get("name", "unknown")
 
+
 if __name__ == "__main__":
     fn = "/Users/arseniy/Downloads/кроль_13_окт/s171012_141529/sig0003"
-    #fn = "/Users/arseniy/GUAP-ZAYC/rabbit20170602/Кролик 02.06.2017 операция/sig0001"
     d, fs, n = readbin(fn)
 
     t = np.arange(0, len(d)/fs, 1.0/fs)
 
-    plt.plot(t,d)
+    plt.plot(t, d)
     plt.xlim([540, 545])
     plt.title(n)
     print("Look at the plots")
