@@ -24,12 +24,14 @@ def load_xml_header(basename):
     return kv
 
 
-def readbin(f):
+def anaread(f):
 
-    kv = load_xml_header(f)
+    basename = ".".join(f.split(".")[:-1])
+
+    kv = load_xml_header(basename)
 
     if not kv:
-        with open(f + ".anp", "r") as fh:
+        with open(basename + ".anp", "r") as fh:
             for line in fh:
                 if line.strip():
                     p = [x.strip() for x in line.split()]
@@ -38,7 +40,7 @@ def readbin(f):
 
     data = array.array('f')
 
-    with open(f+".ana", "rb") as fh:
+    with open(basename+ ".ana", "rb") as fh:
         fh.seek(0, io.SEEK_END)
         filesz = fh.tell()
         num_samples = int(filesz/4)
@@ -55,7 +57,7 @@ def readbin(f):
 
 if __name__ == "__main__":
     fn = "/Users/arseniy/Downloads/кроль_13_окт/s171012_141529/sig0003"
-    d, fs, n = readbin(fn)
+    d, fs, n = anaread(fn)
 
     t = np.arange(0, len(d)/fs, 1.0/fs)
 
