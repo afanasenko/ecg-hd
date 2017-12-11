@@ -5,7 +5,6 @@ from scipy import signal
 import numpy as np
 import wfdb
 import matplotlib.pyplot as plt
-import sys
 
 
 def erode(x,n):
@@ -55,6 +54,7 @@ def conditional_dilate(x, mask, n=3):
 
     #sys.stdout.write("{}, ".format(nc))
     return output, changed
+
 
 def open_by_reconstruction(x, strel_size):
     """
@@ -151,7 +151,7 @@ def main_new(recordname, chan, show):
     peak_interval_ms = 690
     bias_ms = 1.9*peak_interval_ms
     #sig, fields=wfdb.rdsamp(recordname, sampto=sampto)
-    sig, fields=wfdb.rdsamp(recordname, sampto=450000)
+    sig, fields = wfdb.rdsamp(recordname, sampto=450000)
     x = sig[:, chan]
     x -= np.mean(x)
     fs = fields["fs"] # sampling frequency (in samples per second per signal)
