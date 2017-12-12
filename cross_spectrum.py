@@ -56,6 +56,13 @@ def build_args():
         help="Output file name"
     )
 
+    parser.add_argument(
+        "-s", "--synchron",
+        action='store_true',
+        default=False,
+        help="Spectrum in synchronous mode"
+    )
+
     return parser.parse_known_args()
 
 
@@ -124,12 +131,21 @@ def main():
 
     rpk_hi = np.round(fs_hi * rpeaks / fs_lo).astype(int)
 
-    sp = synchro_spectrum_r(
-        data[1],
-        rpk_hi,
-        halfw=int(width/2),
-        log_output=True
-    )
+    islog = True
+
+    if options.synchron:
+        sp = synchro_spectrum_r(
+            data[1],
+            rpk_hi,
+            halfw=int(width/2),
+            log_output=islog
+        )
+    else:
+        sp = mean_spectrum(
+            data[1],
+            aperture=1024,
+            log_output=islog
+        )
 
     npoints = len(sp)
     xf = np.linspace(0.0, 0.5 * fs_hi, npoints)
