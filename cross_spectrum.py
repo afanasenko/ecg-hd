@@ -63,6 +63,13 @@ def build_args():
         help="Spectrum in synchronous mode"
     )
 
+    parser.add_argument(
+        "-l", "--lowfreq",
+        action='store_true',
+        default=False,
+        help="Spectrum of LF channel"
+    )
+
     return parser.parse_known_args()
 
 
@@ -133,23 +140,27 @@ def main():
 
     islog = True
 
+    signal_index = 0 if options.lowfreq else 1
+    freq = fs_lo if options.lowfreq else fs_hi
+
     if options.synchron:
+        print("sync mode on")
         sp = synchro_spectrum_r(
-            data[1],
+            data[signal_index],
             rpk_hi,
             halfw=int(width/2),
             log_output=islog
         )
     else:
+        print("async mode on")
         sp = mean_spectrum(
-            data[1],
+            data[signal_index],
             aperture=1024,
             log_output=islog
         )
 
     npoints = len(sp)
-    xf = np.linspace(0.0, 0.5 * fs_hi, npoints)
-
+    xf = np.linspace(0.0, 0.5 * freq, npoints)
 
     if options.out_file:
         with open(options.out_file, "w") as fo:
@@ -157,7 +168,7 @@ def main():
                 fo.write("{}\t{}\n".format(x, y))
     else:
         axarr.plot(xf, sp)
-        axarr.set_xlim([0, fs_hi/4])
+        axarr.set_xlim([0, freq/4])
         axarr.set_xlabel("Частота, Гц")
         axarr.set_ylabel("Амплитуда, дБ")
         axarr.grid(True)

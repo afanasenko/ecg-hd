@@ -16,21 +16,31 @@ def spload(filename):
     return xf, sp
 
 if __name__ == "__main__":
-    if len(sys.argv) < 3:
+    if len(sys.argv) < 5:
         sys.exit(1)
 
     xf1, sp1 = spload(sys.argv[1])
-    xf2, sp2 = spload(sys.argv[2])
+
+    tit1 = sys.argv[2]
+
+    xf2, sp2 = spload(sys.argv[3])
+
+    tit2 = sys.argv[4]
+
+    f1 = max(int(sys.argv[5]), xf1[0])
+    f2 = min(int(sys.argv[6]), xf1[-1])
 
     plt.style.use("ggplot")
     plt.rcParams["font.family"] = "Verdana"
     f, axarr = plt.subplots(1, 1)
 
-    axarr.plot(xf1, sp1, '--', linewidth=2)
-    axarr.plot(xf2, sp2, '-', linewidth=1)
-    # axarr.set_xlim([0, fs_hi / 4])
+
+    axarr.plot(xf1, sp1, '-', linewidth=1)
+    axarr.plot(xf2, sp2, '--', linewidth=2)
+    axarr.set_xlim([f1, f2])
     axarr.set_xlabel("Частота, Гц")
     axarr.set_ylabel("Амплитуда, дБ")
+    axarr.legend([tit1, tit2])
     axarr.grid(True)
 
     print("Look at the plots")
