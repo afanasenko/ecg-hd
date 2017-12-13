@@ -177,11 +177,12 @@ def mean_spectrum(x, aperture=1024, log_output=True):
     ham = np.array(signal.hann(aperture))
 
     n1 = 0
+    happ = int(aperture/2)
     K = 0
     while n1 < N - aperture:
         xs = np.array(x[n1:n1 + aperture])
         yf = fft(xs * ham)
-        yf = np.abs(yf[0:aperture / 2])
+        yf = np.abs(yf[0:happ])
         K += 1
 
         if acc is not None:
@@ -189,7 +190,7 @@ def mean_spectrum(x, aperture=1024, log_output=True):
         else:
             acc = yf
 
-        n1 += aperture / 2
+        n1 += happ
 
     acc /= K
 
