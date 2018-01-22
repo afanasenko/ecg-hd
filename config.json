@@ -1,13 +1,17 @@
 {
   "preProcessing": {
-    "biasWindowMs": 900
+    "biasWindowMs": 900,
+    "biasCorrection": true,
+    "mainsCorrection": true
   },
   "rDetect":
   {
+    "enabled": false,
     "peakLengthMs": 20,
     "peakIntervalMs": 590
   },
   "display": {
-    "defaultTimeSpan": 5
+    "spectralView": false,
+    "defaultTimeSpan": 2
   }
 }
