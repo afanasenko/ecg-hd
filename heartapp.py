@@ -32,7 +32,6 @@ class ApplicationWindow(QtGui.QMainWindow):
 
         self.ui.refreshSignal.clicked.connect(self.plotSignal)
 
-
     def listFiles(self, dirname):
 
         self.cur_dir = dirname
@@ -113,7 +112,7 @@ class ApplicationWindow(QtGui.QMainWindow):
 
             pk_len = self.config_data["rDetect"]["peakLengthMs"]
 
-            pks, bks, hfs = extract_short_peaks(
+            pks, bks, hfs, lfs = extract_short_peaks(
                 self.loaded_signal[0:samples, chan],
                 fs,
                 unbias_wnd,
@@ -121,10 +120,16 @@ class ApplicationWindow(QtGui.QMainWindow):
                 pk_interval
             )
 
-            self.ui.plotArea.plot_signal_with_markup(self.loaded_signal[0:samples, chan], pks, fs)
+            if unbias_wnd:
+                self.ui.plotArea.plot_signal_with_markup(
+                    lfs, pks, fs
+                )
+            else:
+                self.ui.plotArea.plot_signal_with_markup(
+                    self.loaded_signal[0:samples, chan], pks, fs
+                )
         else:
             self.ui.plotArea.plot_signal(self.loaded_signal[0:samples, chan], fs)
-
 
     def loadConfig(self, filename):
         self.config_data = {}
@@ -135,8 +140,12 @@ class ApplicationWindow(QtGui.QMainWindow):
                 print("Unable to load config")
 
         if self.config_data:
-            self.ui.biasWindowLen.setText(str(self.config_data["preProcessing"]["biasWindowMs"]))
-            self.ui.minRinterval.setText(str(self.config_data["rDetect"]["peakIntervalMs"]))
+            self.ui.biasWindowLen.setText(
+                str(self.config_data["preProcessing"]["biasWindowMs"])
+            )
+            self.ui.minRinterval.setText(
+                str(self.config_data["rDetect"]["peakIntervalMs"])
+            )
 
 if __name__ == "__main__":
 
