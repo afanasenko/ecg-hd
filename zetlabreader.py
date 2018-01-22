@@ -2,6 +2,7 @@
 
 import io
 import os
+import sys
 import array
 from matplotlib import pyplot as plt
 import numpy as np
@@ -55,14 +56,67 @@ def anaread(f):
     return scale*np.array(data), fs, kv.get("name", "unknown")
 
 
+def readint(f):
+    b = f.read(4)
+    i = int.from_bytes(b, byteorder="little", signed=True)
+    return i
+
+
+def readshort(f):
+    b = f.read(2)
+    i = int.from_bytes(b, byteorder="little", signed=True)
+    return i
+
+
+def holterread(filename):
+    """
+    read ecg data from .dat file in Holter format
+    :param filename:
+    :return:
+    """
+    with open(filename, "rb") as fh:
+        marker = fh.read(8)
+        crc = fh.read(2)
+        varblock_len = readint(fh)
+        ecg_samples = readint(fh)
+        varblock_offset = readint(fh)
+        ecg_offset = readint(fh)
+        version = readshort(fh)
+
+
+        print(varblock_len)
+        print(ecg_samples)
+        print(ecg_offset)
+
+        ecg_offset=3940
+        ecg_samples = 12000
+
+        #data = array.array("i")  # signed int ???
+        data = array.array("h")  # signed short
+        #data = array.array("f")  # float
+        fh.seek(ecg_offset, io.SEEK_SET)
+        data.fromfile(fh, ecg_samples)
+
+        print("...")
+        raw = np.reshape(np.array(data), (-1,6))
+        print(raw.shape)
+        return raw[:, 2], 100, "lll"
+
+
 if __name__ == "__main__":
-    fn = "/Users/arseniy/Downloads/кроль_13_окт/s171012_141529/sig0003"
-    d, fs, n = anaread(fn)
+
+    d, fs, n = holterread('/Users/arseniy/GUAP-ZAYC/holter/Чумичева.dat')
+
+    #fn = "/Users/arseniy/Downloads/кроль_13_окт/s171012_141529/sig0003"
+    #d, fs, n = anaread(fn)
 
     t = np.arange(0, len(d)/fs, 1.0/fs)
 
+
     plt.plot(t, d)
-    plt.xlim([540, 545])
+    #plt.xlim([540, 545])
     plt.title(n)
+
     print("Look at the plots")
-    plt.savefig("отведение 3 тромб через 2 мин.png")
+    plt.show()
+    #plt.savefig("отведение 3 тромб через 2 мин.png")
