@@ -138,7 +138,7 @@ def extract_short_peaks(x, fs, bias_window_ms=250, peak_length_ms=20, peak_inter
             pks.append(n1 + delta)
 
     # результат можно преобразовать в миллисекунды по формуле 1000 * pks / fs
-    return np.array(pks), bks, hfsignal
+    return np.array(pks), bks, hfsignal, lfsignal
 
 
 def main_new(recordname, chan, show):
