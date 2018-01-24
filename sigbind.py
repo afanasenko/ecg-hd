@@ -4,7 +4,7 @@
 
 from scipy import signal
 import numpy as np
-from scipy.fftpack import fft
+from scipy.fftpack import fft, ifft
 
 """
     Поиск границ кардиоциклов
@@ -236,3 +236,73 @@ def preprocess(signals):
                 pks.append(n1 + delta)
 
         signals["zub"].append(pks)
+
+
+def build_comb_filter(fs, n, att, base_freq=50.0, q=5.0):
+
+    att = min(1.0, max(att, 0.0))
+    response = np.ones(n)
+    f_grid = np.arange(0.0, fs, fs/n)
+
+    for i, f in enumerate(f_grid):
+        real_f = f if f <= fs/2 else fs-f
+        for harm in np.arange(base_freq, fs/2, base_freq):
+            d = (1.0 - att) * np.exp(-((real_f-harm)/q)**2)
+            response[i] = min(response[i], 1.0 - d)
+
+    return f_grid, response
+
+
+def mains_filter(x, fs, mains, attenuation, aperture):
+    """
+    Подавление гармоник частоты электрической сети
+    :param x:
+    :param fs: частота дискретизации в Гц
+    :param mains: частота сети
+    :param attenuation: коэффициент ослабления гармоник (0 - полное подавление)
+    :param aperture: апертура БПФ
+    :return:
+    """
+
+    f_grid, fft_response = build_comb_filter(
+        fs=fs,
+        n=aperture,
+        att=attenuation,
+        base_freq=mains,
+        q=mains*0.03
+    )
+
+    result = np.zeros(len(x))
+    hamwnd = np.array(signal.hann(aperture))
+    step = int(aperture / 2)
+
+    n2 = len(x) - aperture
+    for n1 in range(0, n2, step):
+        # комплексный спектр с учетом окна
+        xf = fft(hamwnd * np.array(x[n1:n1 + aperture]))
+        # отфильтрованный сигнал в окне
+        yt = np.real(ifft(xf * fft_response))
+
+        result[n1:n1 + aperture] += yt
+
+    return result
+
+
+def fix_baseline(x, fs, bias_window_ms):
+    """
+    fix_baseline выравнивает базовую линию
+    :param x: numpy array - отсчеты сигнала
+    :param fs: частота дискретизации, Гц
+    :param bias_window_ms: ширина окна для подаввления фона (мс)
+    :return: сигнал с подавленным фоном
+    """
+
+    samples_per_ms = fs/1000
+
+    # косинусоидальная сглаживающая апертура шириной bias_window_ms
+    h = signal.hann(samples_per_ms * bias_window_ms)
+    h = h / sum(h)
+
+    # огибающая (фон) вычисляется путем свертки со сглаживающей апертурой и затем вычитается из входного сигнала
+    bks = signal.convolve(x, h, mode="same")
+    return x - bks
