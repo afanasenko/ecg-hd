@@ -1,0 +1,12 @@
+---
+  PREPROCESSING:
+    baseline_correction: true
+    mains_correction: true
+
+  BASELINE:
+    unbias_window_ms: 900
+
+  MAINS_FILTER:
+    base_freq: 50
+    attenuation: 0.05
+    fft_size: 512
