@@ -6,7 +6,10 @@ import os
 import yaml
 import argparse
 import wfdb
-from sigbind import *
+
+import numpy as np
+
+from cardio_clean.sigbind import fix_baseline, mains_filter
 
 
 def build_options():
