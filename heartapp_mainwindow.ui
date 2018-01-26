@@ -191,7 +191,7 @@
           </widget>
          </item>
          <item row="3" column="0" colspan="2">
-          <widget class="QCheckBox" name="checkBox_2">
+          <widget class="QCheckBox" name="mainsFilter">
            <property name="text">
             <string>Mains supression</string>
            </property>
