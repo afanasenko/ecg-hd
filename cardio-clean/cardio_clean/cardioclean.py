@@ -9,7 +9,7 @@ import wfdb
 
 import numpy as np
 
-from cardio_clean.sigbind import fix_baseline, mains_filter
+from sigbind import fix_baseline, mains_filter
 
 
 def build_options():
@@ -54,7 +54,7 @@ def main():
 
     recordname = ".".join(options.input_file.split(".")[:-1])
 
-    sig, fields = wfdb.rdsamp(recordname)
+    sig, fields = wfdb.srdsamp(recordname)
 
     # число каналов берем из данных, а не из заголовка
     for channel in range(sig.shape[1]):
@@ -65,7 +65,7 @@ def main():
         else:
             ubsig = np.array(sig[:, channel], "float")
 
-        if config["PREPORCESSING"].get("mains_correction", True):
+        if config["PREPROCESSING"].get("mains_correction", True):
             umsig = mains_filter(
                 ubsig,
                 fs=fields["fs"],
@@ -76,8 +76,17 @@ def main():
         else:
             umsig = ubsig.copy()
 
-        # восстановить исходный формат данных ??
         sig[:, channel] = umsig
+
+    wfdb.wrsamp(
+        options.output_file,
+        fs=fields["fs"],
+        units=fields["units"],
+        signames=fields["signame"],
+        comments=fields["comments"],
+        p_signals=sig,
+        fmt=fields.get("fmt", ["16"]*sig.shape[1])
+    )
 
 
 if __name__ == "__main__":

@@ -95,7 +95,7 @@ def extract_short_peaks(x, fs, bias_window_ms=250, peak_length_ms=20, peak_inter
 
     if bias_window_ms:
         # косинусоидальная сглаживающая апертура шириной bias_window_ms
-        h = signal.hann(samples_per_ms * bias_window_ms)
+        h = signal.hann(int(samples_per_ms * bias_window_ms))
         h = h / sum(h)
 
         # огибающая (фон) вычисляется путем свертки со сглаживающей апертурой и затем вычитается из входного сигнала
@@ -107,7 +107,7 @@ def extract_short_peaks(x, fs, bias_window_ms=250, peak_length_ms=20, peak_inter
 
     # Готовим высокочастотный препарат, подчеркивающий короткие выбросы
 
-    h = signal.hann(samples_per_ms * peak_length_ms)
+    h = signal.hann(int(samples_per_ms * peak_length_ms))
     h = h / sum(h)
 
     hfsignal = lfsignal - signal.convolve(lfsignal, h, mode="same")

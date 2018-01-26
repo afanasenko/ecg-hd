@@ -300,7 +300,7 @@ def fix_baseline(x, fs, bias_window_ms):
     samples_per_ms = fs/1000
 
     # косинусоидальная сглаживающая апертура шириной bias_window_ms
-    h = signal.hann(samples_per_ms * bias_window_ms)
+    h = signal.hann(int(samples_per_ms * bias_window_ms))
     h = h / sum(h)
 
     # огибающая (фон) вычисляется путем свертки со сглаживающей апертурой и затем вычитается из входного сигнала

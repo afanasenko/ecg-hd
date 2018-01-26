@@ -62,7 +62,7 @@ class ApplicationWindow(QtGui.QMainWindow):
             recordname = '.'.join(full_file_name.split('.')[:-1])
 
             # Чтение сигнала
-            sig, fields = wfdb.rdsamp(recordname)
+            sig, fields = wfdb.srdsamp(recordname)
             # Не очень понятна обработка ошибок чтения
 
             self.loaded_signal = sig
