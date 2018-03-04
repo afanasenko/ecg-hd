@@ -242,7 +242,7 @@ def build_comb_filter(fs, n, att, base_freq=50.0, q=5.0):
 
     att = min(1.0, max(att, 0.0))
     response = np.ones(n)
-    f_grid = np.arange(0.0, fs, fs/n)
+    f_grid = np.arange(0.0, fs, float(fs)/n)
 
     for i, f in enumerate(f_grid):
         real_f = f if f <= fs/2 else fs-f
@@ -297,7 +297,7 @@ def fix_baseline(x, fs, bias_window_ms):
     :return: сигнал с подавленным фоном
     """
 
-    samples_per_ms = fs/1000
+    samples_per_ms = float(fs)/1000
 
     # косинусоидальная сглаживающая апертура шириной bias_window_ms
     h = signal.hann(int(samples_per_ms * bias_window_ms))
