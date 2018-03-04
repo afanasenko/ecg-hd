@@ -90,7 +90,7 @@ def extract_short_peaks(x, fs, bias_window_ms=250, peak_length_ms=20, peak_inter
     :return: np_array с номерами отсчетов сигнала, в которых найдены всплески
     """
 
-    samples_per_ms = fs/1000
+    samples_per_ms = float(fs)/1000
     #print(samples_per_ms * peak_interval_ms)
 
     if bias_window_ms:
