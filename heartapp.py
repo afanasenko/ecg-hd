@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# coding: utf-8
+
 import sys
 import os
 import re
@@ -5,17 +8,17 @@ import wfdb
 import json
 import numpy as np
 
-from PyQt4 import QtCore, QtGui
-from PyQt4.QtGui import QFileDialog
+from PyQt5 import QtCore, QtGui
+from PyQt5.QtWidgets import QApplication, QFileDialog, QMainWindow
 from ui_mainwindow import Ui_MainWindow
 
 from sigsegment import extract_short_peaks
 
 """
 """
-class ApplicationWindow(QtGui.QMainWindow):
+class ApplicationWindow(QMainWindow):
     def __init__(self):
-        QtGui.QMainWindow.__init__(self)
+        QMainWindow.__init__(self)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
 
         self.ui = Ui_MainWindow()
@@ -62,7 +65,7 @@ class ApplicationWindow(QtGui.QMainWindow):
             recordname = '.'.join(full_file_name.split('.')[:-1])
 
             # Чтение сигнала
-            sig, fields = wfdb.srdsamp(recordname)
+            sig, fields = wfdb.rdsamp(recordname)
             # Не очень понятна обработка ошибок чтения
 
             self.loaded_signal = sig
@@ -149,12 +152,14 @@ class ApplicationWindow(QtGui.QMainWindow):
 
 if __name__ == "__main__":
 
-    qApp = QtGui.QApplication(sys.argv)
+
+    app = QApplication(sys.argv)
+
     wnd = ApplicationWindow()
     wnd.loadConfig("config.json")
 
     wnd.show()
-    sys.exit(qApp.exec())
+    sys.exit(app.exec_())
 
     # пример генерации кода из ui файла
     # ~/anaconda3/bin/pyuic4 ecgui.ui > ui_ecg_mainwindow.py

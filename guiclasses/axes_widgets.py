@@ -1,7 +1,8 @@
 #!/usr/bin/env python
+# coding: utf-8
 
 import random
-from PyQt4 import QtGui, QtCore
+from PyQt5 import QtWidgets, QtCore
 
 from numpy import arange, sin, pi
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
@@ -27,8 +28,8 @@ class axesWidget(FigureCanvas):
         self.setParent(parent)
         FigureCanvas.setSizePolicy(
             self,
-            QtGui.QSizePolicy.Expanding,
-            QtGui.QSizePolicy.Expanding
+            QtWidgets.QSizePolicy.Expanding,
+            QtWidgets.QSizePolicy.Expanding
         )
         FigureCanvas.updateGeometry(self)
 
