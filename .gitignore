@@ -4,4 +4,4 @@ ui_mainwindow.py
 *.dat
 *.atr
 *.tsv
-
+*.pyc
