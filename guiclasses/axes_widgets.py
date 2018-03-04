@@ -40,13 +40,14 @@ class axesWidget(FigureCanvas):
         self.draw()
 
     def plot_signal(self, x, fs):
-        t = np.array(range(0, x.shape[0])) / fs
+        t = np.array(range(0, x.shape[0]), float) / fs
         self.axes.plot(t, x)
         self.draw()
         pass
 
     def plot_signal_with_markup(self, x, marks, fs):
-        t = np.array(range(0, x.shape[0])) / fs
+        t = np.array(range(0, x.shape[0]), float) / fs
+
         self.axes.plot(t, x, "b")
         self.axes.hold(True)
         self.axes.plot(marks/fs, [x[i] for i in marks], "r+", markersize=6)
