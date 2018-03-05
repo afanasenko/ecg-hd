@@ -303,6 +303,7 @@ def fix_baseline(x, fs, bias_window_ms):
     h = signal.hann(int(samples_per_ms * bias_window_ms))
     h = h / sum(h)
 
+    bias = np.mean(x)
     # огибающая (фон) вычисляется путем свертки со сглаживающей апертурой и затем вычитается из входного сигнала
-    bks = signal.convolve(x, h, mode="same")
-    return x - bks
+    bks = signal.convolve(x - bias, h, mode="same")
+    return x - bias - bks
