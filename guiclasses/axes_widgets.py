@@ -1,10 +1,8 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import random
-from PyQt5 import QtWidgets, QtCore
+from PyQt5 import QtWidgets
 
-from numpy import arange, sin, pi
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 import numpy as np
@@ -35,7 +33,6 @@ class axesWidget(FigureCanvas):
 
         self.compute_initial_figure()
 
-    
     def compute_initial_figure(self):
         self.draw()
 
