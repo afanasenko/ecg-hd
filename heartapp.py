@@ -8,7 +8,7 @@ import wfdb
 import json
 import numpy as np
 
-from PyQt5 import QtCore, QtGui
+from PyQt5 import QtCore
 from PyQt5.QtWidgets import QApplication, QFileDialog, QMainWindow
 from ui_mainwindow import Ui_MainWindow
 
