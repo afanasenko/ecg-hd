@@ -61,3 +61,60 @@ def qrs_preprocessing(sig, fs):
             result += sm
 
     return sm / max(sm)
+
+
+def qrs_detection(sig, fs, minqrs_ms=20):
+    """
+
+    :param sig: ЭКС (одноканальный или многоканальный)
+    :param fs: частота дискретизации
+    :param minqrs_ms: минимальная длительность QRS-комплекса
+    :param debug: вывод дополнительных данных
+    :return: qrs_metadata (список найденных комплексов), отладочные данные
+    """
+
+    pp = qrs_preprocessing(sig, fs)
+
+    # 4-секундное окно для адаптивного порога
+    thresh_wnd = 4*fs
+    halfw = int(thresh_wnd/2)
+
+    qrsmask = np.zeros(len(pp), int)
+
+    inside = False
+    qrs_start = 0
+    qrs_num = 0
+    minqrs_smp = fs * float(minqrs_ms) / 1000
+
+    qrs_metadata = []
+
+    for i, v in enumerate(pp):
+        i0 = max(0, i-halfw)
+        i1 = min(len(pp), i+halfw)
+        thresh = np.mean(pp[i0:i1])
+        flag = 1 if v > thresh else 0
+        qrsmask[i] = flag
+
+        if flag and not inside:
+            qrs_start = i
+            inside = True
+
+        if not flag and inside:
+            qrs_end = i
+            inside = False
+            qrs_len = qrs_end - qrs_start
+            if qrs_len >= minqrs_smp:
+
+                #TODO: возможно, положение R-зубца нужно уточнять по
+                # исходному сигналу, вопрос - в каком канале
+                rpk = qrs_start + np.argmax(pp[qrs_start:qrs_end])
+
+                qrs_metadata.append({
+                    "number": qrs_num,
+                    "start_time": float(qrs_start)/fs,
+                    "end_time": float(qrs_end)/fs,
+                    "duration": float(qrs_len)/fs,
+                    "R-peak": float(rpk)/fs
+                })
+
+    return qrs_metadata, qrsmask
