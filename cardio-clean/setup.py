@@ -33,6 +33,7 @@ if __name__ == "__main__":
         entry_points={
             'console_scripts': [
                 'cardioclean = cardio_clean.cardioclean:main'
+                'qrsdemo = cardio_clean.graphresults:main'
             ],
         },
     )
