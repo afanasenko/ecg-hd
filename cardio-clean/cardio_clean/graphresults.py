@@ -74,11 +74,11 @@ def show_qrs(recordname):
     rx = []
     ry = []
     for x in meta:
-        if x["R-peak"] <= tt[-1]:
+        if tt[0] <= x["R-peak"] <= tt[-1]:
             rx.append(x["R-peak"])
             ry.append(sig[int(rx[-1]*fs), chan])
 
-    axarr[0].scatter(rx, ry)
+    axarr[0].scatter(rx, ry, c="r")
 
     # решающая статистика и стробы QRS-комплексов
     axarr[1].plot(tt,ptstat[N1:N2])
@@ -89,7 +89,7 @@ def show_qrs(recordname):
 
 def main():
     #show_spectrums(sys.argv[1])
-    show_qrs("/Users/arseniy/Downloads/ROXMINE/Rh2010")
+    show_qrs(sys.argv[1])
 
 
 if __name__ == "__main__":
