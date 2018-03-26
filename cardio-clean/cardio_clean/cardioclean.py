@@ -69,6 +69,7 @@ def logsetup():
     warnings_logger = logging.getLogger('py.warnings')
     warnings_logger.addHandler(file_handler)
     warnings_logger.addHandler(stream_handler)
+    return logger
 
 
 def main():
