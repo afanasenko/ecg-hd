@@ -7,6 +7,7 @@ from qrsdetect import qrs_detection
 # Числовые коды для поддерживаемых форматов
 SAMPLE_TYPE_SHORT = 1  # 16-битный целочисленный со знаком
 
+# когда в заголовке добавится поле SAMPLE_TYPE, этот флаг надо сбросить
 legacy_headers=True
 
 
@@ -83,7 +84,7 @@ def write_buffer(buf, header, samples):
 def blobapi_fix_baseline(inbuf, outbuf, bias_window_ms=1500):
     """
        Обертка над функцией коррекции изолинии
-    :param inbuf:
+    :param inbuf: входной буфер
     :param outbuf: модифициорованный буфер с заголовком и данными
     :param bias_window_ms: ширина окна для подаввления фона (мс)
     :return: None
@@ -102,7 +103,7 @@ def blobapi_mains_correction(
         aperture=512):
     """
        Обертка над функцией подавления сетевой помехи
-    :param inbuf:
+    :param inbuf: входной буфер
     :param outbuf: модифициорованный буфер с заголовком и данными
     :param attenuation: коэффициент ослабления гармоник (0 - полное подавление)
     :param mains: частота сети
@@ -118,3 +119,18 @@ def blobapi_mains_correction(
         attenuation=attenuation,
         aperture=aperture)
     write_buffer(outbuf, header, outdata)
+
+
+def blobapi_detect_qrs(inbuf, min_qrs_ms=20):
+    """
+       Обертка над функцией обнаружения QRS
+    :param inbuf: входной буфер (остается неизменным)
+    :param min_qrs_ms: минимальная длительность QRS-комплекса
+    :return: qrs_metadata (список найденных комплексов)
+    """
+
+    header, indata = read_buffer(inbuf)
+    return qrs_detection(
+        indata,
+        header["fs"],
+        minqrs_ms=min_qrs_ms)
