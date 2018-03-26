@@ -1,5 +1,5 @@
 import os
-from cardio_clean.wrappers import *
+from cardio_clean.cardioproc_api import *
 
 
 def test_readwrite():
