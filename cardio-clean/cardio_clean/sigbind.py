@@ -253,10 +253,10 @@ def build_comb_filter(fs, n, att, base_freq=50.0, q=5.0):
     return f_grid, response
 
 
-def mains_filter(x, fs, mains, attenuation, aperture):
+def mains_filter(sig, fs, mains, attenuation, aperture):
     """
     Подавление гармоник частоты электрической сети
-    :param x:
+    :param sig:
     :param fs: частота дискретизации в Гц
     :param mains: частота сети
     :param attenuation: коэффициент ослабления гармоник (0 - полное подавление)
@@ -272,26 +272,38 @@ def mains_filter(x, fs, mains, attenuation, aperture):
         q=mains*0.03
     )
 
-    result = np.zeros(len(x))
-    hamwnd = np.array(signal.hann(aperture))
-    step = int(aperture / 2)
+    # чтобы одинаково обрабатывать одноканальгные и многоканальные сигналы,
+    # добавляем размерность
+    if len(sig.shape) == 1:
+        sig = np.expand_dims(sig, axis=1)
 
-    n2 = len(x) - aperture
-    for n1 in range(0, n2, step):
-        # комплексный спектр с учетом окна
-        xf = fft(hamwnd * np.array(x[n1:n1 + aperture]))
-        # отфильтрованный сигнал в окне
-        yt = np.real(ifft(xf * fft_response))
+    result = []
 
-        result[n1:n1 + aperture] += yt
+    for channel in range(sig.shape[1]):
+        x = sig[:, channel]
 
-    return result
+        y = np.zeros(len(x))
+        hamwnd = np.array(signal.hann(aperture))
+        step = int(aperture / 2)
+
+        n2 = len(x) - aperture
+        for n1 in range(0, n2, step):
+            # комплексный спектр с учетом окна
+            xf = fft(hamwnd * np.array(x[n1:n1 + aperture]))
+            # отфильтрованный сигнал в окне
+            yt = np.real(ifft(xf * fft_response))
+
+            y[n1:n1 + aperture] += yt
+
+        result.append(y)
+
+    return np.array(result)
 
 
-def fix_baseline(x, fs, bias_window_ms):
+def fix_baseline(sig, fs, bias_window_ms):
     """
     fix_baseline выравнивает базовую линию
-    :param x: numpy array - отсчеты сигнала
+    :param sig: numpy array - отсчеты сигнала
     :param fs: частота дискретизации, Гц
     :param bias_window_ms: ширина окна для подаввления фона (мс)
     :return: сигнал с подавленным фоном
@@ -303,7 +315,18 @@ def fix_baseline(x, fs, bias_window_ms):
     h = signal.hann(int(samples_per_ms * bias_window_ms))
     h = h / sum(h)
 
-    bias = np.mean(x)
-    # огибающая (фон) вычисляется путем свертки со сглаживающей апертурой и затем вычитается из входного сигнала
-    bks = signal.convolve(x - bias, h, mode="same")
-    return x - bias - bks
+    # чтобы одинаково обрабатывать одноканальгные и многоканальные сигналы,
+    # добавляем размерность
+    if len(sig.shape) == 1:
+        sig = np.expand_dims(sig, axis=1)
+
+    result = []
+
+    for channel in range(sig.shape[1]):
+        x = sig[:, channel]
+        bias = np.mean(x)
+        # огибающая (фон) вычисляется путем свертки со сглаживающей апертурой и затем вычитается из входного сигнала
+        bks = signal.convolve(x - bias, h, mode="same")
+        result.append(x - bks)
+
+    return np.array(result)
