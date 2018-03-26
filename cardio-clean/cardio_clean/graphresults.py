@@ -43,7 +43,7 @@ def show_spectrums(recordname):
     plt.show()
 
 
-def show_qrs(recordname):
+def show_qrs(recordname, chan=0):
 
     # загрузили сигнал
     sig, fields = wfdb.rdsamp(recordname)
@@ -60,13 +60,11 @@ def show_qrs(recordname):
     N1 = 0
     N2 = 900
 
-    # номер канала
-    chan = 0
-
     tt = np.linspace(float(N1)/fs, float(N2-1)/fs, N2-N1)
 
+    plt.style.use("ggplot")
     plt.rcParams["figure.facecolor"] = "white"
-    fig, axarr = plt.subplots(2, 1)
+    fig, axarr = plt.subplots(2, 1, sharex=True)
 
     axarr[0].plot(tt, sig[N1:N2, chan])
 
@@ -79,6 +77,7 @@ def show_qrs(recordname):
             ry.append(sig[int(rx[-1]*fs), chan])
 
     axarr[0].scatter(rx, ry, c="r")
+    axarr[0].plot(tt,strobe[N1:N2])
 
     # решающая статистика и стробы QRS-комплексов
     axarr[1].plot(tt,ptstat[N1:N2])
@@ -89,7 +88,7 @@ def show_qrs(recordname):
 
 def main():
     #show_spectrums(sys.argv[1])
-    show_qrs(sys.argv[1])
+    show_qrs(sys.argv[1], int(sys.argv[2]))
 
 
 if __name__ == "__main__":
