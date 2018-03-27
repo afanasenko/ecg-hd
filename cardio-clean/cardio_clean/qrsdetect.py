@@ -117,5 +117,6 @@ def qrs_detection(sig, fs, minqrs_ms=20):
                     "r_wave_center": float(rpk)/fs,
                     "s_wave_center": 0
                 })
+                qrs_num += 1
 
     return qrs_metadata, qrsmask
