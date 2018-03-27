@@ -3,8 +3,12 @@ from cardio_clean.cardioproc_api import *
 
 
 def test_readwrite():
-    filename_in = "TestFromDcm.ecg"
-    filename_out = "output_rw.ecg"
+    filename_in = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "TestFromDcm.ecg")
+    filename_out = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "output_rw.ecg")
 
     with open(filename_in, "rb") as fi:
         hdr, data = read_buffer(fi)
@@ -19,9 +23,12 @@ def test_readwrite():
 
 
 def test_baseline():
-    filename_in = "TestFromDcm.ecg"
-    filename_out = "output_bl.ecg"
-
+    filename_in = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "TestFromDcm.ecg")
+    filename_out = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "output_bl.ecg")
     with open(filename_in, "rb") as fi:
         with open(filename_out, "wb") as fo:
             blobapi_fix_baseline(inbuf=fi, outbuf=fo)
@@ -30,16 +37,15 @@ def test_baseline():
 
 
 def test_mains():
-    filename_in = "TestFromDcm.ecg"
-    filename_out = "output_mains.ecg"
+    filename_in = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "TestFromDcm.ecg")
+    filename_out = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "output_mains.ecg")
 
     with open(filename_in, "rb") as fi:
         with open(filename_out, "wb") as fo:
             blobapi_mains_correction(inbuf=fi, outbuf=fo)
 
     assert os.stat(filename_in).st_size == os.stat(filename_out).st_size
-
-if __name__ == "__main__":
-    test_readwrite()
-    test_baseline()
-    test_mains()
