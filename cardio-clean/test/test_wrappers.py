@@ -49,3 +49,15 @@ def test_mains():
             blobapi_mains_correction(inbuf=fi, outbuf=fo)
 
     assert os.stat(filename_in).st_size == os.stat(filename_out).st_size
+
+
+def test_qrs():
+    filename_in = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "TestFromDcm.ecg")
+
+    with open(filename_in, "rb") as fi:
+        meta = blobapi_detect_qrs(inbuf=fi)
+
+    assert len(meta) == 3628
+
