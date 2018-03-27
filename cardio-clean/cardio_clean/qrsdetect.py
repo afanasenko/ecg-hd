@@ -85,6 +85,7 @@ def qrs_detection(sig, fs, minqrs_ms=20):
     qrs_start = 0
     qrs_num = 0
     minqrs_smp = fs * float(minqrs_ms) / 1000
+    pilot_channel = 0
 
     qrs_metadata = []
 
@@ -105,17 +106,17 @@ def qrs_detection(sig, fs, minqrs_ms=20):
             qrs_len = qrs_end - qrs_start
             if qrs_len >= minqrs_smp:
 
-                #TODO: возможно, положение R-зубца нужно уточнять по
-                # исходному сигналу, вопрос - в каком канале
-                rpk = qrs_start + np.argmax(pp[qrs_start:qrs_end])
+                #TODO: R-зубец искать в одном канале или во всех?
+                rpk = qrs_start + np.argmax(
+                    sig[qrs_start:qrs_end, pilot_channel])
 
                 qrs_metadata.append({
                     "cycle_num": qrs_num,
                     "qrs_start": float(qrs_start)/fs,
                     "qrs_end": float(qrs_end)/fs,
-                    "q_wave_center": 0,
+                    "q_wave_center": None,
                     "r_wave_center": float(rpk)/fs,
-                    "s_wave_center": 0
+                    "s_wave_center": None
                 })
                 qrs_num += 1
 
