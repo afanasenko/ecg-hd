@@ -72,8 +72,8 @@ def show_qrs(recordname, chan=0):
     rx = []
     ry = []
     for x in meta:
-        if tt[0] <= x["R-peak"] <= tt[-1]:
-            rx.append(x["R-peak"])
+        if tt[0] <= x["r_wave_center"] <= tt[-1]:
+            rx.append(x["r_wave_center"])
             ry.append(sig[int(rx[-1]*fs), chan])
 
     axarr[0].scatter(rx, ry, c="r")
@@ -87,6 +87,8 @@ def show_qrs(recordname, chan=0):
 
 
 def main():
+
+    
     #show_spectrums(sys.argv[1])
     show_qrs(sys.argv[1], int(sys.argv[2]))
 

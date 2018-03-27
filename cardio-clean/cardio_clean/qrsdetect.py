@@ -110,11 +110,12 @@ def qrs_detection(sig, fs, minqrs_ms=20):
                 rpk = qrs_start + np.argmax(pp[qrs_start:qrs_end])
 
                 qrs_metadata.append({
-                    "number": qrs_num,
-                    "start_time": float(qrs_start)/fs,
-                    "end_time": float(qrs_end)/fs,
-                    "duration": float(qrs_len)/fs,
-                    "R-peak": float(rpk)/fs
+                    "cycle_num": qrs_num,
+                    "qrs_start": float(qrs_start)/fs,
+                    "qrs_end": float(qrs_end)/fs,
+                    "q_wave_center": 0,
+                    "r_wave_center": float(rpk)/fs,
+                    "s_wave_center": 0
                 })
 
     return qrs_metadata, qrsmask
