@@ -130,7 +130,9 @@ def blobapi_detect_qrs(inbuf, min_qrs_ms=20):
     """
 
     header, indata = read_buffer(inbuf)
-    return qrs_detection(
+    metadata, debugdata = qrs_detection(
         indata,
         header["fs"],
         minqrs_ms=min_qrs_ms)
+
+    return metadata
