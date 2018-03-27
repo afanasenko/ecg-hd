@@ -44,11 +44,12 @@ def show_spectrums(recordname):
     plt.show()
 
 
-def show_qrs(recordname, chan=0):
+def show_qrs(recordname, tend=None):
 
     # загрузили сигнал
     sig, fields = wfdb.rdsamp(recordname)
     fs = fields["fs"]
+    num_chans = sig.shape[1]
 
     # следующие две строчки для наглядности. В реальной прорамме достаточно
     # вызвать
@@ -59,30 +60,32 @@ def show_qrs(recordname, chan=0):
 
     # номера начального и конечного отсчета для отображения
     N1 = 0
-    N2 = 900
+    N2 = 900 if tend is None else tend
 
     tt = np.linspace(float(N1)/fs, float(N2-1)/fs, N2-N1)
 
     plt.style.use("ggplot")
     plt.rcParams["figure.facecolor"] = "white"
-    fig, axarr = plt.subplots(2, 1, sharex=True)
+    fig, axarr = plt.subplots(num_chans+1, 1, sharex=True)
 
-    axarr[0].plot(tt, sig[N1:N2, chan])
+    for chan in range(num_chans):
 
-    # пометим R-зубцы
-    rx = []
-    ry = []
-    for x in meta:
-        if tt[0] <= x["r_wave_center"] <= tt[-1]:
-            rx.append(x["r_wave_center"])
-            ry.append(sig[int(rx[-1]*fs), chan])
+        axarr[chan].plot(tt, sig[N1:N2, chan])
 
-    axarr[0].scatter(rx, ry, c="r")
-    axarr[0].plot(tt,strobe[N1:N2])
+        # пометим R-зубцы
+        rx = []
+        ry = []
+        for x in meta:
+            if tt[0] <= x["r_wave_center"] <= tt[-1]:
+                rx.append(x["r_wave_center"])
+                ry.append(sig[int(rx[-1]*fs), chan])
+
+        axarr[chan].scatter(rx, ry, c="r")
+        axarr[chan].plot(tt,strobe[N1:N2])
 
     # решающая статистика и стробы QRS-комплексов
-    axarr[1].plot(tt,ptstat[N1:N2])
-    axarr[1].plot(tt,strobe[N1:N2])
+    axarr[num_chans].plot(tt,ptstat[N1:N2])
+    axarr[num_chans].plot(tt,strobe[N1:N2])
 
     plt.show()
 
