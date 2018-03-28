@@ -3,6 +3,8 @@
 import numpy as np
 from scipy.signal import lfilter
 
+from sigbind import signal_channels
+
 def dummy_shift(x, n):
     return np.concatenate((x[n:], np.ones(n)*x[-1]))
 
@@ -20,17 +22,12 @@ def qrs_preprocessing(sig, fs):
 
     result = None
 
-    # чтобы одинаково обрабатывать одноканальгные и многоканальные сигналы,
-    # добавляем размерность
-    if len(sig.shape) == 1:
-        sig = np.expand_dims(sig, axis=1)
-
-    for channel in range(sig.shape[1]):
+    for chan in signal_channels(sig):
         # НЧ фильтр (1 - z ^ -6) ^ 2 / (1 - z ^ -1) ^ 2
         b = np.array([1, 0, 0, 0, 0, 0, -2, 0, 0, 0, 0, 0, 1], float)
         a = np.array([1, -2, 1], float)
 
-        lp = lfilter(b, a, sig[:, channel])
+        lp = lfilter(b, a, chan)
         lp = dummy_shift(lp, 6)
 
         # слабый ВЧ фильтр z ^ -16 - [(1 - z ^ -32) / (1 - z ^ -1)]
@@ -108,9 +105,9 @@ def qrs_detection(sig, fs, bias, gain, minqrs_ms=20):
 
                 #TODO: R-зубец искать в одном канале или во всех?
                 rpk = qrs_start + np.argmax(
-                    sig[qrs_start:qrs_end, pilot_channel])
+                    sig[pilot_channel, qrs_start:qrs_end])
 
-                rpk_amplitudes = (sig[rpk,:] - bias) / gain
+                rpk_amplitudes = (sig[:,rpk] - bias) / gain
 
                 qrs_metadata.append({
                     "cycle_num": qrs_num,

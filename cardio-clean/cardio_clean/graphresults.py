@@ -7,7 +7,7 @@ import numpy as np
 
 from argparse import ArgumentParser
 from matplotlib import pyplot as plt
-from sigbind import build_comb_filter, mean_spectrum, mains_filter
+from sigbind import build_comb_filter, mean_spectrum, mains_filter, signal_channels
 from qrsdetect import *
 
 
@@ -67,8 +67,9 @@ def show_qrs(recordname, tend):
 
     # загрузили сигнал
     sig, fields = wfdb.rdsamp(recordname)
+    sig = np.transpose(sig)
     fs = fields["fs"]
-    num_chans = sig.shape[1]
+    num_chans = sig.shape[0]
     print(sig.shape)
 
     # следующие две строчки для наглядности. В реальной прорамме достаточно
@@ -92,9 +93,9 @@ def show_qrs(recordname, tend):
     plt.rcParams["figure.facecolor"] = "white"
     fig, axarr = plt.subplots(num_chans+1, 1, sharex=True)
 
-    for chan in range(num_chans):
+    for chan, signal in enumerate(signal_channels(sig)):
 
-        axarr[chan].plot(tt, sig[N1:N2, chan])
+        axarr[chan].plot(tt, signal[N1:N2])
 
         # пометим R-зубцы
         rx = []
@@ -102,7 +103,7 @@ def show_qrs(recordname, tend):
         for x in meta:
             if tt[0] <= x["r_wave_center"] <= tt[-1]:
                 rx.append(x["r_wave_center"])
-                ry.append(sig[int(rx[-1]*fs), chan])
+                ry.append(signal[int(rx[-1]*fs)])
 
         axarr[chan].scatter(rx, ry, c="r")
         axarr[chan].plot(tt,strobe[N1:N2])

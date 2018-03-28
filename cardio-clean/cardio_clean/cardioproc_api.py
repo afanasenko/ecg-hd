@@ -53,12 +53,14 @@ def read_buffer(buf):
                          dtype=np.int16,
                          count=signal_count*signal_len)
 
-    samples = np.reshape(np.array(data, float), (-1,signal_count))
+    samples = np.reshape(np.array(data, float), (signal_count, signal_len))
 
     header = {
         "fs": sampling_frequency,
         "adc_gain": adc_gain,
         "baseline": baseline,
+        "samples": signal_len,
+        "channels": signal_count
     }
 
     return header, samples
@@ -66,8 +68,8 @@ def read_buffer(buf):
 
 def write_buffer(buf, header, samples):
     rawheader = np.array([
-        samples.shape[1],
         samples.shape[0],
+        samples.shape[1],
         header["fs"],
         header["adc_gain"].dtype.itemsize * 8,
     ], np.uint32)

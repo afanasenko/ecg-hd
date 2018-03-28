@@ -6,6 +6,15 @@ from scipy import signal
 import numpy as np
 from scipy.fftpack import fft, ifft
 
+
+def signal_channels(signal):
+    if len(signal.shape) == 1:
+        yield signal
+    else:
+        for channel in range(signal.shape[0]):
+            yield signal[channel, :]
+
+
 """
     Поиск границ кардиоциклов
 """
@@ -272,15 +281,9 @@ def mains_filter(sig, fs, mains, attenuation, aperture):
         q=mains*0.03
     )
 
-    # чтобы одинаково обрабатывать одноканальгные и многоканальные сигналы,
-    # добавляем размерность
-    if len(sig.shape) == 1:
-        sig = np.expand_dims(sig, axis=1)
-
     result = []
 
-    for channel in range(sig.shape[1]):
-        x = sig[:, channel]
+    for x in signal_channels(sig):
 
         y = np.zeros(len(x))
         hamwnd = np.array(signal.hann(aperture))
@@ -315,15 +318,9 @@ def fix_baseline(sig, fs, bias_window_ms):
     h = signal.hann(int(samples_per_ms * bias_window_ms))
     h = h / sum(h)
 
-    # чтобы одинаково обрабатывать одноканальгные и многоканальные сигналы,
-    # добавляем размерность
-    if len(sig.shape) == 1:
-        sig = np.expand_dims(sig, axis=1)
-
     result = []
 
-    for channel in range(sig.shape[1]):
-        x = sig[:, channel]
+    for x in signal_channels(sig):
         bias = np.mean(x)
         # огибающая (фон) вычисляется путем свертки со сглаживающей апертурой и затем вычитается из входного сигнала
         bks = signal.convolve(x - bias, h, mode="same")
