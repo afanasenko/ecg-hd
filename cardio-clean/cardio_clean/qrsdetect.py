@@ -63,7 +63,7 @@ def qrs_preprocessing(sig, fs):
     return sm / max(sm)
 
 
-def qrs_detection(sig, fs, minqrs_ms=20):
+def qrs_detection(sig, fs, bias, gain, minqrs_ms=20):
     """
 
     :param sig: ЭКС (одноканальный или многоканальный)
@@ -110,12 +110,15 @@ def qrs_detection(sig, fs, minqrs_ms=20):
                 rpk = qrs_start + np.argmax(
                     sig[qrs_start:qrs_end, pilot_channel])
 
+                rpk_amplitudes = (sig[rpk,:] - bias) / gain
+
                 qrs_metadata.append({
                     "cycle_num": qrs_num,
                     "qrs_start": float(qrs_start)/fs,
                     "qrs_end": float(qrs_end)/fs,
                     "q_wave_center": None,
                     "r_wave_center": float(rpk)/fs,
+                    "r_wave_amplitude": rpk_amplitudes,
                     "s_wave_center": None
                 })
                 qrs_num += 1
