@@ -9,6 +9,27 @@ from argparse import ArgumentParser
 from matplotlib import pyplot as plt
 from sigbind import build_comb_filter, mean_spectrum, mains_filter, signal_channels
 from qrsdetect import *
+from cardioproc_api import read_buffer
+
+
+def ecgread(filename):
+    if filename.endswith(".ecg"):
+        with open(filename, "rb") as fi:
+            hdr, data = read_buffer(fi)
+            return data, hdr
+
+    else:
+        data, fields = wfdb.rdsamp(filename)
+        data = np.transpose(data)
+        hdr = {
+            "fs": fields["fs"],
+            "adc_gain": np.array([1.0]*data.shape[0]),
+            "baseline": np.array([0.0]*data.shape[0]),
+            "samples": data.shape[1],
+            "channels": data.shape[0]
+        }
+
+        return data, hdr
 
 
 def build_args():
@@ -66,11 +87,10 @@ def show_spectrums(recordname):
 def show_qrs(recordname, tend):
 
     # загрузили сигнал
-    sig, fields = wfdb.rdsamp(recordname)
-    sig = np.transpose(sig)
-    fs = fields["fs"]
+    sig, hdr = ecgread(recordname)
+    fs = hdr["fs"]
     num_chans = sig.shape[0]
-    print(sig.shape)
+
 
     # следующие две строчки для наглядности. В реальной прорамме достаточно
     # вызвать
@@ -80,8 +100,8 @@ def show_qrs(recordname, tend):
     meta, strobe = qrs_detection(
         sig,
         fs=fs,
-        bias=np.array([0.0]*num_chans),
-        gain=np.array([1.0]*num_chans))
+        bias=hdr["baseline"],
+        gain=hdr["adc_gain"])
 
     # номера начального и конечного отсчета для отображения
     N1 = 0
@@ -94,6 +114,8 @@ def show_qrs(recordname, tend):
     fig, axarr = plt.subplots(num_chans+1, 1, sharex=True)
 
     for chan, signal in enumerate(signal_channels(sig)):
+
+        signal = (signal - hdr["baseline"][chan]) / hdr["adc_gain"][chan]
 
         axarr[chan].plot(tt, signal[N1:N2])
 
