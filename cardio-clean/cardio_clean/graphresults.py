@@ -80,8 +80,8 @@ def show_qrs(recordname, tend):
     meta, strobe = qrs_detection(
         sig,
         fs=fs,
-        bias=np.array([0.0, 0.0, 0.0]),
-        gain=np.array([1.0, 1.0, 1.0]))
+        bias=np.array([0.0]*num_chans),
+        gain=np.array([1.0]*num_chans))
 
     # номера начального и конечного отсчета для отображения
     N1 = 0
