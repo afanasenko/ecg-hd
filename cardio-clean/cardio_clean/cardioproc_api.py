@@ -53,7 +53,8 @@ def read_buffer(buf):
                          dtype=np.int16,
                          count=signal_count*signal_len)
 
-    samples = np.reshape(np.array(data, float), (signal_count, signal_len))
+    samples = np.reshape(np.array(data, float), (signal_len, signal_count))
+    samples = np.transpose(samples)
 
     header = {
         "fs": sampling_frequency,
