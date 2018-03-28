@@ -11,6 +11,25 @@ from sigbind import build_comb_filter, mean_spectrum, mains_filter
 from qrsdetect import *
 
 
+def build_args():
+    parser = ArgumentParser()
+
+    parser.add_argument(
+        '-t', '--time-range',
+        type=int,
+        default=3,
+        help='Time in seconds to display'
+    )
+
+    options, filenames = parser.parse_known_args()
+
+    if not filenames:
+        print("At least one input file should be specified")
+        sys.exit(1)
+
+    return options, filenames
+
+
 def show_spectrums(recordname):
 
     sig, fields = wfdb.rdsamp(recordname)
@@ -44,23 +63,28 @@ def show_spectrums(recordname):
     plt.show()
 
 
-def show_qrs(recordname, tend=None):
+def show_qrs(recordname, tend):
 
     # загрузили сигнал
     sig, fields = wfdb.rdsamp(recordname)
     fs = fields["fs"]
     num_chans = sig.shape[1]
+    print(sig.shape)
 
     # следующие две строчки для наглядности. В реальной прорамме достаточно
     # вызвать
     # meta, foo = qrs_detection(sig, fs)
 
     ptstat = qrs_preprocessing(sig, fs)
-    meta, strobe = qrs_detection(sig, fs)
+    meta, strobe = qrs_detection(
+        sig,
+        fs=fs,
+        bias=np.array([0.0, 0.0, 0.0]),
+        gain=np.array([1.0, 1.0, 1.0]))
 
     # номера начального и конечного отсчета для отображения
     N1 = 0
-    N2 = 900 if tend is None else tend
+    N2 = int(tend*fs)
 
     tt = np.linspace(float(N1)/fs, float(N2-1)/fs, N2-N1)
 
@@ -85,16 +109,16 @@ def show_qrs(recordname, tend=None):
 
     # решающая статистика и стробы QRS-комплексов
     axarr[num_chans].plot(tt,ptstat[N1:N2])
-    axarr[num_chans].plot(tt,strobe[N1:N2])
+    # axarr[num_chans].plot(tt,strobe[N1:N2])
 
     plt.show()
 
 
 def main():
-
+    options, filenames = build_args()
 
     #show_spectrums(sys.argv[1])
-    show_qrs(sys.argv[1], int(sys.argv[2]))
+    show_qrs(filenames[0], options.time_range)
 
 
 if __name__ == "__main__":
