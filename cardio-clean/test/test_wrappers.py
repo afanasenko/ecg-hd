@@ -1,3 +1,5 @@
+# coding: utf-8
+
 import os
 from cardio_clean.cardioproc_api import *
 
@@ -29,16 +31,21 @@ def test_baseline():
     filename_out = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
         "output_bl.ecg")
+
+    with open(filename_in, "rb") as fcheck:
+        start_hdr, start_data = read_buffer(fcheck)
+
     with open(filename_in, "rb") as fi:
         with open(filename_out, "wb") as fo:
             blobapi_fix_baseline(inbuf=fi, outbuf=fo)
 
     assert os.stat(filename_in).st_size == os.stat(filename_out).st_size
 
+    # Проверка размерности обработанного сигнала
     with open(filename_out, "rb") as fcheck:
-        hdr, data = read_buffer(fcheck)
+        end_hdr, end_data = read_buffer(fcheck)
 
-        print(data.shape)
+        assert start_data.shape == end_data.shape
 
 
 def test_mains():
@@ -73,10 +80,10 @@ def test_qrs():
     #    print(m["r_wave_amplitude"])
 
     print(len(meta))
-    assert len(meta) == 3628
+    assert len(meta) == 1482
 
 
 if __name__ == "__main__":
-    test_baseline()
-    test_mains()
+    #test_baseline()
+    #test_mains()
     test_qrs()
