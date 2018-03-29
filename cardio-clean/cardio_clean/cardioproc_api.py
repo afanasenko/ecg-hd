@@ -54,7 +54,6 @@ def read_buffer(buf):
                          count=signal_count*signal_len)
 
     samples = np.reshape(np.array(data, float), (signal_len, signal_count))
-    samples = np.transpose(samples)
 
     header = {
         "fs": sampling_frequency,
@@ -69,8 +68,8 @@ def read_buffer(buf):
 
 def write_buffer(buf, header, samples):
     rawheader = np.array([
-        samples.shape[0],
-        samples.shape[1],
+        samples.shape[1], # число каналов
+        samples.shape[0], # число отсчетов
         header["fs"],
         header["adc_gain"].dtype.itemsize * 8,
     ], np.uint32)

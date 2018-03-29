@@ -10,14 +10,15 @@ from scipy.fftpack import fft, ifft
 def signal_channels(signal):
     """
         Генератор для перебора каналов многоканального ЭКС
-    :param signal:
+    :param signal: np.array [samples x channels]
     :return:
     """
     if len(signal.shape) == 1:
-        yield signal
+        yield 0, signal
     else:
-        for channel in range(signal.shape[0]):
-            yield signal[channel, :]
+        numch = signal.shape[1]
+        for chan in range(numch):
+            yield chan, signal[:,chan]
 
 
 """
@@ -90,9 +91,9 @@ def mains_filter(sig, fs, mains, attenuation, aperture):
         q=mains*0.03
     )
 
-    result = []
+    result = np.zeros(sig.shape)
 
-    for x in signal_channels(sig):
+    for chan, x in signal_channels(sig):
 
         y = np.zeros(len(x))
         hamwnd = np.array(signal.hann(aperture))
@@ -107,9 +108,9 @@ def mains_filter(sig, fs, mains, attenuation, aperture):
 
             y[n1:n1 + aperture] += yt
 
-        result.append(y)
+        result[:,chan] = y
 
-    return np.array(result)
+    return result
 
 
 def fix_baseline(sig, fs, bias_window_ms):
@@ -127,12 +128,12 @@ def fix_baseline(sig, fs, bias_window_ms):
     h = signal.hann(int(samples_per_ms * bias_window_ms))
     h = h / sum(h)
 
-    result = []
+    result = np.zeros(sig.shape)
 
-    for x in signal_channels(sig):
+    for chan, x in signal_channels(sig):
         bias = np.mean(x)
         # огибающая (фон) вычисляется путем свертки со сглаживающей апертурой и затем вычитается из входного сигнала
         bks = signal.convolve(x - bias, h, mode="same")
-        result.append(x - bks)
+        result[:,chan] = x - bks
 
-    return np.array(result)
+    return result

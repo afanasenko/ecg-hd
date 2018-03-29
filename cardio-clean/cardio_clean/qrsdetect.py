@@ -20,14 +20,14 @@ def qrs_preprocessing(sig, fs):
     if fs != 250:
         print("WARNING! выделение QRS для частоты дискретизации 250 Гц")
 
-    result = None
+    result = np.zeros(sig.shape[0], float)
 
-    for chan in signal_channels(sig):
+    for chan, x in signal_channels(sig):
         # НЧ фильтр (1 - z ^ -6) ^ 2 / (1 - z ^ -1) ^ 2
         b = np.array([1, 0, 0, 0, 0, 0, -2, 0, 0, 0, 0, 0, 1], float)
         a = np.array([1, -2, 1], float)
 
-        lp = lfilter(b, a, chan)
+        lp = lfilter(b, a, x)
         lp = dummy_shift(lp, 6)
 
         # слабый ВЧ фильтр z ^ -16 - [(1 - z ^ -32) / (1 - z ^ -1)]
@@ -52,12 +52,9 @@ def qrs_preprocessing(sig, fs):
         sm = dummy_shift(sm, 15)
 
         # решающие статистики для всех каналов просто суммируются
-        if result is None:
-            result = sm
-        else:
-            result += sm
+        result += sm
 
-    return sm / max(sm)
+    return result / max(result)
 
 
 def qrs_detection(sig, fs, bias, gain, minqrs_ms=20):
@@ -82,7 +79,7 @@ def qrs_detection(sig, fs, bias, gain, minqrs_ms=20):
     qrs_start = 0
     qrs_num = 0
     minqrs_smp = fs * float(minqrs_ms) / 1000
-    pilot_channel = 0
+    pilot_channel = 0 # ведущий канал для поиска зубцов
 
     qrs_metadata = []
 
@@ -105,9 +102,9 @@ def qrs_detection(sig, fs, bias, gain, minqrs_ms=20):
 
                 #TODO: R-зубец искать в одном канале или во всех?
                 rpk = qrs_start + np.argmax(
-                    sig[pilot_channel, qrs_start:qrs_end])
+                    sig[qrs_start:qrs_end, pilot_channel])
 
-                rpk_amplitudes = (sig[:,rpk] - bias) / gain
+                rpk_amplitudes = (sig[rpk,:] - bias) / gain
 
                 qrs_metadata.append({
                     "cycle_num": qrs_num,
