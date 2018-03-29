@@ -20,14 +20,16 @@ def ecgread(filename):
 
     else:
         data, fields = wfdb.rdsamp(filename)
-        data = np.transpose(data)
+        numch = data.shape[1]
         hdr = {
             "fs": fields["fs"],
-            "adc_gain": np.array([1.0]*data.shape[0]),
-            "baseline": np.array([0.0]*data.shape[0]),
-            "samples": data.shape[1],
-            "channels": data.shape[0]
+            "adc_gain": np.array([1.0]*numch),
+            "baseline": np.array([0.0]*numch),
+            "samples": data.shape[0],
+            "channels": data.shape[1]
         }
+
+        print(hdr)
 
         return data, hdr
 
@@ -43,6 +45,8 @@ def build_args():
     )
 
     options, filenames = parser.parse_known_args()
+    if not filenames:
+        filenames.append("/Users/arseniy/SERDECH/data/ROXMINE/Rh2001")
 
     if not filenames:
         print("At least one input file should be specified")
@@ -89,8 +93,6 @@ def show_qrs(recordname, tend):
     # загрузили сигнал
     sig, hdr = ecgread(recordname)
     fs = hdr["fs"]
-    num_chans = sig.shape[0]
-
 
     # следующие две строчки для наглядности. В реальной прорамме достаточно
     # вызвать
@@ -111,9 +113,9 @@ def show_qrs(recordname, tend):
 
     plt.style.use("ggplot")
     plt.rcParams["figure.facecolor"] = "white"
-    fig, axarr = plt.subplots(num_chans+1, 1, sharex=True)
+    fig, axarr = plt.subplots(hdr["channels"]+1, 1, sharex=True)
 
-    for chan, signal in enumerate(signal_channels(sig)):
+    for chan, signal in signal_channels(sig):
 
         signal = (signal - hdr["baseline"][chan]) / hdr["adc_gain"][chan]
 
@@ -131,8 +133,8 @@ def show_qrs(recordname, tend):
         axarr[chan].plot(tt,strobe[N1:N2])
 
     # решающая статистика и стробы QRS-комплексов
-    axarr[num_chans].plot(tt,ptstat[N1:N2])
-    # axarr[num_chans].plot(tt,strobe[N1:N2])
+    axarr[hdr["channels"]].plot(tt,ptstat[N1:N2])
+    # axarr[hdr["channels"]].plot(tt,strobe[N1:N2])
 
     plt.show()
 
