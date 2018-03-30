@@ -117,6 +117,7 @@ def blobapi_mains_correction(
     outdata = mains_filter(
         indata,
         header["fs"],
+        header["baseline"],
         mains=mains,
         attenuation=attenuation,
         aperture=aperture)
