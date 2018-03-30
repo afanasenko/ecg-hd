@@ -72,7 +72,7 @@ def build_comb_filter(fs, n, att, base_freq=50.0, q=5.0):
     return f_grid, response
 
 
-def mains_filter(sig, fs, mains, attenuation, aperture):
+def mains_filter(sig, fs, bias, mains, attenuation, aperture):
     """
     Подавление гармоник частоты электрической сети
     :param sig:
@@ -99,16 +99,22 @@ def mains_filter(sig, fs, mains, attenuation, aperture):
         hamwnd = np.array(signal.hann(aperture))
         step = int(aperture / 2)
 
+        ham_left = hamwnd.copy()
+        ham_left[:step+1] = np.max(hamwnd)
+
         n2 = len(x) - aperture
         for n1 in range(0, n2, step):
-            # комплексный спектр с учетом окна
-            xf = fft(hamwnd * np.array(x[n1:n1 + aperture]))
+            # для ослабления краевых эффектов берем несимметричное окно в
+            # начале
+            wnd = ham_left if n1 == 0 else hamwnd
+            # комплексный спектр с учетом окна и смещения
+            xf = fft(wnd * (np.array(x[n1:n1 + aperture]) - bias[chan]))
             # отфильтрованный сигнал в окне
             yt = np.real(ifft(xf * fft_response))
 
             y[n1:n1 + aperture] += yt
 
-        result[:,chan] = y
+        result[:,chan] = y + bias[chan]
 
     return result
 
@@ -132,7 +138,8 @@ def fix_baseline(sig, fs, bias_window_ms):
 
     for chan, x in signal_channels(sig):
         bias = np.mean(x)
-        # огибающая (фон) вычисляется путем свертки со сглаживающей апертурой и затем вычитается из входного сигнала
+        # огибающая (фон) вычисляется путем свертки со сглаживающей
+        # апертурой и затем вычитается из входного сигнала
         bks = signal.convolve(x - bias, h, mode="same")
         result[:,chan] = x - bks
 
