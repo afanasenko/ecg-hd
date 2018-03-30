@@ -7,7 +7,7 @@ import numpy as np
 
 from argparse import ArgumentParser
 from matplotlib import pyplot as plt
-from sigbind import build_comb_filter, mean_spectrum, mains_filter, signal_channels
+from sigbind import build_comb_filter, mean_spectrum, mains_filter, fix_baseline
 from qrsdetect import *
 from cardioproc_api import read_buffer
 
@@ -88,6 +88,48 @@ def show_spectrums(recordname):
     plt.show()
 
 
+def show_bmains(recordname, tend):
+
+    # загрузили сигнал
+    sig, hdr = ecgread(recordname)
+    fs = hdr["fs"]
+
+    unbias = fix_baseline(
+        sig,
+        hdr["fs"],
+        bias_window_ms=1500
+    )
+
+    corr = mains_filter(
+        unbias,
+        hdr["fs"],
+        hdr["baseline"],
+        mains=50.0,
+        attenuation=0.01,
+        aperture=512)
+
+    # номера начального и конечного отсчета для отображения
+    N1 = 0
+    N2 = int(tend*fs)
+
+    tt = np.linspace(float(N1)/fs, float(N2-1)/fs, N2-N1)
+
+    plt.style.use("ggplot")
+    plt.rcParams["figure.facecolor"] = "white"
+    fig, axarr = plt.subplots(hdr["channels"], 1, sharex=True)
+
+    for chan, signal in signal_channels(sig):
+
+        signal = (signal - hdr["baseline"][chan]) / hdr["adc_gain"][chan]
+        corsig = (corr[N1:N2, chan] - hdr["baseline"][chan]) / hdr["adc_gain"][chan]
+
+        axarr[chan].plot(tt, signal[N1:N2], "b")
+        axarr[chan].plot(tt, corsig, "r:")
+
+
+    plt.show()
+
+
 def show_qrs(recordname, tend):
 
     # загрузили сигнал
@@ -143,7 +185,8 @@ def main():
     options, filenames = build_args()
 
     #show_spectrums(sys.argv[1])
-    show_qrs(filenames[0], options.time_range)
+    #show_qrs(filenames[0], options.time_range)
+    show_bmains(filenames[0], options.time_range)
 
 
 if __name__ == "__main__":
