@@ -44,34 +44,6 @@ def build_options():
     return options
 
 
-def logsetup():
-    logger = logging.getLogger(__name__)
-    logger.setLevel(logging.DEBUG)
-    formatter = logging.Formatter(
-        '[%(asctime)s] %(levelname)s [%(name)s.%(module)s.%(funcName)s:%(lineno)d] %(message)s',
-        datefmt="%Y-%m-%d %H:%M:%S")
-    # log to a stream
-    stream_handler = logging.StreamHandler(stream=sys.stdout)
-    # stream_handler.setLevel(logging.INFO)
-    stream_handler.setLevel(logging.DEBUG)
-    stream_handler.setFormatter(formatter)
-    # log to file
-    log_filename = '{}.log'.format(
-        os.path.splitext(os.path.basename(__file__))[0])
-    file_handler = logging.FileHandler(log_filename, encoding='utf-8')
-    file_handler.setLevel(logging.DEBUG)
-    file_handler.setFormatter(formatter)
-    # add handlers
-    logger.addHandler(file_handler)
-    logger.addHandler(stream_handler)
-    # capture warnings from other modules that don't use logging, but use module 'warnings'
-    logging.captureWarnings(capture=True)
-    warnings_logger = logging.getLogger('py.warnings')
-    warnings_logger.addHandler(file_handler)
-    warnings_logger.addHandler(stream_handler)
-    return logger
-
-
 def main():
     options = build_options()
 
