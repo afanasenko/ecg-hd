@@ -107,29 +107,36 @@ def main():
 
 def process_one_record(src_file, dest_file, config):
 
-    sig, fields = wfdb.rdsamp(src_file)
+    data, fields = wfdb.rdsamp(src_file)
+    numch = data.shape[1]
+    hdr = {
+        "fs": fields["fs"],
+        "adc_gain": np.array([1.0] * numch),
+        "baseline": np.array([0.0] * numch),
+        "samples": data.shape[0],
+        "channels": data.shape[1]
+    }
 
-    # число каналов берем из данных, а не из заголовка
-    for channel in range(sig.shape[1]):
+    if config["PREPROCESSING"].get("baseline_correction", True):
+        ubsig = fix_baseline(
+            data,
+            fields["fs"],
+            config["BASELINE"]["unbias_window_ms"]
+        )
+    else:
+        ubsig = np.array(data, "float")
 
-        if config["PREPROCESSING"].get("baseline_correction", True):
-            ubsig = fix_baseline(sig[:, channel], fields["fs"], config[
-                "BASELINE"]["unbias_window_ms"])
-        else:
-            ubsig = np.array(sig[:, channel], "float")
-
-        if config["PREPROCESSING"].get("mains_correction", True):
-            umsig = mains_filter(
-                ubsig,
-                fs=fields["fs"],
-                mains=config["MAINS_FILTER"]["base_freq"],
-                attenuation=config["MAINS_FILTER"]["attenuation"],
-                aperture=config["MAINS_FILTER"]["fft_size"]
-            )
-        else:
-            umsig = ubsig.copy()
-
-        sig[:, channel] = umsig
+    if config["PREPROCESSING"].get("mains_correction", True):
+        umsig = mains_filter(
+            ubsig,
+            fs=fields["fs"],
+            bias=hdr["baseline"],
+            mains=config["MAINS_FILTER"]["base_freq"],
+            attenuation=config["MAINS_FILTER"]["attenuation"],
+            aperture=config["MAINS_FILTER"]["fft_size"]
+        )
+    else:
+        umsig = ubsig.copy()
 
     wfdb.wrsamp(
         dest_file,
@@ -137,8 +144,8 @@ def process_one_record(src_file, dest_file, config):
         units=fields["units"],
         sig_name=fields["sig_name"],
         comments=fields["comments"],
-        p_signal=sig,
-        fmt=fields.get("fmt", ["16"]*sig.shape[1])
+        p_signal=umsig,
+        fmt=fields.get("fmt", ["16"]*umsig.shape[1])
     )
 
 
