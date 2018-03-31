@@ -78,15 +78,11 @@ def test_qrs():
     with open(filename_in, "rb") as fi:
         meta = blobapi_detect_qrs(inbuf=fi)
 
-    #for m in meta:
-    #    print(m["r_wave_amplitude"])
-
-    print(len(meta))
     assert len(meta) == 3628
 
 
 if __name__ == "__main__":
-    test_readwrite()
-    test_baseline()
+    #test_readwrite()
+    #test_baseline()
     test_mains()
-    test_qrs()
+    #test_qrs()

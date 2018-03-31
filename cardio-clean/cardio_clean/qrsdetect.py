@@ -57,6 +57,28 @@ def qrs_preprocessing(sig, fs):
     return result / max(result)
 
 
+def qrs_postprocessing(metadata):
+    """
+        Расчет мгновенной частоты сердечных сокращений
+    :param metadata:
+    :return:
+    """
+    n = len(metadata)
+    if n > 1:
+        for i in range(n):
+            if i == 0:
+                hb = metadata[i+1]["r_wave_center"] \
+                     - metadata[i]["r_wave_center"]
+            elif i == n-1:
+                hb = metadata[i]["r_wave_center"] \
+                     - metadata[i-1]["r_wave_center"]
+            else:
+                hb = 0.5*(metadata[i + 1]["r_wave_center"] \
+                     - metadata[i - 1]["r_wave_center"])
+
+            metadata[i]["heartrate"] = 60.0/hb
+
+
 def qrs_detection(sig, fs, bias, gain, minqrs_ms=20):
     """
 
@@ -116,5 +138,7 @@ def qrs_detection(sig, fs, bias, gain, minqrs_ms=20):
                     "s_wave_center": None
                 })
                 qrs_num += 1
+
+    qrs_postprocessing(qrs_metadata)
 
     return qrs_metadata, qrsmask
