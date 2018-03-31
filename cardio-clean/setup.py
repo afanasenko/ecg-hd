@@ -6,7 +6,7 @@ from setuptools import find_packages
 from setuptools import setup
 
 name = 'cardio-clean'
-version = '0.0.1'
+version = '0.0.2'
 
 
 def find_requires():
@@ -20,8 +20,8 @@ if __name__ == "__main__":
     setup(
         name=name,
         version=version,
-        description='Cardio signal enhancement',
-        long_description="Scripts for ECG enhancement",
+        description='Cardio signal analysis and enhancement',
+        long_description="Scripts for ECG analysis and enhancement",
         classifiers=[
             'Development Status :: 4 - Beta',
             'Programming Language :: Python'
