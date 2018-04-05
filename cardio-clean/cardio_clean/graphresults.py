@@ -29,8 +29,6 @@ def ecgread(filename):
             "channels": data.shape[1]
         }
 
-        print(hdr)
-
         return data, hdr
 
 
