@@ -38,13 +38,13 @@ def build_args():
     parser.add_argument(
         '-t', '--time-range',
         type=int,
-        default=3,
+        default=6,
         help='Time in seconds to display'
     )
 
     options, filenames = parser.parse_known_args()
     if not filenames:
-        filenames.append("/Users/arseniy/SERDECH/data/ROXMINE/Rh2001")
+        filenames.append("/Users/arseniy/SERDECH/data/ROXMINE/Rh2002")
 
     if not filenames:
         print("At least one input file should be specified")
@@ -134,6 +134,12 @@ def show_qrs(recordname, tend):
     sig, hdr = ecgread(recordname)
     fs = hdr["fs"]
 
+    sig = fix_baseline(
+        sig,
+        fs=fs,
+        bias_window_ms=1500
+    )
+
     # следующие две строчки для наглядности. В реальной прорамме достаточно
     # вызвать
     # meta, foo = qrs_detection(sig, fs)
@@ -165,8 +171,9 @@ def show_qrs(recordname, tend):
         rx = []
         ry = []
         for x in meta:
-            if tt[0] <= x["r_wave_center"] <= tt[-1]:
-                rx.append(x["r_wave_center"])
+            r_pos = x["r_wave_center"][chan]
+            if tt[0] <= r_pos <= tt[-1]:
+                rx.append(r_pos)
                 ry.append(signal[int(rx[-1]*fs)])
 
         axarr[chan].scatter(rx, ry, c="r")
@@ -183,8 +190,8 @@ def main():
     options, filenames = build_args()
 
     #show_spectrums(sys.argv[1])
-    #show_qrs(filenames[0], options.time_range)
-    show_bmains(filenames[0], options.time_range)
+    show_qrs(filenames[0], options.time_range)
+    #show_bmains(filenames[0], options.time_range)
 
 
 if __name__ == "__main__":

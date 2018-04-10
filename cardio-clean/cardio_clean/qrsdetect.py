@@ -66,17 +66,15 @@ def qrs_postprocessing(metadata):
     n = len(metadata)
     if n > 1:
         for i in range(n):
-            if i == 0:
-                hb = metadata[i+1]["r_wave_center"] \
-                     - metadata[i]["r_wave_center"]
-            elif i == n-1:
-                hb = metadata[i]["r_wave_center"] \
-                     - metadata[i-1]["r_wave_center"]
-            else:
-                hb = 0.5*(metadata[i + 1]["r_wave_center"] \
-                     - metadata[i - 1]["r_wave_center"])
+            rc = np.array(metadata[i]["r_wave_center"])
 
-            metadata[i]["heartrate"] = 60.0/hb
+            if i == n-1:
+                rc_nb = np.array(metadata[i-1]["r_wave_center"])
+            else:
+                rc_nb = np.array(metadata[i+1]["r_wave_center"])
+
+            hr = 60.0/(np.mean(rc) - np.mean(rc_nb))
+            metadata[i]["heartrate"] = np.abs(hr)
 
 
 def qrs_detection(sig, fs, bias, gain, minqrs_ms=20):
@@ -101,7 +99,6 @@ def qrs_detection(sig, fs, bias, gain, minqrs_ms=20):
     qrs_start = 0
     qrs_num = 0
     minqrs_smp = fs * float(minqrs_ms) / 1000
-    pilot_channel = 0 # ведущий канал для поиска зубцов
 
     qrs_metadata = []
 
@@ -122,19 +119,23 @@ def qrs_detection(sig, fs, bias, gain, minqrs_ms=20):
             qrs_len = qrs_end - qrs_start
             if qrs_len >= minqrs_smp:
 
-                #TODO: R-зубец искать в одном канале или во всех?
-                rpk = qrs_start + np.argmax(
-                    sig[qrs_start:qrs_end, pilot_channel])
-
-                rpk_amplitudes = (sig[rpk,:] - bias) / gain
+                rpk_pos = []
+                rpk_amp = []
+                for chan in range(sig.shape[1]):
+                    # R-зубец всегда либо положительный, либо отсутствует
+                    r_pos = qrs_start + np.argmax(
+                        sig[qrs_start:qrs_end, chan]
+                    )
+                    rpk_pos.append(float(r_pos)/fs)
+                    rpk_amp.append((sig[r_pos, chan] - bias)/gain)
 
                 qrs_metadata.append({
                     "cycle_num": qrs_num,
                     "qrs_start": float(qrs_start)/fs,
                     "qrs_end": float(qrs_end)/fs,
                     "q_wave_center": None,
-                    "r_wave_center": float(rpk)/fs,
-                    "r_wave_amplitude": rpk_amplitudes,
+                    "r_wave_center": rpk_pos,
+                    "r_wave_amplitude": rpk_amp,
                     "s_wave_center": None
                 })
                 qrs_num += 1
