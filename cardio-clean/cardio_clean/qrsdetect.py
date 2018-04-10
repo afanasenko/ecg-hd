@@ -127,7 +127,7 @@ def qrs_detection(sig, fs, bias, gain, minqrs_ms=20):
                         sig[qrs_start:qrs_end, chan]
                     )
                     rpk_pos.append(float(r_pos)/fs)
-                    rpk_amp.append((sig[r_pos, chan] - bias)/gain)
+                    rpk_amp.append((sig[r_pos, chan] - bias[chan])/gain[chan])
 
                 qrs_metadata.append({
                     "cycle_num": qrs_num,
