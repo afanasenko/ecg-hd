@@ -80,9 +80,14 @@ def test_qrs():
 
     assert len(meta) == 3628
 
+    # Проверка на адекватность значения средней ЧСС
+    avg_heartrate = np.median([x["heartrate"] for x in meta])
+
+    assert 60.0 <= avg_heartrate <= 120
+
 
 if __name__ == "__main__":
     #test_readwrite()
     #test_baseline()
     test_mains()
-    #test_qrs()
+    test_qrs()
