@@ -8,8 +8,7 @@ from graphresults import ecgread
 
 
 def dummy_shift(x, n):
-    return np.concatenate((np.ones(n)*x[-1], x[n:]))
-    #return np.concatenate((x[n:], np.ones(n)*x[-1]))
+    return np.concatenate((x[n:], np.ones(n)*x[-1]))
 
 
 def ddgau(sigma, fs, ksigma=3):
@@ -46,31 +45,32 @@ def dgau(sigma, fs, ksigma=3):
     return x, y/sumsq
 
 
+def zcfind(x):
+    return []
+
+
 def gaussogram(x):
 
     sigmas = np.array([
-        0.01,
-        0.02,
+        0.009,
+        0.015,
         0.03,
-        0.04
+        0.06
     ])
 
     fig, axarr = plt.subplots(len(sigmas)+1, 1, sharex=True)
 
     filterbank = []
-    maxn = 0
     for i, s in enumerate(sigmas):
         t, h = dgau(s,250)
         filterbank.append(h)
-        maxn = max(maxn, int(len(h)/2))
-        print(maxn)
 
-    axarr[0].plot(dummy_shift(x, maxn))
+    axarr[0].plot(x)
 
     for i, h in enumerate(filterbank):
 
         sm = lfilter(h, [1.0], x)
-        sm = dummy_shift(sm, maxn - int(len(h)/2))
+        sm = dummy_shift(sm, int(len(h)/2))
 
         axarr[i+1].plot(sm)
         axarr[i+1].grid()
@@ -82,7 +82,7 @@ if __name__ == "__main__":
     #plt.plot(x, y)
     #plt.show()
 
-    sig, hdr = ecgread("/Users/arseniy/SERDECH/data/ROXMINE/Rh2011")
+    sig, hdr = ecgread("/Users/arseniy/SERDECH/data/ROXMINE/Rh2022")
 
-    gaussogram(sig[:20000, 0])
+    gaussogram(sig[:20000, 1])
 
