@@ -55,7 +55,7 @@ def build_args():
 
 def show_spectrums(recordname):
 
-    sig, fields = wfdb.rdsamp(recordname)
+    sig, fields = ecgread(recordname)
     sp = mean_spectrum(sig[:, 0])
     npoints = len(sp)
     xf = np.linspace(0.0, 0.5 * fields["fs"], npoints)
@@ -67,6 +67,7 @@ def show_spectrums(recordname):
     umsig = mains_filter(
         sig[:, 0],
         fs=fields["fs"],
+        bias=fields["baseline"],
         mains=50.0,
         attenuation=mains_att,
         aperture=fft_apert
