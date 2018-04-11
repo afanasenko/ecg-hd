@@ -26,6 +26,7 @@ def test_readwrite():
 
         assert data.shape == data2.shape
 
+
 def test_baseline():
     filename_in = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
@@ -86,8 +87,40 @@ def test_qrs():
     assert 60.0 <= avg_heartrate <= 120
 
 
+def test_classify():
+
+    filename_in = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "TestFromDcm.ecg")
+    filename_out = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "output_bl.ecg")
+
+    print("Remove bias...")
+    with open(filename_in, "rb") as fi:
+        with open(filename_out, "wb") as fo:
+            blobapi_fix_baseline(inbuf=fi, outbuf=fo)
+
+    print("Find QRS...")
+    with open(filename_out, "rb") as fi:
+        meta = blobapi_detect_qrs(inbuf=fi)
+        print("cycles found: {}".format(len(meta)))
+
+    print("Classification...")
+    with open(filename_out, "rb") as fi:
+        classes = blobapi_classify_qrs(
+            inbuf=fi,
+            metadata=meta,
+            classgen_threshold=0.8
+        )
+
+        print("classes found: {}".format(len(classes)))
+
+        assert len(classes) == 1
+
 if __name__ == "__main__":
     #test_readwrite()
     #test_baseline()
-    test_mains()
-    test_qrs()
+    #test_mains()
+    #test_qrs()
+    test_classify()
