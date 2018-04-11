@@ -26,6 +26,9 @@ def build_args():
     options, filenames = parser.parse_known_args()
     if not filenames:
         filenames.append("/Users/arseniy/SERDECH/data/ROXMINE/Rh2001")
+        #filenames.append("/Users/arseniy/heart-research/cardio-clean/test
+        # /TestFromDcm.ecg")
+
 
     if not filenames:
         print("At least one input file should be specified")
@@ -57,7 +60,7 @@ def get_qrsclass(recordname, tend):
         sig,
         hdr,
         meta[1:800],
-        classgen_t=0.8
+        classgen_t=0.98
     )
 
     print("{} classes detected".format(len(qrs_classes)))
