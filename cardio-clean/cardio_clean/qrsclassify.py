@@ -66,7 +66,7 @@ def qrs_reference_correlation(ref, sig, offset):
     return cc
 
 
-def classification(sig, hdr, metadata):
+def correlation_matrix(sig, hdr, metadata):
 
     num_cyc = len(metadata)
     corrmat = np.ones((num_cyc, num_cyc), float)
@@ -80,14 +80,44 @@ def classification(sig, hdr, metadata):
     print(np.min(corrmat))
 
 
-def incremental_classifier(sig, hdr, metadata, classgen_t=0.9):
+def finalize_classes(qrs_classes, metadata):
+    """
+        Пост-обработка метаданных и вычисление усредненных комплексов
+    :param qrs_classes:
+    :param metadata:
+    :return:
     """
 
-    :param sig:
-    :param hdr:
-    :param metadata:
+    classdesc = []
+    # Номера классов - абстрактные, присваиваются исходя из количества
+    # экземпляров
+    for i, qcl in enumerate(
+            sorted(
+                qrs_classes,
+                key=lambda x: len(x["samples"]),
+                reverse=True
+            )
+    ):
+        for s in qcl["samples"]:
+            metadata[s]["qrs_class_id"] = i
+
+        classdesc.append({
+            "id": i,
+            "average": qcl["accumulator"] / len(qcl["samples"]),
+            "count": len(qcl["samples"])
+        })
+
+    return classdesc
+
+
+def incremental_classifier(sig, hdr, metadata, classgen_t=0.9):
+    """
+        Однопроходный классификатор QRS-комплексов
+    :param sig: сигнал
+    :param hdr: заголовок сигнала
+    :param metadata: метаданные с разметкой QRS-комплексов
     :param classgen_t: нижний порог коэффициента корреляции на создание нового класса
-    :return:
+    :return: список классов
     """
 
     num_cyc = len(metadata)
@@ -143,11 +173,6 @@ def incremental_classifier(sig, hdr, metadata, classgen_t=0.9):
                 qcl["accumulator"] += sig[c1-left_acc:c1+right_acc, :]
                 qcl["samples"].add(i)
 
-    return qrs_classes
-
-
-
-
-
-
-
+    # добавляем номера классов в метаданные
+    # и формируем сокращенное описание каждого класса
+    return finalize_classes(qrs_classes, metadata)
