@@ -146,37 +146,45 @@ def incremental_classifier(sig, hdr, metadata, classgen_t=0.9):
         cormat = np.zeros(len(qrs_classes), float)
         for c, qrsc in enumerate(qrs_classes):
 
+            cand_offset = c1 - qrsc["center"]
+            ref_samples = qrsc["accumulator"].shape[0]
+
+            # пропускаем комплексы, присутствующие в сигнале не полностью
+            if cand_offset < 0 or cand_offset+ref_samples > hdr["samples"]:
+                continue
+
             cormat[c] = qrs_reference_correlation(
                 qrsc["accumulator"] / len(qrsc["samples"]),
                 sig,
-                c1 - qrsc["center"]
+                cand_offset
             )
 
-        max_cc = np.max(cormat)
+        if np.any(cormat):
+            max_cc = np.max(cormat)
 
-        if max_cc < classgen_t:
-            # создание нового класса
-            new_qrs, new_c = extract_qrs(sig, fs, metadata[i])
-            qrs_classes.append(
-                {
-                    "accumulator": new_qrs,
-                    "center": new_c,
-                    "samples": {i}
-                }
-            )
-        else:
-            # выбор существуюущего класса
-            classid = np.argmax(cormat)
-            qcl = qrs_classes[classid]
+            if max_cc < classgen_t:
+                # создание нового класса
+                new_qrs, new_c = extract_qrs(sig, fs, metadata[i])
+                qrs_classes.append(
+                    {
+                        "accumulator": new_qrs,
+                        "center": new_c,
+                        "samples": {i}
+                    }
+                )
+            else:
+                # выбор существуюущего класса
+                classid = np.argmax(cormat)
+                qcl = qrs_classes[classid]
 
-            # обновление усредненного цикла в выбранном классе
-            left_acc = qcl["center"]
-            right_acc = qcl["accumulator"].shape[0] - left_acc
+                # обновление усредненного цикла в выбранном классе
+                left_acc = qcl["center"]
+                right_acc = qcl["accumulator"].shape[0] - left_acc
 
-            if c1 - left_acc >= 0 and c1 + right_acc <= sig.shape[0]:
+                if c1 - left_acc >= 0 and c1 + right_acc <= sig.shape[0]:
 
-                qcl["accumulator"] += sig[c1-left_acc:c1+right_acc, :]
-                qcl["samples"].add(i)
+                    qcl["accumulator"] += sig[c1-left_acc:c1+right_acc, :]
+                    qcl["samples"].add(i)
 
     # добавляем номера классов в метаданные
     # и формируем сокращенное описание каждого класса
