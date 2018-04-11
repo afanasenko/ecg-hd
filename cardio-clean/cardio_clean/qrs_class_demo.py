@@ -25,7 +25,7 @@ def build_args():
 
     options, filenames = parser.parse_known_args()
     if not filenames:
-        filenames.append("/Users/arseniy/SERDECH/data/ROXMINE/Rh2001")
+        filenames.append("/Users/arseniy/SERDECH/data/ROXMINE/Rh2002")
         #filenames.append("/Users/arseniy/heart-research/cardio-clean/test
         # /TestFromDcm.ecg")
 
@@ -59,11 +59,15 @@ def get_qrsclass(recordname, tend):
     qrs_classes = incremental_classifier(
         sig,
         hdr,
-        meta[1:800],
-        classgen_t=0.98
+        meta,
+        classgen_t=0.7
     )
 
+    print("{} cycles found".format(len(meta)))
     print("{} classes detected".format(len(qrs_classes)))
+    print("{} complexes not classified".format(len(
+        [1 for x in meta if x.get("qrs_class_id", None) is None]
+    )))
 
     show_classes = min(len(qrs_classes), 5)
     fig, axarr = plt.subplots(hdr["channels"], show_classes, sharex=True)
@@ -72,15 +76,19 @@ def get_qrsclass(recordname, tend):
         if i >= show_classes:
             break
 
+        samples = qcl["average"].shape[0]
+        t = np.linspace(0.0, 1000.0*samples/fs, samples)
+
         for chan, wave in signal_channels(qcl["average"]):
 
-            axarr[chan, i].plot(wave)
+            axarr[chan, i].plot(t, wave)
 
             # подписи отведений
             if i == 0:
                 axarr[chan,i].set_ylabel("I"*(chan+1), rotation=0, fontsize=16)
 
         axarr[0,i].set_title("[{}]".format(qcl["count"]))
+        axarr[-1,i].set_xlabel("t, ms")
 
     plt.show()
 
