@@ -107,6 +107,11 @@ def finalize_classes(qrs_classes, metadata):
             "count": len(qcl["samples"])
         })
 
+    # помечаем неклассифицированные комплексы
+    for m in metadata:
+        if "qrs_class_id" not in m:
+            m["qrs_class_id"] = None
+
     return classdesc
 
 
