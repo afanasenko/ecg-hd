@@ -25,9 +25,10 @@ def build_args():
 
     options, filenames = parser.parse_known_args()
     if not filenames:
-        filenames.append("/Users/arseniy/SERDECH/data/ROXMINE/Rh2002")
+        filenames.append("/Users/arseniy/SERDECH/data/ROXMINE/Rh2023")
         #filenames.append("/Users/arseniy/heart-research/cardio-clean/test
         # /TestFromDcm.ecg")
+        # 1003 2018
 
 
     if not filenames:
@@ -70,7 +71,7 @@ def get_qrsclass(recordname, tend):
     )))
 
     show_classes = min(len(qrs_classes), 5)
-    fig, axarr = plt.subplots(hdr["channels"], show_classes, sharex=True)
+    fig, axarr = plt.subplots(hdr["channels"], show_classes, sharex="col")
 
     for i, qcl in enumerate(qrs_classes):
         if i >= show_classes:
