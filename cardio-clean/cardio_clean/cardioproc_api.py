@@ -3,6 +3,7 @@
 import numpy as np
 from sigbind import fix_baseline, mains_filter
 from qrsdetect import qrs_detection
+from qrsclassify import incremental_classifier
 
 # Числовые коды для поддерживаемых форматов
 SAMPLE_TYPE_SHORT = 1  # 16-битный целочисленный со знаком
@@ -126,7 +127,13 @@ def blobapi_mains_correction(
 
 def blobapi_detect_qrs(inbuf, min_qrs_ms=20):
     """
-       Обертка над функцией обнаружения QRS
+       Обнаружение QRS
+
+        Предварительные условия:
+        blobapi_detect_qrs желательно вызывать после функций подавления
+        дрейфа изолинии blobapi_fix_baseline и подавления сетевой помехи
+        blobapi_mains_correction (порядок вызова не имеет значения)
+
     :param inbuf: входной буфер (остается неизменным)
     :param min_qrs_ms: минимальная длительность QRS-комплекса
     :return: qrs_metadata (список найденных комплексов)
@@ -141,3 +148,58 @@ def blobapi_detect_qrs(inbuf, min_qrs_ms=20):
         minqrs_ms=min_qrs_ms)
 
     return metadata
+
+
+def blobapi_classify_qrs(inbuf, metadata, classgen_threshold=0.85):
+    """
+       Классификация QRS-комплексов
+
+        Предварительные условия:
+        blobapi_classify_qrs необходимо вызывать после того, как функцией
+        blobapi_detect_qrs была выполнена разметка комплексов. Результаты
+        классификации будут нболее точными, если сигнал был
+        предварительно очищен от дрейфа изолинии и сетевой помехи.
+
+        На вход функции вместе с сигналом подаются метаданные metadata,
+        полученные из функции blobapi_detect_qrs. По результатам классификации
+        в метаданные каждого комплекса добавляется поле qrs_class_id,
+        содержащее порядковый номер класса для данного комплекса.
+
+        В процессе работы функция разбивает множество обнаруженных
+        QRS-комплексов на классы по подобию формы сигналов (учитываются все
+        отведения). Число классов заранее неизвестно и регулируется параметром
+        classgen_threshold. Чем больше значение порога, тем больше классов
+        формируется в процессе разбиения. Нецелесообразно ставить порог
+        выше 0.98 или ниже 0.25.
+
+        Структура данных на выходе:
+        qrs_classes = [
+            {
+                "id": порядковый номер класса (0 - самый часто встречающийся)
+                "average": усредненные сигналы для класса (сохраняются все отведения)
+                "count": число QRS-комплексов в классе
+            },
+            {
+                "id",
+                "average",
+                "count"
+            },
+            ...
+        ]
+
+    :param inbuf: входной буфер (остается неизменным)
+    :param metadata: метаданные ранее обнаруженных комплексов
+    :param classgen_threshold: порог (от 0 до 1) на формирование новых
+    классов (чем ниже порог, тем меньше получится классов)
+    :return: список описаний найденных классов
+    """
+
+    header, indata = read_buffer(inbuf)
+    qrs_classes = incremental_classifier(
+        indata,
+        header,
+        metadata,
+        classgen_t=classgen_threshold
+    )
+
+    return qrs_classes
