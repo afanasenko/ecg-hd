@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 
 # locate ui compiler
-UIC=~/anaconda3/bin/pyuic4
+UIC=/anaconda2/bin/pyuic5
 
-$UIC heartapp_mainwindow.ui > ui_mainwindow.py
+if [ -f $UIC ]
+then
+    $UIC heartapp_mainwindow.ui > ui_mainwindow.py
+else
+    echo "pyuic not found"
+fi
+
