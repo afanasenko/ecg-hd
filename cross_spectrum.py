@@ -1,13 +1,5 @@
+#!/usr/bin/env python
 # coding: utf-8
-
-"""
-норма
-s171012_132635
-+ 0 (450 с) - 35/65 норма
-+ 451 (290 с) - 17/132
-+ 741 (300 с) - 70/33
-
-"""
 
 import sys
 
@@ -117,7 +109,7 @@ def main():
     peak_interval_ms = options.interval
     bias_ms = 1.9 * peak_interval_ms
 
-    rpeaks, bks, hfs = extract_short_peaks(
+    rpeaks, bks, hfs, lfs = extract_short_peaks(
         data[0],
         fs_lo,
         bias_window_ms=bias_ms,
@@ -169,8 +161,8 @@ def main():
     else:
         axarr.plot(xf, sp)
         axarr.set_xlim([0, freq/4])
-        axarr.set_xlabel("Частота, Гц")
-        axarr.set_ylabel("Амплитуда, дБ")
+        axarr.set_xlabel(u"Частота, Гц")
+        axarr.set_ylabel(u"Амплитуда, дБ")
         axarr.grid(True)
 
         print("Look at the plots")
