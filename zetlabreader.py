@@ -2,6 +2,7 @@
 
 import io
 import os
+import sys
 import array
 from matplotlib import pyplot as plt
 import numpy as np
@@ -84,7 +85,10 @@ def readshort(f):
 
 if __name__ == "__main__":
 
-    fn = "/Users/arseniy/GUAP-ZAYC/rabbit20171013/s171012_141529/sig0003.ana"
+    if len(sys.argv) > 1:
+        fn = sys.argv[1]
+    else:
+        fn = "/Users/arseniy/GUAP-ZAYC/rabbit20171013/s171012_141529/sig0003.ana"
     d, fs, n = anaread(fn)
 
     t = np.arange(0, len(d)/fs, 1.0/fs)
