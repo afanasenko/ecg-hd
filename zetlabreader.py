@@ -2,7 +2,6 @@
 
 import io
 import os
-import sys
 import array
 from matplotlib import pyplot as plt
 import numpy as np
@@ -26,12 +25,27 @@ def load_xml_header(basename):
 
 
 def anaread(f):
+    """
+    Чтение записи zetlab, состоящей из тре файлов - .ana (данные),
+    .anp (заголовок), .xml (тоже заголовок)
+    :param f: полное или базовое (без расширения) имя файла
+    :return: массив отсчетов (в физ. единицах), частота дискретизации, метка
+    """
 
-    basename = ".".join(f.split(".")[:-1])
+    if os.path.isfile(f):
+        basename = ".".join(f.split(".")[:-1])
+    else:
+        basename = f
+
+    if all([os.path.isfile(basename+x) for x in (".xml", ".ana", ".anp")]):
+        pass
+    else:
+        print("Отсутствуют необходимые файлы")
 
     kv = load_xml_header(basename)
 
     if not kv:
+        #anp может содержать кириллицу в cp1251
         with open(basename + ".anp", "r") as fh:
             for line in fh:
                 if line.strip():
@@ -68,55 +82,17 @@ def readshort(f):
     return i
 
 
-def holterread(filename):
-    """
-    read ecg data from .dat file in Holter format
-    :param filename:
-    :return:
-    """
-    with open(filename, "rb") as fh:
-        marker = fh.read(8)
-        crc = fh.read(2)
-        varblock_len = readint(fh)
-        ecg_samples = readint(fh)
-        varblock_offset = readint(fh)
-        ecg_offset = readint(fh)
-        version = readshort(fh)
-
-
-        print(varblock_len)
-        print(ecg_samples)
-        print(ecg_offset)
-
-        ecg_offset=3940
-        ecg_samples = 12000
-
-        #data = array.array("i")  # signed int ???
-        data = array.array("h")  # signed short
-        #data = array.array("f")  # float
-        fh.seek(ecg_offset, io.SEEK_SET)
-        data.fromfile(fh, ecg_samples)
-
-        print("...")
-        raw = np.reshape(np.array(data), (-1,6))
-        print(raw.shape)
-        return raw[:, 2], 100, "lll"
-
-
 if __name__ == "__main__":
 
-    d, fs, n = holterread('/Users/arseniy/GUAP-ZAYC/holter/Чумичева.dat')
-
-    #fn = "/Users/arseniy/Downloads/кроль_13_окт/s171012_141529/sig0003"
-    #d, fs, n = anaread(fn)
+    fn = "/Users/arseniy/GUAP-ZAYC/rabbit20171013/s171012_141529/sig0003.ana"
+    d, fs, n = anaread(fn)
 
     t = np.arange(0, len(d)/fs, 1.0/fs)
 
-
-    plt.plot(t, d)
-    #plt.xlim([540, 545])
+    plt.plot(t,d)
+    plt.xlim([540, 545])
     plt.title(n)
 
     print("Look at the plots")
     plt.show()
-    #plt.savefig("отведение 3 тромб через 2 мин.png")
+
