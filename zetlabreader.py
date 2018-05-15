@@ -27,7 +27,7 @@ def load_xml_header(basename):
 
 def anaread(f):
     """
-    Чтение записи zetlab, состоящей из тре файлов - .ana (данные),
+    Чтение записи zetlab, состоящей из трех файлов - .ana (данные),
     .anp (заголовок), .xml (тоже заголовок)
     :param f: полное или базовое (без расширения) имя файла
     :return: массив отсчетов (в физ. единицах), частота дискретизации, метка
@@ -88,7 +88,8 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         fn = sys.argv[1]
     else:
-        fn = "/Users/arseniy/GUAP-ZAYC/rabbit20171013/s171012_141529/sig0003.ana"
+        fn = "Не задано имя файла"
+
     d, fs, n = anaread(fn)
 
     t = np.arange(0, len(d)/fs, 1.0/fs)
