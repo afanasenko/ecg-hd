@@ -25,7 +25,7 @@ if __name__ == "__main__":
             d, fs, n = anaread(fn)
             #print("d=")
             #print(d)
-            sig = np.concatenate((sig, d)) 
+            sig = np.concatenate((sig, d))
             #print("sig=")
             #print(sig)
         
@@ -52,4 +52,3 @@ if __name__ == "__main__":
         
     else:
         print("Задайте несколько файлов")
-
