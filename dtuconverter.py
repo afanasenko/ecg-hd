@@ -12,6 +12,7 @@ if __name__ == "__main__":
     
     if len(sys.argv) > 1:
         fn = sys.argv[1]
+        
         d, fs1, n = dturead(fn)
         signal = d
 
