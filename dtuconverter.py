@@ -29,6 +29,6 @@ if __name__ == "__main__":
         print("Look at the plots")
         plt.show()
 
-        else:
-            print("Задайте файл")
+    else:
+        print("Задайте файл")
 
