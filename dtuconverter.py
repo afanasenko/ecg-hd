@@ -4,7 +4,7 @@ import io
 import os
 import sys
 import numpy as np
-from matplotlib import pyplot as plt, rc
+from matplotlib import pyplot as plt
 import wfdb
 from dtureader import dturead
 
