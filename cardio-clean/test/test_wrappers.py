@@ -118,6 +118,10 @@ def test_classify():
 
         assert len(classes) == 1
 
+        num_art = len([x for x in meta if x["artifact"]])
+
+        assert num_art == 0
+
 if __name__ == "__main__":
     #test_readwrite()
     #test_baseline()

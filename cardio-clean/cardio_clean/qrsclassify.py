@@ -83,11 +83,13 @@ def correlation_matrix(sig, hdr, metadata):
 def finalize_classes(qrs_classes, metadata):
     """
         Пост-обработка метаданных и вычисление усредненных комплексов
+        помечает артефакты
     :param qrs_classes:
     :param metadata:
     :return:
     """
 
+    artifact_threshold = 1
     classdesc = []
     # Номера классов - абстрактные, присваиваются исходя из количества
     # экземпляров
@@ -101,21 +103,28 @@ def finalize_classes(qrs_classes, metadata):
         for s in qcl["samples"]:
             metadata[s]["qrs_class_id"] = i
 
+            # помечаем ущербные классы как артефакты
+            if len(qcl["samples"]) <= artifact_threshold:
+                metadata[s]["artifact"] = True
+            else:
+                metadata[s]["artifact"] = False
+
         classdesc.append({
             "id": i,
             "average": qcl["accumulator"] / len(qcl["samples"]),
             "count": len(qcl["samples"])
         })
 
-    # помечаем неклассифицированные комплексы
+    # помечаем неклассифицированные комплексы как артефакты
     for m in metadata:
         if "qrs_class_id" not in m:
             m["qrs_class_id"] = None
+            m["artifact"] = True
 
     return classdesc
 
 
-def incremental_classifier(sig, hdr, metadata, classgen_t=0.9):
+def incremental_classifier(sig, hdr, metadata, classgen_t=0.9, include_data=0):
     """
         Однопроходный классификатор QRS-комплексов
     :param sig: сигнал
@@ -136,7 +145,8 @@ def incremental_classifier(sig, hdr, metadata, classgen_t=0.9):
         {
             "accumulator": first_qrs,
             "center": first_c,
-            "samples": {1}
+            "samples": {1},
+            "data": [(first_qrs, first_c)] if include_data else []
         }
     ]
 
@@ -169,7 +179,8 @@ def incremental_classifier(sig, hdr, metadata, classgen_t=0.9):
                     {
                         "accumulator": new_qrs,
                         "center": new_c,
-                        "samples": {i}
+                        "samples": {i},
+                        "data": [(new_qrs, new_c)] if include_data else []
                     }
                 )
             else:
@@ -185,6 +196,10 @@ def incremental_classifier(sig, hdr, metadata, classgen_t=0.9):
 
                     qcl["accumulator"] += sig[c1-left_acc:c1+right_acc, :]
                     qcl["samples"].add(i)
+
+                    if include_data and len(qcl["data"]) < include_data:
+                        new_qrs, new_c = extract_qrs(sig, fs, metadata[i])
+                        qcl["data"].append((new_qrs, new_c))
 
     # добавляем номера классов в метаданные
     # и формируем сокращенное описание каждого класса
