@@ -25,7 +25,8 @@ def build_args():
 
     options, filenames = parser.parse_known_args()
     if not filenames:
-        filenames.append("/Users/arseniy/SERDECH/data/ROXMINE/Rh2023")
+        #filenames.append("/Users/arseniy/SERDECH/data/ROXMINE/Rh2004")
+        filenames.append("/Users/arseniy/SERDECH/data/ROXMINE/Rh2022")
         #filenames.append("/Users/arseniy/heart-research/cardio-clean/test
         # /TestFromDcm.ecg")
         # 1003 2018
@@ -61,7 +62,8 @@ def get_qrsclass(recordname, tend):
         sig,
         hdr,
         meta,
-        classgen_t=0.7
+        classgen_t=0.7,
+        include_data=3
     )
 
     print("{} cycles found".format(len(meta)))
@@ -74,22 +76,39 @@ def get_qrsclass(recordname, tend):
     fig, axarr = plt.subplots(hdr["channels"], show_classes, sharex="col")
 
     for i, qcl in enumerate(qrs_classes):
+        # ограничение на число отображаемых классов, если их слишком много
         if i >= show_classes:
             break
 
+        # расчет временных точек
         samples = qcl["average"].shape[0]
         t = np.linspace(0.0, 1000.0*samples/fs, samples)
 
+        # построение усредненного комплекса
         for chan, wave in signal_channels(qcl["average"]):
 
-            axarr[chan, i].plot(t, wave)
+            if show_classes == 1:
+                axarr[chan].plot(t, wave)
+                axarr[chan].grid(True)
+            else:
+                axarr[chan, i].plot(t, wave)
+                axarr[chan, i].grid(True)
 
             # подписи отведений
             if i == 0:
-                axarr[chan,i].set_ylabel("I"*(chan+1), rotation=0, fontsize=16)
+                if show_classes == 1:
+                    axarr[chan].set_ylabel("I"*(chan+1), rotation=0,
+                                             fontsize=16)
+                else:
+                    axarr[chan, i].set_ylabel("I" * (chan + 1), rotation=0,
+                                              fontsize=16)
 
-        axarr[0,i].set_title("[{}]".format(qcl["count"]))
-        axarr[-1,i].set_xlabel("t, ms")
+        if show_classes == 1:
+            axarr[0].set_title("[{}]".format(qcl["count"]))
+            axarr[-1].set_xlabel("t, ms")
+        else:
+            axarr[0,i].set_title("[{}]".format(qcl["count"]))
+            axarr[-1,i].set_xlabel("t, ms")
 
     plt.show()
 
