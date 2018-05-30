@@ -2,9 +2,11 @@
 
 import numpy as np
 from matplotlib import pyplot as plt
-from scipy.signal import lfilter
+from scipy.signal import lfilter, hann
+from scipy.fftpack import fft
 
 from graphresults import ecgread
+from wavdetect import ddwt
 
 
 def dummy_shift(x, n):
@@ -77,12 +79,82 @@ def gaussogram(x):
     plt.show()
 
 
-if __name__ == "__main__":
-    #x, y = dgau(0.2, 250)
-    #plt.plot(x, y)
-    #plt.show()
+def multiplot(siglist):
+    fig, axarr = plt.subplots(len(siglist), 1, sharex=True)
+    for i, s in enumerate(siglist):
+        axarr[i].plot(s)
+        axarr[i].grid()
+    print("Look at the plots")
+    plt.show()
+
+
+def multispectrum(siglist):
+    fig, axarr = plt.subplots(len(siglist), 1, sharex=True)
+    for i, s in enumerate(siglist):
+        n1 = len(s)
+        n2 = int(n1/2)
+        wgt = np.array(hann(n1))
+        yf = fft(s * wgt)
+        yf = np.abs(yf[0:n2])
+        axarr[i].plot(yf)
+        axarr[i].grid()
+    print("Look at the plots")
+    plt.show()
+
+
+def multilinespec(siglist):
+    leg = []
+    for i, s in enumerate(siglist):
+        n1 = len(s)
+        n2 = int(n1/2)
+        wgt = np.array(hann(n1))
+        yf = fft(s * wgt)
+        yf = np.abs(yf[0:n2])
+        plt.plot(yf)
+        leg.append(str(i))
+    plt.grid()
+    plt.legend(leg)
+    print("Look at the plots")
+    plt.show()
+
+
+def zcfind(x):
+
+    zc = []
+
+    for i in range(1,len(x)):
+        if x[i-1]*x[i] < 0:
+            w1 = float(abs(x[i-1]))
+            w2 = float(abs(x[i]))
+            zc.append(i-0.5)
+
+    return np.array(zc)
+
+
+def show_filter_responses(spectral=False):
+
+    T = 256
+    x = np.zeros(T, float)
+    mid = int(T/2)
+    x[mid] = 1.0
+    ders = ddwt(x, num_scales=5)
+
+    if spectral:
+        multilinespec(ders[1:])
+    else:
+        multiplot(ders)
+        for x in ders:
+            print(zcfind(x) - mid)
+
+
+def show_decomposition():
 
     sig, hdr = ecgread("/Users/arseniy/SERDECH/data/ROXMINE/Rh2022")
+    ders = ddwt(sig[:1200,0], num_scales=5)
+    multiplot(ders)
 
-    gaussogram(sig[:20000, 1])
+if __name__ == "__main__":
+
+    #show_filter_responses()
+    show_decomposition()
 
