@@ -2,7 +2,7 @@
 #coding: utf-8
 
 
-from scipy import signal
+from scipy.signal import convolve, hann
 import numpy as np
 from scipy.fftpack import fft, ifft
 
@@ -30,7 +30,7 @@ def mean_spectrum(x, aperture=1024, log_output=True):
 
     N = len(x)
     acc = None
-    ham = np.array(signal.hann(aperture))
+    ham = np.array(hann(aperture))
 
     n1 = 0
     happ = int(aperture/2)
@@ -96,7 +96,7 @@ def mains_filter(sig, fs, bias, mains, attenuation, aperture):
     for chan, x in signal_channels(sig):
 
         y = np.zeros(len(x))
-        hamwnd = np.array(signal.hann(aperture))
+        hamwnd = np.array(hann(aperture))
         step = int(aperture / 2)
 
         ham_left = hamwnd.copy()
@@ -131,7 +131,7 @@ def fix_baseline(sig, fs, bias_window_ms):
     samples_per_ms = float(fs)/1000
 
     # косинусоидальная сглаживающая апертура шириной bias_window_ms
-    h = signal.hann(int(samples_per_ms * bias_window_ms))
+    h = hann(int(samples_per_ms * bias_window_ms))
     h = h / sum(h)
 
     result = np.zeros(sig.shape)
@@ -140,7 +140,7 @@ def fix_baseline(sig, fs, bias_window_ms):
         bias = np.mean(x)
         # огибающая (фон) вычисляется путем свертки со сглаживающей
         # апертурой и затем вычитается из входного сигнала
-        bks = signal.convolve(x - bias, h, mode="same")
+        bks = convolve(x - bias, h, mode="same")
         result[:,chan] = x - bks
 
     return result
