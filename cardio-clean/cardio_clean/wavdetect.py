@@ -24,7 +24,7 @@ def zcfind(x, single=True, lb=0, rb=0):
             zc.append(i-1)
 
     if single:
-        return zc[0]
+        return zc[0] if zc else None
     else:
         return np.array(zc)
 
@@ -111,9 +111,9 @@ def pksearch(modes, derivative):
 
     params = {
         "qrsType": None,
-        "qWavePositon": None,
-        "rWavePositon": None,
-        "sWavePositon": None,
+        "qWavePosition": None,
+        "rWavePosition": None,
+        "sWavePosition": None,
         "qWaveHeight": 0,
         "rWaveHeight": 0,
         "sWaveHeight": 0,
@@ -133,7 +133,7 @@ def pksearch(modes, derivative):
 
     i0 = maxpair[0]
 
-    params["rWavePositon"] = zcfind(
+    params["rWavePosition"] = zcfind(
         derivative,
         single=True,
         lb=modes[i0][0],
@@ -142,7 +142,7 @@ def pksearch(modes, derivative):
 
     if i0 > 0:
         #qpair = (i0-1, abs(modes[i0-1][1]) + abs(modes[i0][1]))
-        params["qWavePositon"] = zcfind(
+        params["qWavePosition"] = zcfind(
             derivative,
             single=True,
             lb=modes[i0-1][0],
@@ -152,7 +152,7 @@ def pksearch(modes, derivative):
     i0 = maxpair[0]+1
     if i0+1 < len(modes):
         #spair = (i0+1, abs(modes[i0][1]) + abs(modes[i0+1][1]))
-        params["sWavePositon"] = zcfind(
+        params["sWavePosition"] = zcfind(
             derivative,
             single=True,
             lb=modes[i0][0],
@@ -161,14 +161,14 @@ def pksearch(modes, derivative):
 
     # Определение типа qrs-комплекса
     if params["qrsType"] is None:
-        if params["rWavePositon"] is not None:
-            if params["qWavePositon"] is not None:
-                if params["sWavePositon"] is not None:
+        if params["rWavePosition"] is not None:
+            if params["qWavePosition"] is not None:
+                if params["sWavePosition"] is not None:
                     params["qrsType"] = "qRs"
                 else:
                     params["qrsType"] = "qR"
             else:
-                if params["sWavePositon"] is not None:
+                if params["sWavePosition"] is not None:
                     params["qrsType"] = "Rs"
                 else:
                     params["qrsType"] = "R"
@@ -203,7 +203,8 @@ def find_points(x, fs, qrs_metadata, debug=True):
     summary = {}
     new_metadata = []
     noise = np.std(bands[1]) * 0.7
-    print(noise)
+    if debug:
+        print(noise)
     for qrs in qrs_metadata:
 
         pkdata = qrs.copy()
@@ -231,5 +232,7 @@ def find_points(x, fs, qrs_metadata, debug=True):
 
         new_metadata.append(pkdata)
 
-    print(json.dumps(summary, indent=1))
+    if debug:
+        print(json.dumps(summary, indent=1))
+
     return new_metadata
