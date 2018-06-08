@@ -133,10 +133,8 @@ def qrs_detection(sig, fs, bias, gain, minqrs_ms=20):
                     "cycle_num": qrs_num,
                     "qrs_start": float(qrs_start)/fs,
                     "qrs_end": float(qrs_end)/fs,
-                    "q_wave_center": None,
                     "r_wave_center": rpk_pos,
-                    "r_wave_amplitude": rpk_amp,
-                    "s_wave_center": None
+                    "r_wave_amplitude": rpk_amp
                 })
                 qrs_num += 1
 
