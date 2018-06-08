@@ -4,6 +4,7 @@ import numpy as np
 from sigbind import fix_baseline, mains_filter
 from qrsdetect import qrs_detection
 from qrsclassify import incremental_classifier
+from wavdetect import find_points
 
 # Числовые коды для поддерживаемых форматов
 SAMPLE_TYPE_SHORT = 1  # 16-битный целочисленный со знаком
@@ -125,7 +126,7 @@ def blobapi_mains_correction(
     write_buffer(outbuf, header, outdata)
 
 
-def blobapi_detect_qrs(inbuf, min_qrs_ms=20):
+def blobapi_detect_qrs(inbuf, min_qrs_ms=20, delineate=False):
     """
        Обнаружение QRS
 
@@ -136,6 +137,7 @@ def blobapi_detect_qrs(inbuf, min_qrs_ms=20):
 
     :param inbuf: входной буфер (остается неизменным)
     :param min_qrs_ms: минимальная длительность QRS-комплекса
+    :param delineate: выполнить сегментацию найденных комплексов
     :return: qrs_metadata (список найденных комплексов)
     """
 
@@ -146,6 +148,16 @@ def blobapi_detect_qrs(inbuf, min_qrs_ms=20):
         bias=header["baseline"],
         gain=header["adc_gain"],
         minqrs_ms=min_qrs_ms)
+
+    if delineate:
+        # сегментация произыодится по одному отведению (1-му)
+        delineate_chan = 0
+        metadata = find_points(
+            indata[:,delineate_chan],
+            fs=header["fs"],
+            qrs_metadata=metadata,
+            debug=False
+        )
 
     return metadata
 
