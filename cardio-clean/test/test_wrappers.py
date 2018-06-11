@@ -87,6 +87,21 @@ def test_qrs():
     assert 60.0 <= avg_heartrate <= 120
 
 
+def test_parameters():
+    filename_in = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "TestFromDcm.ecg")
+
+    with open(filename_in, "rb") as fi:
+        meta = blobapi_detect_qrs(
+            inbuf=fi,
+            min_qrs_ms=20,
+            delineate=True
+        )
+
+    assert len(meta) == 3628
+
+
 def test_classify():
 
     filename_in = os.path.join(
@@ -126,5 +141,5 @@ if __name__ == "__main__":
     #test_readwrite()
     #test_baseline()
     #test_mains()
-    #test_qrs()
-    test_classify()
+    test_qrs()
+    #test_classify()
