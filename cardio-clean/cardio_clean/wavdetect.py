@@ -93,6 +93,21 @@ def ddwt(x, num_scales=5):
 
 def pksearch(modes, derivative):
 
+    params = {
+        "qrsType": None,
+        "qWavePosition": None,
+        "rWavePosition": None,
+        "sWavePosition": None,
+        "qWaveHeight": 0,
+        "rWaveHeight": 0,
+        "sWaveHeight": 0,
+    }
+
+    signcode = ""
+
+    if len(modes) < 2:
+        return params, signcode
+
     # Удаляем ступеньки
     mbuf = []
     for pos, val in modes:
@@ -108,16 +123,6 @@ def pksearch(modes, derivative):
 
     # кодируем найденные фронты знаками +/-
     signcode = "".join(["+" if x[1] > 0 else "-" for x in mbuf])
-
-    params = {
-        "qrsType": None,
-        "qWavePosition": None,
-        "rWavePosition": None,
-        "sWavePosition": None,
-        "qWaveHeight": 0,
-        "rWaveHeight": 0,
-        "sWaveHeight": 0,
-    }
 
     if signcode == "-+":
         params["qrsType"] = "qs"
@@ -202,9 +207,12 @@ def find_points(x, fs, qrs_metadata, debug=True):
 
     summary = {}
     new_metadata = []
+
+    # очень приближенная оценка шума
     noise = np.std(bands[1]) * 0.7
     if debug:
         print(noise)
+
     for qrs in qrs_metadata:
 
         pkdata = qrs.copy()
@@ -220,6 +228,7 @@ def find_points(x, fs, qrs_metadata, debug=True):
             modas[r_scale]
         )
 
+        # Поиск волн Q, R, S
         params, codestr = pksearch(modas_subset, bands[r_scale])
 
         if debug:
