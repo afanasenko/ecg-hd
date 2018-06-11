@@ -49,9 +49,9 @@ def wave_bounds(x, wav, limit):
 
 def fexpand(x):
     """
-    Прореживание вдвое
-    :param x:
-    :return:
+    Растягивание массива вдвое с добавлением нулей между элементами
+    :param x: одномерный массив из N элементов
+    :return: расширенный массив из 2N элементов
     """
     n = len(x)
     y = np.array([0]*2*n, float)
@@ -217,9 +217,9 @@ def find_points(x, fs, qrs_metadata, debug=True):
 
         pkdata = qrs.copy()
 
+        # Поиск зубцов Q, R, S
         r_scale = 2
-
-        # начальный интервал для поиска волн
+        # окно для поиска
         lbound = int(qrs["qrs_start"] * fs)
         rbound = int(qrs["qrs_end"] * fs)
 
@@ -228,7 +228,6 @@ def find_points(x, fs, qrs_metadata, debug=True):
             modas[r_scale]
         )
 
-        # Поиск волн Q, R, S
         params, codestr = pksearch(modas_subset, bands[r_scale])
 
         if debug:
@@ -236,7 +235,11 @@ def find_points(x, fs, qrs_metadata, debug=True):
             if codestr:
                 summary[codestr] = summary.get(codestr, 0) + 1
 
-        #pkdata["rwav"] = (lbound, rbound)
+        # поиск P-зубца
+
+        p_scale = 4
+
+
         pkdata.update(params)
 
         new_metadata.append(pkdata)
