@@ -6,8 +6,8 @@ from scipy.signal import lfilter, hann
 from scipy.fftpack import fft
 
 from graphresults import ecgread
-from wavdetect import ddwt
-
+from wavdetect import ddwt, find_points, zcfind
+from qrsdetect import qrs_detection
 
 def dummy_shift(x, n):
     return np.concatenate((x[n:], np.ones(n)*x[-1]))
@@ -45,10 +45,6 @@ def dgau(sigma, fs, ksigma=3):
         sumsq += y[i]*y[i]
 
     return x, y/sumsq
-
-
-def zcfind(x):
-    return []
 
 
 def gaussogram(x):
@@ -118,19 +114,6 @@ def multilinespec(siglist):
     plt.show()
 
 
-def zcfind(x):
-
-    zc = []
-
-    for i in range(1,len(x)):
-        if x[i-1]*x[i] < 0:
-            w1 = float(abs(x[i-1]))
-            w2 = float(abs(x[i]))
-            zc.append(i-0.5)
-
-    return np.array(zc)
-
-
 def show_filter_responses(spectral=False):
 
     T = 256
@@ -143,18 +126,73 @@ def show_filter_responses(spectral=False):
         multilinespec(ders[1:])
     else:
         multiplot(ders)
-        for x in ders:
-            print(zcfind(x) - mid)
+        for i, x in enumerate(ders):
+            dt_theor = (2.0**i - 1)/2
+            dt_exrep = zcfind(x) - mid
+            print(dt_theor, dt_exrep)
 
 
 def show_decomposition():
 
-    sig, hdr = ecgread("/Users/arseniy/SERDECH/data/ROXMINE/Rh2022")
-    ders = ddwt(sig[:1200,0], num_scales=5)
+    sig, hdr = ecgread("/Users/arseniy/SERDECH/data/ROXMINE/Rh1001")
+    ders = ddwt(sig[:1200,0], num_scales=3)
     multiplot(ders)
+
+
+def show_waves():
+    # Rh2022 = qr
+    # Rh2021 - Rs, extracyc
+    # Rh2025 = rs
+    sig, header = ecgread("/Users/arseniy/SERDECH/data/ROXMINE/Rh2022")
+    fs = header["fs"]
+    if fs != 250:
+        print("Warning! fs={}".format(fs))
+
+    s = sig[:,0]
+
+    metadata, debugdata = qrs_detection(
+        sig[:,:],
+        fs=header["fs"],
+        bias=header["baseline"],
+        gain=header["adc_gain"],
+        minqrs_ms=20)
+
+    newmeta = find_points(s, header["fs"], metadata)
+
+    plt.plot(s, "b")
+
+    qrsTypes = {}
+
+    for qrs in newmeta:
+
+        qrstype = qrs["qrsType"]
+        qrsTypes[qrstype] = qrsTypes.get(qrstype, 0) + 1
+
+        if "rwav" in qrs:
+            rwav = qrs["rwav"]
+            plt.plot(np.arange(rwav[0],rwav[1]), s[rwav[0]:rwav[1]], "r")
+
+        qp = qrs.get("qWavePosition", 0)
+        if qp:
+            plt.scatter(qp, s[qp])
+
+        rp = qrs.get("rWavePosition", 0)
+        if rp:
+            plt.scatter(rp, s[rp])
+
+        sp = rp = qrs.get("sWavePosition", 0)
+        if sp:
+            plt.scatter(sp, s[sp])
+
+    plt.xlim((200,700))
+
+    print(qrsTypes)
+
+    plt.show()
 
 if __name__ == "__main__":
 
     #show_filter_responses()
     show_decomposition()
+    #show_waves()
 
