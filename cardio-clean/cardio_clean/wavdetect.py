@@ -306,7 +306,7 @@ def find_points(x, fs, qrs_metadata, debug=True):
         )
 
         # последняя мода не учитывается, потому что относится к QRS
-        ptparams = ptsearch(modas_subset[:-1], bands[r_scale])
+        ptparams = ptsearch(modas_subset[:-1], bands[p_scale])
         pkdata.update(ptparams)
 
         new_metadata.append(pkdata)
