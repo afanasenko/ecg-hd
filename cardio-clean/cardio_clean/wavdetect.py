@@ -213,7 +213,6 @@ def ptsearch(modes, derivative):
         mbuf.append((pos, val))
 
 
-
     # Фронты самого мощного зубца
     maxpair = (0,0)
     for i, posval in enumerate(modes):
@@ -302,11 +301,12 @@ def find_points(x, fs, qrs_metadata, debug=True):
         ]
 
         modas_subset = filter(
-            lambda x: pwindow[0] < x[0] < pwindow[1] and abs(x[1]) > noise,
+            lambda x: pwindow[0] < x[0] < pwindow[1] and abs(x[1]) > noise/2,
             modas[p_scale]
         )
 
-        ptparams = ptsearch(modas_subset, bands[r_scale])
+        # последняя мода не учитывается, потому что относится к QRS
+        ptparams = ptsearch(modas_subset[:-1], bands[r_scale])
         pkdata.update(ptparams)
 
         new_metadata.append(pkdata)
