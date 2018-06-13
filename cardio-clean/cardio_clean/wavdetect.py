@@ -71,22 +71,22 @@ def ddwt(x, num_scales=5):
     """
     h = np.array([1, 3, 3, 1], float) / 8
     g = np.array([2, -2], float)
+    signal_len = len(x)
 
     decomposition = []
     ap = x.copy()
     decomposition.append(ap.copy())  # на нулевом уровне храним исходный сигнал
 
     for s in range(num_scales):
-
-        # TODO: сразу компенсировать задержку
-        hif = convolve(ap, g, mode="same")
+        dly = 2**s
+        hif = convolve(ap, g, mode="full")[dly:dly+signal_len]
         decomposition.append(hif)
-        ap = convolve(ap, h, mode="same")
-
-        # вместо прореживания сигналов (Маллат) расширяем характеристики
-        # фильтров
-        h = fexpand(h)
-        g = fexpand(g)
+        if s < num_scales-1:
+            ap = convolve(ap, h, mode="full")[dly:dly+signal_len]
+            # вместо прореживания сигналов (Маллат) расширяем характеристики
+            # фильтров
+            h = fexpand(h)
+            g = fexpand(g)
 
     return decomposition
 
