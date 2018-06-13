@@ -181,6 +181,59 @@ def pksearch(modes, derivative):
     return params, signcode
 
 
+def ptsearch(modes, derivative):
+    """
+    Поиск зубцов P и T
+    :param modes:
+    :param derivative:
+    :return:
+    """
+
+    params = {
+        "pWavePosition": None,
+        "tWavePosition": None,
+        "pWaveHeight": 0,
+        "tWaveHeight": 0
+    }
+
+    if len(modes) < 2:
+        return params
+
+    # Удаляем ступеньки
+    mbuf = []
+    for pos, val in modes:
+        if mbuf:
+            # повторные с одним знаком
+            if val * mbuf[-1][1] > 0:
+                # оставляем максимальный
+                if abs(val) > abs(mbuf[-1][1]):
+                    mbuf[-1] = (pos, val)
+                continue
+
+        mbuf.append((pos, val))
+
+
+
+    # Фронты самого мощного зубца
+    maxpair = (0,0)
+    for i, posval in enumerate(modes):
+        if i:
+            diff = abs(posval[1]) + abs(modes[i - 1][1])
+            if diff > maxpair[1]:
+                maxpair = (i-1, diff)
+
+    i0 = maxpair[0]
+
+    params["pWavePosition"] = zcfind(
+        derivative,
+        single=True,
+        lb=modes[i0][0],
+        rb=modes[i0 + 1][0]
+    )
+
+    return params
+
+
 def find_points(x, fs, qrs_metadata, debug=True):
 
     bands = ddwt(x)
@@ -213,7 +266,7 @@ def find_points(x, fs, qrs_metadata, debug=True):
     if debug:
         print(noise)
 
-    for qrs in qrs_metadata:
+    for ncycle, qrs in enumerate(qrs_metadata):
 
         pkdata = qrs.copy()
 
@@ -229,6 +282,7 @@ def find_points(x, fs, qrs_metadata, debug=True):
         )
 
         params, codestr = pksearch(modas_subset, bands[r_scale])
+        pkdata.update(params)
 
         if debug:
             # для отладки: кодируем найденные фронты знаками +/-
@@ -238,9 +292,22 @@ def find_points(x, fs, qrs_metadata, debug=True):
         # поиск P-зубца
 
         p_scale = 4
+        # окно для поиска
+        prev_r = int(qrs_metadata[ncycle-1]["r_wave_center"][0] * fs) \
+            if ncycle else 0
+        cur_r = int(qrs["r_wave_center"][0] * fs)
+        pwindow = [
+            int((prev_r + cur_r)/2),
+            cur_r
+        ]
 
+        modas_subset = filter(
+            lambda x: pwindow[0] < x[0] < pwindow[1] and abs(x[1]) > noise,
+            modas[p_scale]
+        )
 
-        pkdata.update(params)
+        ptparams = ptsearch(modas_subset, bands[r_scale])
+        pkdata.update(ptparams)
 
         new_metadata.append(pkdata)
 
