@@ -126,7 +126,7 @@ def show_filter_responses(spectral=False):
         multilinespec(ders[1:])
     else:
         multiplot(ders)
-        for i, x in enumerate(ders):
+        for i, x in enumerate(ders[1:]):
             dt_theor = (2.0**i - 1)/2
             dt_exrep = zcfind(x) - mid
             print(dt_theor, dt_exrep)
@@ -134,21 +134,22 @@ def show_filter_responses(spectral=False):
 
 def show_decomposition():
 
-    sig, hdr = ecgread("/Users/arseniy/SERDECH/data/ROXMINE/Rh1001")
-    ders = ddwt(sig[:1200,0], num_scales=3)
+    sig, hdr = ecgread("/Users/arseniy/SERDECH/data/ROXMINE/Rh2024")
+    ders = ddwt(sig[:20000,0], num_scales=5)
     multiplot(ders)
 
 
 def show_waves():
-    # Rh2022 = qr
+    # Rh2022 = qr, noise
     # Rh2021 - Rs, extracyc
+    # Rh2024 - p(q)RsT
     # Rh2025 = rs
-    sig, header = ecgread("/Users/arseniy/SERDECH/data/ROXMINE/Rh2022")
+    sig, header = ecgread("/Users/arseniy/SERDECH/data/ROXMINE/Rh1011")
     fs = header["fs"]
     if fs != 250:
         print("Warning! fs={}".format(fs))
 
-    s = sig[:,0]
+    s = sig[:20000,0]
 
     metadata, debugdata = qrs_detection(
         sig[:,:],
@@ -172,17 +173,10 @@ def show_waves():
             rwav = qrs["rwav"]
             plt.plot(np.arange(rwav[0],rwav[1]), s[rwav[0]:rwav[1]], "r")
 
-        qp = qrs.get("qWavePosition", 0)
-        if qp:
-            plt.scatter(qp, s[qp])
-
-        rp = qrs.get("rWavePosition", 0)
-        if rp:
-            plt.scatter(rp, s[rp])
-
-        sp = rp = qrs.get("sWavePosition", 0)
-        if sp:
-            plt.scatter(sp, s[sp])
+        wave_points = [x["center"] for x in qrs.get("waves", {}).values()]
+        for p in wave_points:
+            if p is not None:
+                plt.scatter(p, s[p])
 
     plt.xlim((200,700))
 
@@ -193,6 +187,6 @@ def show_waves():
 if __name__ == "__main__":
 
     #show_filter_responses()
-    show_decomposition()
-    #show_waves()
+    #show_decomposition()
+    show_waves()
 

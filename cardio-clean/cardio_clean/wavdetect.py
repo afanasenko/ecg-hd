@@ -94,14 +94,12 @@ def ddwt(x, num_scales=5):
 def pksearch(modes, derivative):
 
     params = {
+        "waves": {},
         "qrsType": None,
-        "qWavePosition": None,
-        "rWavePosition": None,
-        "sWavePosition": None,
-        "qWaveHeight": 0,
-        "rWaveHeight": 0,
-        "sWaveHeight": 0,
     }
+    params["waves"].update(makewave("q"))
+    params["waves"].update(makewave("r"))
+    params["waves"].update(makewave("s"))
 
     signcode = ""
 
@@ -138,7 +136,7 @@ def pksearch(modes, derivative):
 
     i0 = maxpair[0]
 
-    params["rWavePosition"] = zcfind(
+    params["waves"]["r"]["center"] = zcfind(
         derivative,
         single=True,
         lb=modes[i0][0],
@@ -146,8 +144,7 @@ def pksearch(modes, derivative):
     )
 
     if i0 > 0:
-        #qpair = (i0-1, abs(modes[i0-1][1]) + abs(modes[i0][1]))
-        params["qWavePosition"] = zcfind(
+        params["waves"]["q"]["center"] = zcfind(
             derivative,
             single=True,
             lb=modes[i0-1][0],
@@ -156,8 +153,7 @@ def pksearch(modes, derivative):
 
     i0 = maxpair[0]+1
     if i0+1 < len(modes):
-        #spair = (i0+1, abs(modes[i0][1]) + abs(modes[i0+1][1]))
-        params["sWavePosition"] = zcfind(
+        params["waves"]["s"]["center"] = zcfind(
             derivative,
             single=True,
             lb=modes[i0][0],
@@ -166,19 +162,25 @@ def pksearch(modes, derivative):
 
     # Определение типа qrs-комплекса
     if params["qrsType"] is None:
-        if params["rWavePosition"] is not None:
-            if params["qWavePosition"] is not None:
-                if params["sWavePosition"] is not None:
+        if params["waves"]["r"]["center"] is not None:
+            if params["waves"]["q"]["center"] is not None:
+                if params["waves"]["s"]["center"] is not None:
                     params["qrsType"] = "qRs"
                 else:
                     params["qrsType"] = "qR"
             else:
-                if params["sWavePosition"] is not None:
+                if params["waves"]["s"]["center"] is not None:
                     params["qrsType"] = "Rs"
                 else:
                     params["qrsType"] = "R"
 
     return params, signcode
+
+
+def makewave(name, pos=None, height=None, start=None, end=None):
+    return {name: {
+            "start": start, "end": end, "center": pos, "height": height
+    }}
 
 
 def ptsearch(modes, derivative):
@@ -189,15 +191,8 @@ def ptsearch(modes, derivative):
     :return:
     """
 
-    params = {
-        "pWavePosition": None,
-        "tWavePosition": None,
-        "pWaveHeight": 0,
-        "tWaveHeight": 0
-    }
-
     if len(modes) < 2:
-        return params
+        return makewave("p")
 
     # Удаляем ступеньки
     mbuf = []
@@ -223,14 +218,14 @@ def ptsearch(modes, derivative):
 
     i0 = maxpair[0]
 
-    params["pWavePosition"] = zcfind(
+    p_wave_center = zcfind(
         derivative,
         single=True,
         lb=modes[i0][0],
         rb=modes[i0 + 1][0]
     )
 
-    return params
+    return makewave("p", p_wave_center)
 
 
 def find_points(x, fs, qrs_metadata, debug=True):
@@ -307,7 +302,7 @@ def find_points(x, fs, qrs_metadata, debug=True):
 
         # последняя мода не учитывается, потому что относится к QRS
         ptparams = ptsearch(modas_subset[:-1], bands[p_scale])
-        pkdata.update(ptparams)
+        pkdata["waves"].update(ptparams)
 
         new_metadata.append(pkdata)
 
