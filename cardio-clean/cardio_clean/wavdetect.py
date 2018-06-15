@@ -179,7 +179,7 @@ def pksearch(modes, derivative):
 
 def makewave(name, pos=None, height=None, start=None, end=None):
     return {name: {
-            "start": start, "end": end, "center": pos, "height": height
+        "start": start, "end": end, "center": pos, "height": height
     }}
 
 
@@ -228,7 +228,21 @@ def ptsearch(modes, derivative):
     return makewave("p", p_wave_center)
 
 
-def find_points(x, fs, qrs_metadata, debug=True):
+def range_filter(x, lb, rb, thresh):
+    ret = []
+    for m0, m1 in x:
+        if m0 < lb:
+            continue
+        if m0 > rb:
+            break
+
+        if abs(m1) > thresh:
+            ret.append((m0, m1))
+
+    return ret
+
+
+def find_points(x, fs, qrs_metadata, debug=False):
 
     bands = ddwt(x)
     modas = []
@@ -270,10 +284,7 @@ def find_points(x, fs, qrs_metadata, debug=True):
         lbound = int(qrs["qrs_start"] * fs)
         rbound = int(qrs["qrs_end"] * fs)
 
-        modas_subset = filter(
-            lambda x: lbound < x[0] < rbound and abs(x[1]) > noise,
-            modas[r_scale]
-        )
+        modas_subset = range_filter( modas[r_scale], lbound, rbound, noise)
 
         params, codestr = pksearch(modas_subset, bands[r_scale])
         pkdata.update(params)
@@ -295,15 +306,13 @@ def find_points(x, fs, qrs_metadata, debug=True):
             cur_r
         ]
 
-        modas_subset = filter(
-            lambda x: pwindow[0] < x[0] < pwindow[1] and abs(x[1]) > noise/2,
-            modas[p_scale]
-        )
+        modas_subset = range_filter(modas[p_scale], pwindow[0], pwindow[1],
+                                    noise/2)
 
         # последняя мода не учитывается, потому что относится к QRS
         ptparams = ptsearch(modas_subset[:-1], bands[p_scale])
-        pkdata["waves"].update(ptparams)
 
+        pkdata["waves"].update(ptparams)
         new_metadata.append(pkdata)
 
     if debug:
