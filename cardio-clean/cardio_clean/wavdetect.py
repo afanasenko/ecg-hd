@@ -313,6 +313,13 @@ def find_points(x, fs, qrs_metadata, debug=False):
         ptparams = ptsearch(modas_subset[:-1], bands[p_scale])
 
         pkdata["waves"].update(ptparams)
+
+        # запись высоты зубцов
+        for wave in pkdata["waves"]:
+            pos = pkdata["waves"][wave]["center"]
+            if pos is not None:
+                pkdata["waves"][wave]["height"] = x[pos]
+
         new_metadata.append(pkdata)
 
     if debug:
