@@ -99,7 +99,15 @@ def test_parameters():
             delineate=True
         )
 
-    assert len(meta) == 3628
+        assert len(meta) == 3628
+
+    with open(filename_in, "rb") as fi:
+        newmeta = blobapi_st_t_analysis(
+            inbuf=fi,
+            metadata=meta
+        )
+
+        assert len(newmeta) == len(meta)
 
 
 def test_classify():
