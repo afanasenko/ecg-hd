@@ -5,6 +5,7 @@ from sigbind import fix_baseline, mains_filter
 from qrsdetect import qrs_detection
 from qrsclassify import incremental_classifier
 from wavdetect import find_points
+from wavanalyze import stt_analysis
 
 # Числовые коды для поддерживаемых форматов
 SAMPLE_TYPE_SHORT = 1  # 16-битный целочисленный со знаком
@@ -150,7 +151,7 @@ def blobapi_detect_qrs(inbuf, min_qrs_ms=20, delineate=False):
         minqrs_ms=min_qrs_ms)
 
     if delineate:
-        # сегментация произыодится по одному отведению (1-му)
+        # сегментация производится только в одном отведении
         delineate_chan = 0
         metadata = find_points(
             indata[:,delineate_chan],
@@ -160,6 +161,27 @@ def blobapi_detect_qrs(inbuf, min_qrs_ms=20, delineate=False):
         )
 
     return metadata
+
+
+def blobapi_st_t_analysis(inbuf, metadata):
+    """
+    Расчет параметров сегмента ST и зубца T на основе ранее
+    сегментированного сигнала
+    :param inbuf:
+    :param metadata: список словарей с данными сегментации каждого комплекса
+    :return: копия входных метаданных с добавлением рассчитанных параметров
+    """
+
+    header, indata = read_buffer(inbuf)
+    # анализ производится только в одном отведении
+    analysis_chan = 0
+    newmeta = stt_analysis(
+        indata[:,analysis_chan],
+        fs=header["fs"],
+        metadata=metadata
+    )
+
+    return newmeta
 
 
 def blobapi_classify_qrs(inbuf, metadata, classgen_threshold=0.85):
