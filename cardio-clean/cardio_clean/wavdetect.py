@@ -192,7 +192,7 @@ def ptsearch(modes, derivative):
     """
 
     if len(modes) < 2:
-        return makewave("p")
+        return None
 
     # Удаляем ступеньки
     mbuf = []
@@ -225,7 +225,7 @@ def ptsearch(modes, derivative):
         rb=modes[i0 + 1][0]
     )
 
-    return makewave("p", p_wave_center)
+    return p_wave_center
 
 
 def range_filter(x, lb, rb, thresh):
@@ -242,7 +242,7 @@ def range_filter(x, lb, rb, thresh):
     return ret
 
 
-def find_points(x, fs, qrs_metadata, debug=False):
+def find_points(x, fs, qrs_metadata, j_offset_ms=60, debug=False):
 
     bands = ddwt(x)
     modas = []
@@ -310,9 +310,41 @@ def find_points(x, fs, qrs_metadata, debug=False):
                                     noise/2)
 
         # последняя мода не учитывается, потому что относится к QRS
-        ptparams = ptsearch(modas_subset[:-1], bands[p_scale])
+        p_wave_center = ptsearch(modas_subset[:-1], bands[p_scale])
 
-        pkdata["waves"].update(ptparams)
+        pkdata["waves"].update(makewave("p", p_wave_center))
+
+        # поиск T-зубца
+
+        t_scale = 4
+        # окно для поиска
+        next_r = int(qrs_metadata[ncycle+1]["r_wave_center"][0] * fs) \
+            if ncycle < len(qrs_metadata)-1 else len(x)
+
+        cur_r = int(qrs["r_wave_center"][0] * fs)
+        twindow = [
+            cur_r,
+            int((next_r + cur_r)/2)
+        ]
+
+        modas_subset = range_filter(modas[p_scale], twindow[0], twindow[1],
+                                    noise / 2)
+
+        # первая мода не учитывается, потому что относится к QRS
+        t_wave_center = ptsearch(modas_subset[1:], bands[t_scale])
+
+        pkdata["waves"].update(makewave("t", t_wave_center))
+
+        # точка J не обнаруживается, а ставится со смещением от R-зубца
+        rc = pkdata["waves"]["r"]["center"]
+        if rc is not None:
+            j_point = rc + int(fs*j_offset_ms/1000.0)
+            if j_point > len(x) - 1:
+                j_point = None
+        else:
+            j_point = None
+
+        pkdata["waves"].update(makewave("j", j_point))
 
         # запись высоты зубцов
         for wave in pkdata["waves"]:
