@@ -74,13 +74,16 @@ def ddwt(x, num_scales=5):
     signal_len = len(x)
 
     detail = []
+    approx = []
     ap = x.copy()
     detail.append(ap.copy())  # на нулевом уровне храним исходный сигнал
+    approx.append([])
 
     for s in range(num_scales):
         dly = 2**s
         hif = convolve(ap, g, mode="full")[dly:dly+signal_len]
         detail.append(hif)
+        approx.append(ap)
         if s < num_scales-1:
             ap = convolve(ap, h, mode="full")[dly:dly+signal_len]
             # вместо прореживания сигналов (Маллат) расширяем характеристики
@@ -88,7 +91,7 @@ def ddwt(x, num_scales=5):
             h = fexpand(h)
             g = fexpand(g)
 
-    return detail
+    return approx, detail
 
 
 def qrssearch(modes, derivative):
@@ -183,16 +186,17 @@ def makewave(name, pos=None, height=None, start=None, end=None):
     }}
 
 
-def ptsearch(modes, derivative):
+def ptsearch(modes, derivative, approx):
     """
     Поиск зубцов P и T
     :param modes:
     :param derivative:
+    :param approx:
     :return:
     """
 
     if len(modes) < 2:
-        return None
+        return None, None, None
 
     # Удаляем ступеньки
     mbuf = []
@@ -218,14 +222,32 @@ def ptsearch(modes, derivative):
 
     i0 = maxpair[0]
 
-    p_wave_center = zcfind(
+    wave_center = zcfind(
         derivative,
         single=True,
         lb=modes[i0][0],
         rb=modes[i0 + 1][0]
     )
 
-    return p_wave_center
+    # строим касательную в наиболее крутой точке переднего фронта
+
+    xr1 = modes[i0][0]
+    yr0 = approx[xr1-1]
+    yr1 = approx[xr1]
+    yr2 = approx[xr1+1]
+
+    wave_left = int(xr1 - (2.0 * yr1)/(yr2-yr0))
+
+    # строим касательную в наиболее крутой точке заднего фронта
+
+    xf1 = modes[i0+1][0]
+    yf0 = approx[xf1-1]
+    yf1 = approx[xf1]
+    yf2 = approx[xf1+1]
+
+    wave_right = int(xf1 + (2.0 * yf1)/(yf0-yf2))
+
+    return max(0, wave_left), wave_center, min(len(approx), wave_right)
 
 
 def range_filter(x, lb, rb, thresh):
@@ -244,9 +266,9 @@ def range_filter(x, lb, rb, thresh):
 
 def find_points(x, fs, qrs_metadata, j_offset_ms=60, debug=False):
 
-    bands = ddwt(x)
+    approx, detail = ddwt(x)
     modas = []
-    for band in bands:
+    for band in detail:
         moda = []
         # ищем положительные максимумы
         pos = argrelmax(band)[0]
@@ -270,7 +292,7 @@ def find_points(x, fs, qrs_metadata, j_offset_ms=60, debug=False):
     new_metadata = []
 
     # очень приближенная оценка шума
-    noise = np.std(bands[1]) * 0.7
+    noise = np.std(detail[1]) * 0.7
     if debug:
         print(noise)
 
@@ -286,7 +308,7 @@ def find_points(x, fs, qrs_metadata, j_offset_ms=60, debug=False):
 
         modas_subset = range_filter( modas[r_scale], lbound, rbound, noise)
 
-        params, codestr = qrssearch(modas_subset, bands[r_scale])
+        params, codestr = qrssearch(modas_subset, detail[r_scale])
         pkdata.update(params)
 
         if debug:
@@ -310,9 +332,20 @@ def find_points(x, fs, qrs_metadata, j_offset_ms=60, debug=False):
                                     noise/2)
 
         # последняя мода не учитывается, потому что относится к QRS
-        p_wave_center = ptsearch(modas_subset[:-1], bands[p_scale])
+        pleft, pcenter, pright = ptsearch(
+            modas_subset[:-1],
+            detail[p_scale],
+            approx[p_scale]
+        )
 
-        pkdata["waves"].update(makewave("p", p_wave_center))
+        pkdata["waves"].update(
+            makewave(
+                "p",
+                pos=pcenter,
+                start=pleft,
+                end=pright
+            )
+        )
 
         # поиск T-зубца
 
@@ -331,9 +364,20 @@ def find_points(x, fs, qrs_metadata, j_offset_ms=60, debug=False):
                                     noise / 2)
 
         # первая мода не учитывается, потому что относится к QRS
-        t_wave_center = ptsearch(modas_subset[1:], bands[t_scale])
+        tleft, tcenter, tright = ptsearch(
+            modas_subset[1:],
+            detail[t_scale],
+            approx[t_scale]
+        )
 
-        pkdata["waves"].update(makewave("t", t_wave_center))
+        pkdata["waves"].update(
+            makewave(
+                "t",
+                pos=tcenter,
+                start=tleft,
+                end=tright
+            )
+        )
 
         # точка J не обнаруживается, а ставится со смещением от R-зубца
         rc = pkdata["waves"]["r"]["center"]
