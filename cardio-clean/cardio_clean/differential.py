@@ -9,6 +9,7 @@ from graphresults import ecgread
 from wavdetect import ddwt, find_points, zcfind
 from qrsdetect import qrs_detection
 
+
 def dummy_shift(x, n):
     return np.concatenate((x[n:], np.ones(n)*x[-1]))
 
@@ -120,7 +121,7 @@ def show_filter_responses(spectral=False):
     x = np.zeros(T, float)
     mid = int(T/2)
     x[mid] = 1.0
-    ders = ddwt(x, num_scales=5)
+    app, ders = ddwt(x, num_scales=5)
 
     if spectral:
         multilinespec(ders[1:])
@@ -135,7 +136,7 @@ def show_filter_responses(spectral=False):
 def show_decomposition():
 
     sig, hdr = ecgread("/Users/arseniy/SERDECH/data/ROXMINE/Rh2024")
-    ders = ddwt(sig[:20000,0], num_scales=5)
+    app, ders = ddwt(sig[:20000,0], num_scales=5)
     multiplot(ders)
 
 
@@ -169,14 +170,17 @@ def show_waves():
         qrstype = qrs["qrsType"]
         qrsTypes[qrstype] = qrsTypes.get(qrstype, 0) + 1
 
-        if "rwav" in qrs:
-            rwav = qrs["rwav"]
-            plt.plot(np.arange(rwav[0],rwav[1]), s[rwav[0]:rwav[1]], "r")
+        for k,v in qrs.get("waves", {}).items():
+            c = v["center"]
+            if c is not None:
+                plt.scatter(c, s[c])
 
-        wave_points = [x["center"] for x in qrs.get("waves", {}).values()]
-        for p in wave_points:
-            if p is not None:
-                plt.scatter(p, s[p])
+            if k in ("t", "p"):
+                lb = v["start"]
+                rb = v["end"]
+                if lb is not None and rb is not None:
+                    plt.plot(np.arange(lb, rb), s[lb:rb], "r")
+
 
     plt.xlim((200,700))
 
