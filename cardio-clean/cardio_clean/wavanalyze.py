@@ -9,8 +9,8 @@ def stt_analysis(x, fs, metadata):
     new_metadata = []
     valid_cycles = 0
 
-    # guard
-    min_st_samples = 3
+    # guard 80 ms
+    min_st_samples = 80.0 * (1000.0/fs)
 
     stt_params = {
         "st_start_offset": None,  # смещение начала ST от изолинии
@@ -36,13 +36,15 @@ def stt_analysis(x, fs, metadata):
                 if st_end is not None:
                     if st_end - st_start >= min_st_samples:
 
-                        stt_params["st_start_offset"] = np.mean(
-                            x[st_start:st_start+3]
-                        )
+                        if len(x[st_start:st_start+3]):
+                            stt_params["st_start_offset"] = np.mean(
+                                x[st_start:st_start+3]
+                            )
 
-                        stt_params["st_end_offset"] = np.mean(
-                            x[st_end-3:st_end]
-                        )
+                        if len(x[st_end-3:st_end]):
+                            stt_params["st_end_offset"] = np.mean(
+                                x[st_end-3:st_end]
+                            )
 
                         valid_cycles += 1
 
