@@ -73,14 +73,14 @@ def ddwt(x, num_scales=5):
     g = np.array([2, -2], float)
     signal_len = len(x)
 
-    decomposition = []
+    detail = []
     ap = x.copy()
-    decomposition.append(ap.copy())  # на нулевом уровне храним исходный сигнал
+    detail.append(ap.copy())  # на нулевом уровне храним исходный сигнал
 
     for s in range(num_scales):
         dly = 2**s
         hif = convolve(ap, g, mode="full")[dly:dly+signal_len]
-        decomposition.append(hif)
+        detail.append(hif)
         if s < num_scales-1:
             ap = convolve(ap, h, mode="full")[dly:dly+signal_len]
             # вместо прореживания сигналов (Маллат) расширяем характеристики
@@ -88,10 +88,10 @@ def ddwt(x, num_scales=5):
             h = fexpand(h)
             g = fexpand(g)
 
-    return decomposition
+    return detail
 
 
-def pksearch(modes, derivative):
+def qrssearch(modes, derivative):
 
     params = {
         "waves": {},
@@ -286,7 +286,7 @@ def find_points(x, fs, qrs_metadata, j_offset_ms=60, debug=False):
 
         modas_subset = range_filter( modas[r_scale], lbound, rbound, noise)
 
-        params, codestr = pksearch(modas_subset, bands[r_scale])
+        params, codestr = qrssearch(modas_subset, bands[r_scale])
         pkdata.update(params)
 
         if debug:
