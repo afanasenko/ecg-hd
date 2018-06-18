@@ -236,7 +236,10 @@ def ptsearch(modes, derivative, approx):
     yr1 = approx[xr1]
     yr2 = approx[xr1+1]
 
-    wave_left = int(xr1 - (2.0 * yr1)/(yr2-yr0))
+    if yr2 > yr0:
+        wave_left = int(xr1 - (2.0 * yr1)/(yr2-yr0))
+    else:
+        wave_left = None
 
     # строим касательную в наиболее крутой точке заднего фронта
 
@@ -245,7 +248,10 @@ def ptsearch(modes, derivative, approx):
     yf1 = approx[xf1]
     yf2 = approx[xf1+1]
 
-    wave_right = int(xf1 + (2.0 * yf1)/(yf0-yf2))
+    if yf0 > yf2:
+        wave_right = int(xf1 + (2.0 * yf1)/(yf0-yf2))
+    else:
+        wave_right = None
 
     return max(0, wave_left), wave_center, min(len(approx), wave_right)
 
