@@ -26,6 +26,8 @@ def test_readwrite():
 
         assert data.shape == data2.shape
 
+    os.remove(filename_out)
+
 
 def test_baseline():
     filename_in = os.path.join(
@@ -51,6 +53,9 @@ def test_baseline():
         assert start_data.shape == end_data.shape
 
 
+    os.remove(filename_out)
+
+
 def test_mains():
     filename_in = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
@@ -69,6 +74,8 @@ def test_mains():
         hdr, data = read_buffer(fcheck)
 
         print("signal shape after mains correction: {}".format(data.shape))
+
+    os.remove(filename_out)
 
 
 def test_qrs():
@@ -144,6 +151,9 @@ def test_classify():
         num_art = len([x for x in meta if x["artifact"]])
 
         assert num_art == 0
+
+    os.remove(filename_out)
+
 
 if __name__ == "__main__":
     #test_readwrite()
