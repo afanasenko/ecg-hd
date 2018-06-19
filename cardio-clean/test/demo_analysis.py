@@ -5,75 +5,13 @@ from matplotlib import pyplot as plt
 from scipy.signal import lfilter, hann
 from scipy.fftpack import fft
 
-from graphresults import ecgread
-from wavdetect import ddwt, find_points, zcfind
-from qrsdetect import qrs_detection
+from cardio_clean.wavdetect import ddwt, find_points, zcfind
+from cardio_clean.qrsdetect import qrs_detection
+from demo_preprocessing import ecgread
 
 
 def dummy_shift(x, n):
     return np.concatenate((x[n:], np.ones(n)*x[-1]))
-
-
-def ddgau(sigma, fs, ksigma=3):
-
-    dt = 1.0 / fs
-    halfw = sigma*ksigma
-
-    x = np.arange(-halfw, halfw, dt)
-    y = np.zeros(len(x))
-    sumsq = 0.0
-
-    for i, t in enumerate(x):
-        tt = t*t/(2.0*sigma*sigma)
-        y[i] = (1-(t/sigma)**2)*np.exp(-tt)
-        sumsq += y[i]*y[i]
-
-    return x, y/sumsq
-
-
-def dgau(sigma, fs, ksigma=3):
-
-    dt = 1.0 / fs
-    halfw = sigma*ksigma
-
-    x = np.arange(-halfw, halfw, dt)
-    y = np.zeros(len(x))
-    sumsq = 0.0
-
-    for i, t in enumerate(x):
-        tt = t/sigma
-        y[i] = -t*np.exp(-tt*tt)
-        sumsq += y[i]*y[i]
-
-    return x, y/sumsq
-
-
-def gaussogram(x):
-
-    sigmas = np.array([
-        0.009,
-        0.015,
-        0.03,
-        0.06
-    ])
-
-    fig, axarr = plt.subplots(len(sigmas)+1, 1, sharex=True)
-
-    filterbank = []
-    for i, s in enumerate(sigmas):
-        t, h = dgau(s,250)
-        filterbank.append(h)
-
-    axarr[0].plot(x)
-
-    for i, h in enumerate(filterbank):
-
-        sm = lfilter(h, [1.0], x)
-        sm = dummy_shift(sm, int(len(h)/2))
-
-        axarr[i+1].plot(sm)
-        axarr[i+1].grid()
-    plt.show()
 
 
 def multiplot(siglist):
@@ -180,7 +118,6 @@ def show_waves():
                 rb = v["end"]
                 if lb is not None and rb is not None:
                     plt.plot(np.arange(lb, rb), s[lb:rb], "r")
-
 
     plt.xlim((200,700))
 
