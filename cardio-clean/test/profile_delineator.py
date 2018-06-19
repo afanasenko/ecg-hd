@@ -4,7 +4,7 @@ import cProfile as profile
 
 from cardio_clean.wavdetect import find_points
 from cardio_clean.qrsdetect import qrs_detection
-from demo_analysis import ecgread
+from demo_preprocessing import ecgread
 
 pr = profile.Profile()
 
