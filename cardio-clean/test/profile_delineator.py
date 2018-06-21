@@ -1,6 +1,7 @@
 # coding: utf-8
 
 import cProfile as profile
+import pstats
 
 from cardio_clean.wavdetect import find_points
 from cardio_clean.qrsdetect import qrs_detection
@@ -13,17 +14,20 @@ fs = header["fs"]
 if fs != 250:
     print("Warning! fs={}".format(fs))
 
-s = sig[:, 0]
-
 metadata, debugdata = qrs_detection(
-    sig[:, :],
+    sig,
     fs=header["fs"],
     bias=header["baseline"],
     gain=header["adc_gain"],
     minqrs_ms=20)
 
 pr.enable()
-newmeta = find_points(s, header["fs"], metadata)
+newmeta = find_points(sig[:, 0], header["fs"], metadata)
 pr.disable()
 
 pr.dump_stats('profile.pstat')
+
+# Выводим 10 самых тяжелых функций
+p = pstats.Stats('profile.pstat')
+p.sort_stats('time').print_stats(10)
+
