@@ -272,7 +272,11 @@ def range_filter(x, lb, rb, thresh):
 
 def find_points(x, fs, qrs_metadata, j_offset_ms=60, debug=False):
 
-    approx, detail = ddwt(x)
+    r_scale = 2
+    p_scale = 4
+    t_scale = 4
+
+    approx, detail = ddwt(x, num_scales=max(r_scale, p_scale, t_scale))
     modas = []
     for band in detail:
         moda = []
@@ -307,7 +311,6 @@ def find_points(x, fs, qrs_metadata, j_offset_ms=60, debug=False):
         pkdata = qrs.copy()
 
         # Поиск зубцов Q, R, S
-        r_scale = 2
         # окно для поиска
         lbound = int(qrs["qrs_start"] * fs)
         rbound = int(qrs["qrs_end"] * fs)
@@ -323,8 +326,6 @@ def find_points(x, fs, qrs_metadata, j_offset_ms=60, debug=False):
                 summary[codestr] = summary.get(codestr, 0) + 1
 
         # поиск P-зубца
-
-        p_scale = 4
         # окно для поиска
         prev_r = int(qrs_metadata[ncycle-1]["r_wave_center"][0] * fs) \
             if ncycle else 0
@@ -354,8 +355,6 @@ def find_points(x, fs, qrs_metadata, j_offset_ms=60, debug=False):
         )
 
         # поиск T-зубца
-
-        t_scale = 4
         # окно для поиска
         next_r = int(qrs_metadata[ncycle+1]["r_wave_center"][0] * fs) \
             if ncycle < len(qrs_metadata)-1 else len(x)
