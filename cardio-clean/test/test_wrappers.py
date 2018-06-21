@@ -103,18 +103,18 @@ def test_parameters():
         meta = blobapi_detect_qrs(
             inbuf=fi,
             min_qrs_ms=20,
-            delineate=True
+            channel=None  # поиск во всех каналах
         )
 
-        assert len(meta) == 3628
+        assert len(meta[0]) == 3628
 
     with open(filename_in, "rb") as fi:
         newmeta = blobapi_st_t_analysis(
             inbuf=fi,
-            metadata=meta
+            metadata=meta[0]
         )
 
-        assert len(newmeta) == len(meta)
+        assert len(newmeta) == len(meta[0])
 
 
 def test_classify():
@@ -159,5 +159,5 @@ if __name__ == "__main__":
     #test_readwrite()
     #test_baseline()
     #test_mains()
-    test_qrs()
+    test_parameters()
     #test_classify()

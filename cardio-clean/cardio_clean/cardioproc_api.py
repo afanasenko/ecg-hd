@@ -127,7 +127,7 @@ def blobapi_mains_correction(
     write_buffer(outbuf, header, outdata)
 
 
-def blobapi_detect_qrs(inbuf, min_qrs_ms=20, delineate=False):
+def blobapi_detect_qrs(inbuf, min_qrs_ms=20, channel=None):
     """
        Обнаружение QRS
 
@@ -138,8 +138,9 @@ def blobapi_detect_qrs(inbuf, min_qrs_ms=20, delineate=False):
 
     :param inbuf: входной буфер (остается неизменным)
     :param min_qrs_ms: минимальная длительность QRS-комплекса
-    :param delineate: выполнить сегментацию найденных комплексов
-    :return: qrs_metadata (список найденных комплексов)
+    :param channel: канал, в к-ром выполняется сегментация, None - все каналы
+    :return: [meta0, meta1, ..., metaN], где metaX - список найденных
+    комплексов в X-том канале
     """
 
     header, indata = read_buffer(inbuf)
@@ -150,17 +151,27 @@ def blobapi_detect_qrs(inbuf, min_qrs_ms=20, delineate=False):
         gain=header["adc_gain"],
         minqrs_ms=min_qrs_ms)
 
-    if delineate:
+    metadata_per_channel = []
+    if channel is None:
+        # сегментация производится в каждом отведении
+        for delineate_chan in range(header["channels"]):
+            new_meta = find_points(
+                indata[:,delineate_chan],
+                fs=header["fs"],
+                qrs_metadata=metadata
+            )
+            metadata_per_channel.append(new_meta)
+        return metadata_per_channel
+
+    else:
         # сегментация производится только в одном отведении
-        delineate_chan = 0
         metadata = find_points(
-            indata[:,delineate_chan],
+            indata[:,channel],
             fs=header["fs"],
             qrs_metadata=metadata,
             debug=False
         )
-
-    return metadata
+        return [metadata]
 
 
 def blobapi_st_t_analysis(inbuf, metadata):
