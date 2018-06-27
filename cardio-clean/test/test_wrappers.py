@@ -2,6 +2,7 @@
 
 import os
 from cardio_clean.cardioproc_api import *
+from cardio_clean.metadata import samples_to_ms
 
 
 def test_readwrite():
@@ -19,7 +20,6 @@ def test_readwrite():
         write_buffer(fo, hdr, data)
 
     assert os.stat(filename_in).st_size == os.stat(filename_out).st_size
-
 
     with open(filename_out, "rb") as fcheck:
         hdr2, data2 = read_buffer(fcheck)
@@ -98,23 +98,44 @@ def test_parameters():
     filename_in = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
         "TestFromDcm.ecg")
+    filename_out = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "output_bl.ecg")
 
     with open(filename_in, "rb") as fi:
+        with open(filename_out, "wb") as fo:
+            blobapi_fix_baseline(inbuf=fi, outbuf=fo)
+
+    with open(filename_out, "rb") as fi:
         meta = blobapi_detect_qrs(
             inbuf=fi,
             min_qrs_ms=20,
-            channel=None  # поиск во всех каналах
+            channel=0,
+            postprocessing=True
         )
 
         assert len(meta[0]) == 3628
 
-    with open(filename_in, "rb") as fi:
-        newmeta = blobapi_st_t_analysis(
-            inbuf=fi,
-            metadata=meta[0]
-        )
+        c = 0
+        stdur = []
+        for nqrs in meta[0]:
+            st_start = nqrs["waves"]["j"]["center"]
+            st_end = nqrs["waves"]["t"]["start"]
+            st_level_start = nqrs["stt_params"]["st_start_offset"]
+            st_level_end = nqrs["stt_params"]["st_end_offset"]
 
-        assert len(newmeta) == len(meta[0])
+            if all((st_start, st_end)):
+                stdur.append(samples_to_ms(st_end-st_start, 250))
+
+            if all((st_level_start, st_level_end)):
+                c += 1
+
+        print(len(meta[0]))
+        print(c)
+        print("st-сегментов: {}\nСредняя длительность : {} мс".format(
+            len(stdur),
+            np.mean(stdur))
+        )
 
 
 def test_classify():
