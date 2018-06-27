@@ -11,5 +11,10 @@
     attenuation: 0.05
     fft_size: 512
 
+  SEGMENTATION:
+    min_qrs_ms: 20
+    min_st_ms: 80
+    j_offset_ms: 60
+
   BATCH_PROCESSING:
     output_file_suffix: _F
