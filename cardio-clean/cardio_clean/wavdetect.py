@@ -4,6 +4,8 @@ import json
 import numpy as np
 from scipy.signal import convolve, argrelmax, argrelmin
 
+from metadata import ms_to_samples
+
 
 def zcfind(x, single=True, lb=0, rb=0):
 
@@ -186,6 +188,11 @@ def makewave(name, pos=None, height=None, start=None, end=None):
     }}
 
 
+def edgefind(x0, y0, dx, dy, bias):
+    return int(x0 - dx * (y0-bias) / dy)
+
+
+
 def ptsearch(modes, derivative, approx):
     """
     Поиск зубцов P и T
@@ -229,31 +236,35 @@ def ptsearch(modes, derivative, approx):
         rb=modes[i0 + 1][0]
     )
 
+    iso = -0.0
+
     # строим касательную в наиболее крутой точке переднего фронта
 
-    xr1 = modes[i0][0]
-    yr0 = approx[xr1-1]
-    yr1 = approx[xr1]
-    yr2 = approx[xr1+1]
+    x0 = modes[i0][0]
+    y0 = approx[x0]
+    dy = approx[x0+1] - approx[x0-1]
 
-    if yr2 > yr0:
-        wave_left = int(xr1 - (2.0 * yr1)/(yr2-yr0))
+    if dy > 0:
+        wave_left = edgefind(x0, y0, 2.0, dy, iso)
+        if wave_left >= wave_center or wave_left <= 0:
+            wave_left = None
     else:
         wave_left = None
 
     # строим касательную в наиболее крутой точке заднего фронта
 
-    xf1 = modes[i0+1][0]
-    yf0 = approx[xf1-1]
-    yf1 = approx[xf1]
-    yf2 = approx[xf1+1]
+    x0 = modes[i0+1][0]
+    y0 = approx[x0]
+    dy = approx[x0+1] - approx[x0-1]
 
-    if yf0 > yf2:
-        wave_right = int(xf1 + (2.0 * yf1)/(yf0-yf2))
+    if dy < 0:
+        wave_right = edgefind(x0, y0, 2.0, dy, iso)
+        if wave_right <= wave_center or wave_right >= len(approx):
+            wave_right = None
     else:
         wave_right = None
 
-    return max(0, wave_left), wave_center, min(len(approx), wave_right)
+    return wave_left, wave_center, wave_right
 
 
 def range_filter(x, lb, rb, thresh):
@@ -270,13 +281,20 @@ def range_filter(x, lb, rb, thresh):
     return ret
 
 
-def find_points(x, fs, qrs_metadata, j_offset_ms=60, debug=False):
+def find_points(
+        x,
+        fs,
+        qrs_metadata,
+        bias=0.0,
+        j_offset_ms=60,
+        debug=False):
 
     r_scale = 2
     p_scale = 4
     t_scale = 4
 
-    approx, detail = ddwt(x, num_scales=max(r_scale, p_scale, t_scale))
+    approx, detail = ddwt(x-bias, num_scales=max(r_scale, p_scale,
+                                                     t_scale))
     modas = []
     for band in detail:
         moda = []
@@ -365,6 +383,11 @@ def find_points(x, fs, qrs_metadata, j_offset_ms=60, debug=False):
             int((next_r + cur_r)/2)
         ]
 
+        #from matplotlib import pyplot as plt
+        #plt.plot(x[prev_r:next_r], "k")
+        #plt.plot(approx[t_scale][prev_r:next_r], "b")
+        #plt.show(block=False)
+
         modas_subset = range_filter(modas[p_scale], twindow[0], twindow[1],
                                     noise / 2)
 
@@ -387,7 +410,7 @@ def find_points(x, fs, qrs_metadata, j_offset_ms=60, debug=False):
         # точка J не обнаруживается, а ставится со смещением от R-зубца
         rc = pkdata["waves"]["r"]["center"]
         if rc is not None:
-            j_point = rc + int(fs*j_offset_ms/1000.0)
+            j_point = rc + ms_to_samples(j_offset_ms, fs)
             if j_point > len(x) - 1:
                 j_point = None
         else:
