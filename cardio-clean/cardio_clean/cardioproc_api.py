@@ -127,9 +127,14 @@ def blobapi_mains_correction(
     write_buffer(outbuf, header, outdata)
 
 
-def blobapi_detect_qrs(inbuf, min_qrs_ms=20, channel=None):
+def blobapi_detect_qrs(
+        inbuf,
+        min_qrs_ms=20,
+        channel=None,
+        postprocessing=True
+    ):
     """
-       Обнаружение QRS
+       Обнаружение QRS и последующая сегментация
 
         Предварительные условия:
         blobapi_detect_qrs желательно вызывать после функций подавления
@@ -139,8 +144,9 @@ def blobapi_detect_qrs(inbuf, min_qrs_ms=20, channel=None):
     :param inbuf: входной буфер (остается неизменным)
     :param min_qrs_ms: минимальная длительность QRS-комплекса
     :param channel: канал, в к-ром выполняется сегментация, None - все каналы
-    :return: [meta0, meta1, ..., metaN], где metaX - список найденных
-    комплексов в X-том канале
+    :param postprocessing: расчет вторичных параметров (ритм, ST-T и др.)
+    :return: [meta0, meta1, ..., metaN], где metaN - список найденных
+    комплексов в N-ом канале
     """
 
     header, indata = read_buffer(inbuf)
@@ -160,6 +166,14 @@ def blobapi_detect_qrs(inbuf, min_qrs_ms=20, channel=None):
                 fs=header["fs"],
                 qrs_metadata=metadata
             )
+
+            if postprocessing:
+                new_meta = stt_analysis(
+                    indata[:,channel],
+                    fs=header["fs"],
+                    metadata=metadata
+                )
+
             metadata_per_channel.append(new_meta)
         return metadata_per_channel
 
@@ -168,16 +182,31 @@ def blobapi_detect_qrs(inbuf, min_qrs_ms=20, channel=None):
         metadata = find_points(
             indata[:,channel],
             fs=header["fs"],
+            bias=header["baseline"],
             qrs_metadata=metadata,
             debug=False
         )
+        if postprocessing:
+            metadata = stt_analysis(
+                indata[:, channel],
+                fs=header["fs"],
+                metadata=metadata
+            )
         return [metadata]
 
 
-def blobapi_st_t_analysis(inbuf, metadata):
+def blobapi_postprocessing_qrs(
+        inbuf,
+        metadata,
+        channel=None
+    ):
     """
-    Расчет параметров сегмента ST и зубца T на основе ранее
+    Расчет вторичных параметров на основе ранее
     сегментированного сигнала
+
+        Предварительные условия:
+        сигнал д.б. предварительно сегментирован функцией blobapi_detect_qrs
+
     :param inbuf:
     :param metadata: список словарей с данными сегментации каждого комплекса
     :return: копия входных метаданных с добавлением рассчитанных параметров
@@ -185,12 +214,23 @@ def blobapi_st_t_analysis(inbuf, metadata):
 
     header, indata = read_buffer(inbuf)
     # анализ производится только в одном отведении
-    analysis_chan = 0
-    newmeta = stt_analysis(
-        indata[:,analysis_chan],
-        fs=header["fs"],
-        metadata=metadata
-    )
+    if channel is None:
+        newmeta = []
+        for chan in range(indata.shape[1]):
+
+            newmeta.append(
+                stt_analysis(
+                    indata[:, chan],
+                    fs=header["fs"],
+                    metadata=metadata[chan]
+                )
+            )
+    else:
+        newmeta = stt_analysis(
+            indata[:,channel],
+            fs=header["fs"],
+            metadata=metadata
+        )
 
     return newmeta
 
