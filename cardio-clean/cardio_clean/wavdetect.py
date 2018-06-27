@@ -290,6 +290,8 @@ def find_points(
     r_scale = 2
     p_scale = 4
     t_scale = 4
+    t_window_fraction = 0.6
+    p_window_fraction = 1.0 - t_window_fraction
 
     approx, detail = ddwt(x-bias, num_scales=max(r_scale, p_scale,
                                                      t_scale))
@@ -350,10 +352,21 @@ def find_points(
         # оценка изолинии
         iso = np.percentile(approx[r_scale][prev_r:next_r], 15)
 
+        from matplotlib import pyplot as plt
+        #plt.plot(np.arange(prev_r, next_r), x[prev_r:next_r], "k")
+        plt.plot(np.arange(prev_r, next_r), detail[p_scale][prev_r:next_r],
+                 "k")
+        plt.plot(np.arange(prev_r, next_r), approx[r_scale][prev_r:next_r],
+                 "b")
+        plt.plot([prev_r, next_r], [iso, iso], "r:")
+        plt.show(block=False)
+        plt.grid()
+
         # поиск P-зубца
         # окно для поиска
+        wlen = (cur_r - prev_r) * p_window_fraction
         pwindow = [
-            int((prev_r + cur_r)/2),
+            int(prev_r + wlen),
             cur_r
         ]
 
@@ -364,7 +377,7 @@ def find_points(
         pleft, pcenter, pright = ptsearch(
             modas_subset[:-1],
             detail[p_scale],
-            approx[r_scale],
+            approx[r_scale+1],
             bias=iso
         )
 
@@ -379,17 +392,11 @@ def find_points(
 
         # поиск T-зубца
         # окно для поиска
+        wlen = (next_r - cur_r) * t_window_fraction
         twindow = [
             cur_r,
-            int((next_r + cur_r)/2)
+            int(cur_r + wlen)
         ]
-
-        from matplotlib import pyplot as plt
-        plt.plot(x[prev_r:next_r], "k")
-        plt.plot(approx[r_scale][prev_r:next_r], "b")
-        plt.plot([0, next_r-prev_r], [iso, iso], "r:")
-        plt.show(block=False)
-        plt.grid()
 
         modas_subset = range_filter(modas[p_scale], twindow[0], twindow[1],
                                     noise / 2)
@@ -398,7 +405,7 @@ def find_points(
         tleft, tcenter, tright = ptsearch(
             modas_subset[1:],
             detail[t_scale],
-            approx[r_scale],
+            approx[r_scale+1],
             bias=iso
         )
 
