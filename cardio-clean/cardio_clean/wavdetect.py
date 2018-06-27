@@ -221,6 +221,7 @@ def ptsearch(modes, derivative, approx, bias=0.0):
     # Удаляем ступеньки
     mbuf = []
     for pos, val in modes:
+
         if mbuf:
             # повторные с одним знаком
             if val * mbuf[-1][1] > 0:
@@ -230,7 +231,7 @@ def ptsearch(modes, derivative, approx, bias=0.0):
                 continue
 
         mbuf.append((pos, val))
-
+    modes = mbuf
 
     # Фронты самого мощного зубца
     maxpair = (0,0)
@@ -363,15 +364,16 @@ def find_points(
         # оценка изолинии
         iso = np.percentile(approx[r_scale][prev_r:next_r], 15)
 
-        from matplotlib import pyplot as plt
-        #plt.plot(np.arange(prev_r, next_r), x[prev_r:next_r], "k")
-        plt.plot(np.arange(prev_r, next_r), detail[p_scale][prev_r:next_r],
-                 "k")
-        plt.plot(np.arange(prev_r, next_r), approx[r_scale][prev_r:next_r],
-                 "b")
-        plt.plot([prev_r, next_r], [iso, iso], "r:")
-        plt.grid()
-        plt.show(block=False)
+        if debug:
+            from matplotlib import pyplot as plt
+            #plt.plot(np.arange(prev_r, next_r), x[prev_r:next_r], "k")
+            plt.plot(np.arange(prev_r, next_r), detail[p_scale][prev_r:next_r],
+                     "k")
+            plt.plot(np.arange(prev_r, next_r), approx[r_scale][prev_r:next_r],
+                     "b")
+            plt.plot([prev_r, next_r], [iso, iso], "r:")
+            plt.grid()
+            plt.show(block=False)
 
         # поиск P-зубца
         # окно для поиска
