@@ -7,6 +7,22 @@ from scipy.signal import convolve, argrelmax, argrelmin
 from metadata import ms_to_samples
 
 
+def modefind(x, single=True, lb=0, rb=0, bias=0.0):
+
+    if rb:
+        rb = min(rb, len(x))
+    else:
+        rb = len(x)
+
+    pk = (0, 0.0)
+    for i in range(lb, rb):
+        val = abs(x[i]-bias)
+        if val > pk[1]:
+            pk = (i, val)
+
+    return pk[0]
+
+
 def zcfind(x, single=True, lb=0, rb=0):
 
     zc = []
@@ -18,8 +34,6 @@ def zcfind(x, single=True, lb=0, rb=0):
 
     for i in range(lb+1, rb):
         if x[i-1]*x[i] < 0:
-            #w1 = float(abs(x[i-1]))
-            #w2 = float(abs(x[i]))
             if single:
                 return i-1
 
@@ -192,7 +206,6 @@ def edgefind(x0, y0, dx, dy, bias):
     return int(x0 - dx * (y0-bias) / dy)
 
 
-
 def ptsearch(modes, derivative, approx, bias=0.0):
     """
     Поиск зубцов P и T
@@ -229,11 +242,9 @@ def ptsearch(modes, derivative, approx, bias=0.0):
 
     i0 = maxpair[0]
 
-    wave_center = zcfind(
-        derivative,
-        single=True,
-        lb=modes[i0][0],
-        rb=modes[i0 + 1][0]
+
+    wave_center = modefind(
+        approx, lb=modes[i0][0], rb=modes[i0 + 1][0], bias=bias
     )
 
     # строим касательную в наиболее крутой точке переднего фронта
@@ -359,8 +370,8 @@ def find_points(
         plt.plot(np.arange(prev_r, next_r), approx[r_scale][prev_r:next_r],
                  "b")
         plt.plot([prev_r, next_r], [iso, iso], "r:")
-        plt.show(block=False)
         plt.grid()
+        plt.show(block=False)
 
         # поиск P-зубца
         # окно для поиска
