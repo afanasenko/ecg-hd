@@ -193,7 +193,7 @@ def edgefind(x0, y0, dx, dy, bias):
 
 
 
-def ptsearch(modes, derivative, approx):
+def ptsearch(modes, derivative, approx, bias=0.0):
     """
     Поиск зубцов P и T
     :param modes:
@@ -236,8 +236,6 @@ def ptsearch(modes, derivative, approx):
         rb=modes[i0 + 1][0]
     )
 
-    iso = -0.0
-
     # строим касательную в наиболее крутой точке переднего фронта
 
     x0 = modes[i0][0]
@@ -245,7 +243,7 @@ def ptsearch(modes, derivative, approx):
     dy = approx[x0+1] - approx[x0-1]
 
     if dy > 0:
-        wave_left = edgefind(x0, y0, 2.0, dy, iso)
+        wave_left = edgefind(x0, y0, 2.0, dy, bias)
         if wave_left >= wave_center or wave_left <= 0:
             wave_left = None
     else:
@@ -258,7 +256,7 @@ def ptsearch(modes, derivative, approx):
     dy = approx[x0+1] - approx[x0-1]
 
     if dy < 0:
-        wave_right = edgefind(x0, y0, 2.0, dy, iso)
+        wave_right = edgefind(x0, y0, 2.0, dy, bias)
         if wave_right <= wave_center or wave_right >= len(approx):
             wave_right = None
     else:
@@ -343,11 +341,17 @@ def find_points(
             if codestr:
                 summary[codestr] = summary.get(codestr, 0) + 1
 
+        prev_r = int(qrs_metadata[ncycle - 1]["r_wave_center"][0] * fs) \
+            if ncycle else 0
+        next_r = int(qrs_metadata[ncycle + 1]["r_wave_center"][0] * fs) \
+            if ncycle < len(qrs_metadata) - 1 else len(x)
+        cur_r = int(qrs["r_wave_center"][0] * fs)
+
+        # оценка изолинии
+        iso = np.percentile(approx[r_scale][prev_r:next_r], 15)
+
         # поиск P-зубца
         # окно для поиска
-        prev_r = int(qrs_metadata[ncycle-1]["r_wave_center"][0] * fs) \
-            if ncycle else 0
-        cur_r = int(qrs["r_wave_center"][0] * fs)
         pwindow = [
             int((prev_r + cur_r)/2),
             cur_r
@@ -356,11 +360,12 @@ def find_points(
         modas_subset = range_filter(modas[p_scale], pwindow[0], pwindow[1],
                                     noise/2)
 
-        # последняя мода не учитывается, потому что относится к QRS
+        # последняя мода перед R не учитывается, потому что относится к QRS
         pleft, pcenter, pright = ptsearch(
             modas_subset[:-1],
             detail[p_scale],
-            approx[p_scale]
+            approx[r_scale],
+            bias=iso
         )
 
         pkdata["waves"].update(
@@ -374,28 +379,27 @@ def find_points(
 
         # поиск T-зубца
         # окно для поиска
-        next_r = int(qrs_metadata[ncycle+1]["r_wave_center"][0] * fs) \
-            if ncycle < len(qrs_metadata)-1 else len(x)
-
-        cur_r = int(qrs["r_wave_center"][0] * fs)
         twindow = [
             cur_r,
             int((next_r + cur_r)/2)
         ]
 
-        #from matplotlib import pyplot as plt
-        #plt.plot(x[prev_r:next_r], "k")
-        #plt.plot(approx[t_scale][prev_r:next_r], "b")
-        #plt.show(block=False)
+        from matplotlib import pyplot as plt
+        plt.plot(x[prev_r:next_r], "k")
+        plt.plot(approx[r_scale][prev_r:next_r], "b")
+        plt.plot([0, next_r-prev_r], [iso, iso], "r:")
+        plt.show(block=False)
+        plt.grid()
 
         modas_subset = range_filter(modas[p_scale], twindow[0], twindow[1],
                                     noise / 2)
 
-        # первая мода не учитывается, потому что относится к QRS
+        # первая мода справа от R не учитывается, потому что относится к QRS
         tleft, tcenter, tright = ptsearch(
             modas_subset[1:],
             detail[t_scale],
-            approx[t_scale]
+            approx[r_scale],
+            bias=iso
         )
 
         pkdata["waves"].update(
