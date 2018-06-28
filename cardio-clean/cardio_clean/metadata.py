@@ -116,8 +116,8 @@ def metadata_postprocessing(metadata, sig, fs, **kwargs):
             j_point = None
             jplus_point = None
 
-        cycledata["waves"]["j"] = {"center": j_point}
-        cycledata["waves"]["j+"] = {"center": jplus_point}
+        cycledata["waves"]["j"]["center"] = j_point
+        cycledata["waves"]["j+"]["center"] = jplus_point
 
         # ######################################
         # запись высоты зубцов

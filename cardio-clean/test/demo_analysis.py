@@ -6,7 +6,7 @@ from scipy.signal import lfilter, hann
 from scipy.fftpack import fft
 
 from cardio_clean.wavdetect import ddwt, find_points, zcfind
-from cardio_clean.wavanalyze import stt_analysis
+from cardio_clean.metadata import *
 
 from cardio_clean.qrsdetect import qrs_detection
 from demo_preprocessing import ecgread
@@ -91,19 +91,20 @@ def show_waves():
     if fs != 250:
         print("Warning! fs={}".format(fs))
 
-    s = sig[:,0]
+    s = sig[:20000,0]
 
     qrs_meta = qrs_detection(
-        sig[:,:],
+        sig[:20000,:],
         fs=header["fs"]
     )[0]
 
     metadata = find_points(s, header["fs"], qrs_meta)
-    metadata = stt_analysis(
+    metadata_postprocessing(
+        metadata,
         s,
-        fs=header["fs"],
-        metadata=metadata
+        fs=header["fs"]
     )
+
     plt.plot(s, "b")
 
     qrsTypes = {}
@@ -136,8 +137,8 @@ def show_waves():
 
     print(qrsTypes)
 
-    stdur = [qrs["stt_params"]["duration"] for qrs in metadata if
-             qrs["stt_params"]["duration"]]
+    stdur = [qrs["ST"]["duration"] for qrs in metadata if
+             qrs["ST"]["duration"]]
 
     print("{} ST segments of {} cycles, avg. {} ms".format(
         stcount,

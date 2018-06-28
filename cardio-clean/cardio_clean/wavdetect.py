@@ -3,11 +3,10 @@
 import json
 import numpy as np
 from scipy.signal import convolve, argrelmax, argrelmin
+from metadata import *
 
-from metadata import ms_to_samples
 
-
-def modefind(x, single=True, lb=0, rb=0, bias=0.0):
+def modefind(x, lb=0, rb=0, bias=0.0):
 
     if rb:
         rb = min(rb, len(x))
@@ -23,9 +22,7 @@ def modefind(x, single=True, lb=0, rb=0, bias=0.0):
     return pk[0]
 
 
-def zcfind(x, single=True, lb=0, rb=0):
-
-    zc = []
+def zcfind(x, lb=0, rb=0):
 
     if rb:
         rb = min(rb, len(x))
@@ -34,15 +31,7 @@ def zcfind(x, single=True, lb=0, rb=0):
 
     for i in range(lb+1, rb):
         if x[i-1]*x[i] < 0:
-            if single:
-                return i-1
-
-            zc.append(i-1)
-
-    if single:
-        return zc[0] if zc else None
-    else:
-        return np.array(zc)
+            return i-1
 
 
 def wave_bounds(x, wav, limit):
@@ -65,7 +54,8 @@ def wave_bounds(x, wav, limit):
 
 def fexpand(x):
     """
-    Растягивание массива вдвое с добавлением нулей между элементами
+    Растягивание массива вдвое с добавлением нулей между элементами (
+    используется в ДВП)
     :param x: одномерный массив из N элементов
     :return: расширенный массив из 2N элементов
     """
@@ -78,7 +68,7 @@ def fexpand(x):
     return y
 
 
-def ddwt(x, num_scales=5):
+def ddwt(x, num_scales):
     """
     Дискретное вейвлет-преобразование без прореживания
     :param x: входной сигнал
@@ -110,45 +100,30 @@ def ddwt(x, num_scales=5):
     return approx, detail
 
 
-def qrssearch(modes, derivative):
+def qrssearch(modes, derivative, params):
+    """
 
-    params = {
-        "waves": {},
-        "qrsType": None,
-    }
-    params["waves"].update(makewave("q"))
-    params["waves"].update(makewave("r"))
-    params["waves"].update(makewave("s"))
+    :param modes:
+    :param derivative:
+    :param params: (inout) словарь с параметрами текущего qrs
+    :return: символический код
+    """
 
     signcode = ""
 
     if len(modes) < 2:
-        return params, signcode
-
-    # Удаляем ступеньки
-    mbuf = []
-    for pos, val in modes:
-        if mbuf:
-            # повторные с одним знаком
-            if val * mbuf[-1][1] > 0:
-                # оставляем максимальный
-                if abs(val) > abs(mbuf[-1][1]):
-                    mbuf[-1] = (pos, val)
-                continue
-
-        mbuf.append((pos, val))
+        return signcode
 
     # кодируем найденные фронты знаками +/-
-    signcode = "".join(["+" if x[1] > 0 else "-" for x in mbuf])
+    signcode = "".join(["+" if x[1] > 0 else "-" for x in modes])
 
     if signcode == "-+":
         params["qrsType"] = "qs"
 
-
     # Фронты самого мощного (R или  qs) зубца
     maxpair = (0,0)
     for i, posval in enumerate(modes):
-        if i:
+        if i and posval[1]*modes[i - 1][1] < 0:
             diff = abs(posval[1]) + abs(modes[i - 1][1])
             if diff > maxpair[1]:
                 maxpair = (i-1, diff)
@@ -157,7 +132,6 @@ def qrssearch(modes, derivative):
 
     params["waves"]["r"]["center"] = zcfind(
         derivative,
-        single=True,
         lb=modes[i0][0],
         rb=modes[i0 + 1][0]
     )
@@ -165,7 +139,6 @@ def qrssearch(modes, derivative):
     if i0 > 0:
         params["waves"]["q"]["center"] = zcfind(
             derivative,
-            single=True,
             lb=modes[i0-1][0],
             rb=modes[i0][0]
         )
@@ -174,7 +147,6 @@ def qrssearch(modes, derivative):
     if i0+1 < len(modes):
         params["waves"]["s"]["center"] = zcfind(
             derivative,
-            single=True,
             lb=modes[i0][0],
             rb=modes[i0+1][0]
         )
@@ -193,41 +165,20 @@ def qrssearch(modes, derivative):
                 else:
                     params["qrsType"] = "R"
 
-    return params, signcode
-
-
-def makewave(name, pos=None, height=None, start=None, end=None):
-    return {name: {
-        "start": start, "end": end, "center": pos, "height": height
-    }}
+    return signcode
 
 
 def edgefind(x0, y0, dx, dy, bias):
     return int(x0 - dx * (y0-bias) / dy)
 
 
-def ptsearch(modes, derivative, approx, bias=0.0):
+def ptsearch(modes, approx, bias=0.0):
     """
     Поиск зубцов P и T
-    :param modes:
-    :param derivative:
-    :param approx:
-    :return:
+    :param modes: список экстремумов производной
+    :param approx: опорный сигнал для поиска пиков
+    :return: wave_left, wave_center, wave_right
     """
-
-    # Удаляем ступеньки
-    #mbuf = []
-    #for pos, val in modes:
-#
-    #    if mbuf:
-    #        # повторные с одним знаком
-    #        if val * mbuf[-1][1] > 0:
-    #            # оставляем максимальный
-    #            if abs(val) > abs(mbuf[-1][1]):
-    #                mbuf[-1] = (pos, val)
-    #            continue
-    #    mbuf.append((pos, val))
-    #modes = mbuf
 
     if len(modes) < 2:
         return None, None, None
@@ -294,8 +245,16 @@ def find_points(
         fs,
         qrs_metadata,
         bias=0.0,
-        j_offset_ms=60,
         debug=False):
+    """
+        Поиск характерных точек
+    :param x: входной сигнал (1 канал)
+    :param fs: частота дискретизации
+    :param qrs_metadata: первичная сегментация: qrs_start, qrs_end, r_position
+    :param bias: уровень изолинии
+    :param debug:
+    :return: список словарей метаданных по каждому циклу
+    """
 
     r_scale = 2
     p_scale = 4
@@ -327,7 +286,7 @@ def find_points(
     # границы QRS здесь не определяем, надеемся на qrs_metadata
 
     summary = {}
-    new_metadata = []
+    metadata = []
 
     # очень приближенная оценка шума
     noise = np.std(detail[1]) * 0.7
@@ -336,43 +295,31 @@ def find_points(
 
     for ncycle, qrs in enumerate(qrs_metadata):
 
-        pkdata = qrs.copy()
+        pkdata = metadata_new()
 
         # Поиск зубцов Q, R, S
         # окно для поиска
         lbound = int(qrs["qrs_start"] * fs)
         rbound = int(qrs["qrs_end"] * fs)
 
-        modas_subset = range_filter( modas[r_scale], lbound, rbound, noise)
+        modas_subset = range_filter( modas[r_scale], lbound, rbound, noise/2)
 
-        params, codestr = qrssearch(modas_subset, detail[r_scale])
-        pkdata.update(params)
+        codestr = qrssearch(modas_subset, detail[r_scale], pkdata)
 
         if debug:
             # для отладки: кодируем найденные фронты знаками +/-
             if codestr:
                 summary[codestr] = summary.get(codestr, 0) + 1
 
-        prev_r = int(qrs_metadata[ncycle - 1]["r_wave_center"][0] * fs) \
+        prev_r = int(qrs_metadata[ncycle - 1]["r_position"][0] * fs) \
             if ncycle else 0
-        next_r = int(qrs_metadata[ncycle + 1]["r_wave_center"][0] * fs) \
+        next_r = int(qrs_metadata[ncycle + 1]["r_position"][0] * fs) \
             if ncycle < len(qrs_metadata) - 1 else len(x)
-        cur_r = int(qrs["r_wave_center"][0] * fs)
+        cur_r = int(qrs["r_position"][0] * fs)
 
         # оценка изолинии
         iso = np.percentile(approx[r_scale][prev_r:next_r], 15)
         pkdata["isolevel"] = iso
-
-        if debug and ncycle==186:
-            from matplotlib import pyplot as plt
-            #plt.plot(np.arange(prev_r, next_r), x[prev_r:next_r], "k")
-            plt.plot(np.arange(prev_r, next_r), detail[p_scale][prev_r:next_r],
-                     "k")
-            plt.plot(np.arange(prev_r, next_r), approx[r_scale][prev_r:next_r],
-                     "b")
-            plt.plot([prev_r, next_r], [iso, iso], "r:")
-            plt.grid()
-            plt.show(block=False)
 
         # поиск P-зубца
         # окно для поиска
@@ -382,25 +329,20 @@ def find_points(
             cur_r
         ]
 
-        modas_subset = range_filter(modas[p_scale], pwindow[0], pwindow[1],
-                                    noise/2)
+        modas_subset = range_filter(
+            modas[p_scale], pwindow[0], pwindow[1], noise/2
+        )
 
         # последняя мода перед R не учитывается, потому что относится к QRS
         pleft, pcenter, pright = ptsearch(
             modas_subset[:-1],
-            detail[p_scale],
             approx[r_scale+1],
             bias=iso
         )
 
-        pkdata["waves"].update(
-            makewave(
-                "p",
-                pos=pcenter,
-                start=pleft,
-                end=pright
-            )
-        )
+        pkdata["waves"]["p"]["center"] = pcenter
+        pkdata["waves"]["p"]["start"] = pleft
+        pkdata["waves"]["p"]["end"] = pright
 
         # поиск T-зубца
         # окно для поиска
@@ -410,46 +352,25 @@ def find_points(
             int(cur_r + wlen)
         ]
 
-        modas_subset = range_filter(modas[p_scale], twindow[0], twindow[1],
-                                    noise / 4)
+        modas_subset = range_filter(
+            modas[p_scale], twindow[0], twindow[1], noise / 4
+        )
 
         # первая мода справа от R не учитывается, потому что относится к QRS
         tleft, tcenter, tright = ptsearch(
             modas_subset[1:],
-            detail[t_scale],
             approx[r_scale+1],
             bias=iso
         )
 
-        pkdata["waves"].update(
-            makewave(
-                "t",
-                pos=tcenter,
-                start=tleft,
-                end=tright
-            )
-        )
+        pkdata["waves"]["t"]["center"] = tcenter
+        pkdata["waves"]["t"]["start"] = tleft
+        pkdata["waves"]["t"]["end"] = tright
 
-        # точка J не обнаруживается, а ставится со смещением от R-зубца
-        rc = pkdata["waves"]["r"]["center"]
-        if rc is not None:
-            j_point = rc + ms_to_samples(j_offset_ms, fs)
-            if j_point > len(x) - 1:
-                j_point = None
-        else:
-            j_point = None
-
-        pkdata["waves"].update(makewave("j", j_point))
-
-        # запись высоты зубцов
-        for wave in pkdata["waves"]:
-            pos = pkdata["waves"][wave]["center"]
-            if pos is not None:
-                pkdata["waves"][wave]["height"] = x[pos]
-
-        new_metadata.append(pkdata)
+        #print(json.dumps(pkdata, indent=1))
+        metadata.append(pkdata)
 
     if debug:
         print(json.dumps(summary, indent=1))
 
-    return new_metadata
+    return metadata
