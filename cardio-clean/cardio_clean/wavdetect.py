@@ -215,34 +215,32 @@ def ptsearch(modes, derivative, approx, bias=0.0):
     :return:
     """
 
+    # Удаляем ступеньки
+    #mbuf = []
+    #for pos, val in modes:
+#
+    #    if mbuf:
+    #        # повторные с одним знаком
+    #        if val * mbuf[-1][1] > 0:
+    #            # оставляем максимальный
+    #            if abs(val) > abs(mbuf[-1][1]):
+    #                mbuf[-1] = (pos, val)
+    #            continue
+    #    mbuf.append((pos, val))
+    #modes = mbuf
+
     if len(modes) < 2:
         return None, None, None
-
-    # Удаляем ступеньки
-    mbuf = []
-    for pos, val in modes:
-
-        if mbuf:
-            # повторные с одним знаком
-            if val * mbuf[-1][1] > 0:
-                # оставляем максимальный
-                if abs(val) > abs(mbuf[-1][1]):
-                    mbuf[-1] = (pos, val)
-                continue
-
-        mbuf.append((pos, val))
-    modes = mbuf
 
     # Фронты самого мощного зубца
     maxpair = (0,0)
     for i, posval in enumerate(modes):
-        if i:
+        if i and posval[1]*modes[i - 1][1] < 0:
             diff = abs(posval[1]) + abs(modes[i - 1][1])
             if diff > maxpair[1]:
                 maxpair = (i-1, diff)
 
     i0 = maxpair[0]
-
 
     wave_center = modefind(
         approx, lb=modes[i0][0], rb=modes[i0 + 1][0], bias=bias
@@ -363,8 +361,9 @@ def find_points(
 
         # оценка изолинии
         iso = np.percentile(approx[r_scale][prev_r:next_r], 15)
+        pkdata["isolevel"] = iso
 
-        if debug:
+        if debug and ncycle==186:
             from matplotlib import pyplot as plt
             #plt.plot(np.arange(prev_r, next_r), x[prev_r:next_r], "k")
             plt.plot(np.arange(prev_r, next_r), detail[p_scale][prev_r:next_r],
@@ -412,7 +411,7 @@ def find_points(
         ]
 
         modas_subset = range_filter(modas[p_scale], twindow[0], twindow[1],
-                                    noise / 2)
+                                    noise / 4)
 
         # первая мода справа от R не учитывается, потому что относится к QRS
         tleft, tcenter, tright = ptsearch(

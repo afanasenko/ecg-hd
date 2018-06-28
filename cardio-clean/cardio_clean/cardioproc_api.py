@@ -144,7 +144,7 @@ def blobapi_detect_qrs(
     :param inbuf: входной буфер (остается неизменным)
     :param min_qrs_ms: минимальная длительность QRS-комплекса
     :param channel: канал, в к-ром выполняется сегментация, None - все каналы
-    :param postprocessing: расчет вторичных параметров (ритм, ST-T и др.)
+    :param postprocessing: расчет вторичных параметров (ритм, ST и др.)
     :return: [meta0, meta1, ..., metaN], где metaN - список найденных
     комплексов в N-ом канале
     """
@@ -182,7 +182,7 @@ def blobapi_detect_qrs(
         metadata = find_points(
             indata[:,channel],
             fs=header["fs"],
-            bias=header["baseline"],
+            bias=header["baseline"][channel],
             qrs_metadata=metadata,
             debug=False
         )
