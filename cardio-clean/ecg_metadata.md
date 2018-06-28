@@ -108,14 +108,13 @@ qrs_metadata = blobapi_detect_qrs(inbuf, min_qrs_ms=20, delineate=False)
 
 ```
 "stt_params" = {
-        "st_start_offset": смещение начала ST от изолинии
-        "st_end_offset": смещение конца ST от изолинии
-        "st_slope": наклон ST
-        "t_rising_slope": крутизна переднего фронта Т
-        "t_falling_slope": крутизна заднего фронта Т
-        "t_symmetry": симметричность Т (0 - идеальная симметрия)
-        "t_sharpness": заостренность Т (чем больше, тем заостреннее)
-        "t_amplitude": амплитуда зубца T.
+        "start": метка времени начала начала ST
+        "end": метка времени конца ST
+        "start_level": смещение начала ST от изолинии
+        "end_level": смещение конца ST от изолинии
+        "offset": общее смещение ST от изолинии
+        "duration": длительность ST в мс
+        "slope": средний наклон ST (в единицах сигнала на миллисекунду)
 }
 ```
 
