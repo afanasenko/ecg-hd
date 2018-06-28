@@ -6,6 +6,8 @@ from scipy.signal import lfilter, hann
 from scipy.fftpack import fft
 
 from cardio_clean.wavdetect import ddwt, find_points, zcfind
+from cardio_clean.wavanalyze import stt_analysis
+
 from cardio_clean.qrsdetect import qrs_detection
 from demo_preprocessing import ecgread
 
@@ -83,12 +85,13 @@ def show_waves():
     # Rh2021 - Rs, extracyc
     # Rh2024 - p(q)RsT
     # Rh2025 = rs
-    sig, header = ecgread("/Users/arseniy/SERDECH/data/ROXMINE/Rh1011")
+    #sig, header = ecgread("/Users/arseniy/SERDECH/data/ROXMINE/Rh1011")
+    sig, header = ecgread("TestFromDcm.ecg")
     fs = header["fs"]
     if fs != 250:
         print("Warning! fs={}".format(fs))
 
-    s = sig[:20000,0]
+    s = sig[:,0]
 
     metadata, debugdata = qrs_detection(
         sig[:,:],
@@ -98,10 +101,15 @@ def show_waves():
         minqrs_ms=20)
 
     newmeta = find_points(s, header["fs"], metadata)
-
+    newmeta = stt_analysis(
+        s,
+        fs=header["fs"],
+        metadata=newmeta
+    )
     plt.plot(s, "b")
 
     qrsTypes = {}
+    stcount=0
 
     for qrs in newmeta:
 
@@ -113,15 +121,31 @@ def show_waves():
             if c is not None:
                 plt.scatter(c, s[c])
 
-            if k in ("t", "p"):
-                lb = v["start"]
-                rb = v["end"]
-                if lb is not None and rb is not None:
-                    plt.plot(np.arange(lb, rb), s[lb:rb], "r")
+            #if k == "t":
+            #    lb = v["start"]
+            #    rb = v["end"]
+            #    if lb is not None and rb is not None:
+            #        plt.plot(np.arange(lb, rb), s[lb:rb], "r")
+            #        stcount += 1
+
+        lb = qrs["waves"]["j"]["center"]
+        rb = qrs["waves"]["t"]["start"]
+        if lb is not None and rb is not None:
+            plt.plot(np.arange(lb, rb), s[lb:rb], "r")
+            stcount += 1
 
     plt.xlim((200,700))
 
     print(qrsTypes)
+
+    stdur = [qrs["stt_params"]["duration"] for qrs in newmeta if
+             qrs["stt_params"]["duration"]]
+
+    print("{} ST segments of {} cycles, avg. {} ms".format(
+        stcount,
+        len(newmeta),
+        np.mean(stdur)
+    ))
 
     plt.show()
 
