@@ -4,6 +4,8 @@ import numpy as np
 from scipy.signal import lfilter
 
 from sigbind import signal_channels
+from metadata import ms_to_samples
+
 
 def dummy_shift(x, n):
     return np.concatenate((x[n:], np.ones(n)*x[-1]))
@@ -57,48 +59,27 @@ def qrs_preprocessing(sig, fs):
     return result / max(result)
 
 
-def qrs_postprocessing(metadata):
+def qrs_detection(sig, fs, minqrs_ms=20):
     """
-        Расчет мгновенной частоты сердечных сокращений
-    :param metadata:
-    :return:
-    """
-    n = len(metadata)
-    if n > 1:
-        for i in range(n):
-            rc = np.array(metadata[i]["r_wave_center"])
-
-            if i == n-1:
-                rc_nb = np.array(metadata[i-1]["r_wave_center"])
-            else:
-                rc_nb = np.array(metadata[i+1]["r_wave_center"])
-
-            hr = 60.0/(np.mean(rc) - np.mean(rc_nb))
-            metadata[i]["heartrate"] = np.abs(hr)
-
-
-def qrs_detection(sig, fs, bias, gain, minqrs_ms=20):
-    """
-
+        Обнаружение QRS-комплексов по алгоритму Пана - Томпкинса
     :param sig: ЭКС (одноканальный или многоканальный)
     :param fs: частота дискретизации
     :param minqrs_ms: минимальная длительность QRS-комплекса
-    :param debug: вывод дополнительных данных
-    :return: qrs_metadata (список найденных комплексов), отладочные данные
+    :return: qrs_metadata (список найденных комплексов), решающая статистика
     """
 
     pp = qrs_preprocessing(sig, fs)
 
     # 4-секундное окно для адаптивного порога
-    thresh_wnd = 4*fs
+    thresh_wnd = ms_to_samples(4000, fs)
     halfw = int(thresh_wnd/2)
 
     qrsmask = np.zeros(len(pp), int)
 
     inside = False
     qrs_start = 0
-    qrs_num = 0
-    minqrs_smp = fs * float(minqrs_ms) / 1000
+
+    minqrs_smp = ms_to_samples(minqrs_ms, fs)
 
     qrs_metadata = []
 
@@ -120,24 +101,17 @@ def qrs_detection(sig, fs, bias, gain, minqrs_ms=20):
             if qrs_len >= minqrs_smp:
 
                 rpk_pos = []
-                rpk_amp = []
                 for chan in range(sig.shape[1]):
                     # R-зубец всегда либо положительный, либо отсутствует
                     r_pos = qrs_start + np.argmax(
                         sig[qrs_start:qrs_end, chan]
                     )
                     rpk_pos.append(float(r_pos)/fs)
-                    rpk_amp.append((sig[r_pos, chan] - bias[chan])/gain[chan])
 
                 qrs_metadata.append({
-                    "cycle_num": qrs_num,
                     "qrs_start": float(qrs_start)/fs,
                     "qrs_end": float(qrs_end)/fs,
-                    "r_wave_center": rpk_pos,
-                    "r_wave_amplitude": rpk_amp
+                    "r_position": rpk_pos
                 })
-                qrs_num += 1
-
-    qrs_postprocessing(qrs_metadata)
 
     return qrs_metadata, qrsmask

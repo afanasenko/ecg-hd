@@ -14,12 +14,10 @@ fs = header["fs"]
 if fs != 250:
     print("Warning! fs={}".format(fs))
 
-metadata, debugdata = qrs_detection(
+metadata = qrs_detection(
     sig,
     fs=header["fs"],
-    bias=header["baseline"],
-    gain=header["adc_gain"],
-    minqrs_ms=20)
+)[0]
 
 pr.enable()
 newmeta = find_points(sig[:, 0], header["fs"], metadata)

@@ -150,9 +150,8 @@ def show_qrs(recordname, tend):
     ptstat = qrs_preprocessing(sig, fs)
     meta, strobe = qrs_detection(
         sig,
-        fs=fs,
-        bias=hdr["baseline"],
-        gain=hdr["adc_gain"])
+        fs=fs
+    )
 
     # номера начального и конечного отсчета для отображения
     N1 = 0

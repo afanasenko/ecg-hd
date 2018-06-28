@@ -10,7 +10,7 @@
 # ######################################
 Первичные метаданные включают:
 
-Q, R, S, R* : центр зубца (метка времени)
+Q, R, S, R* : центр зубца (метки времени)
 P, Т: начало, центр, конец (метки времени)
 
 qrsType: вид комплекса. Обнаруживаемые разновидности qrs - R, qR, Rs, qs, qRs.
@@ -30,7 +30,7 @@ RR-интервал в миллисекундах
 Вторичные данные по ST-сегменту
 точки J и J+: положение, уровень
 наклон сегмента
-смещение сегмента
+смещение сегмента от изолинии
 длительность сегмента ST в миллисекундах
 
 
@@ -59,8 +59,10 @@ def metadata_new():
         "isolevel": None,
         "ST": {
             "start": None,
+            "stplus": None,
             "end": None,
             "start_level": None,
+            "stplus_level": None,
             "end_level": None,
             "offset": None,
             "duration": None,
@@ -137,7 +139,6 @@ def metadata_postprocessing(metadata, sig, fs, **kwargs):
 
         # ######################################
         # ST
-
         st_start = cycledata["waves"]["j"]["center"]
         st_plus = cycledata["waves"]["j+"]["center"]
         st_end = cycledata["waves"]["t"]["start"]
@@ -145,6 +146,10 @@ def metadata_postprocessing(metadata, sig, fs, **kwargs):
         if all((st_start, st_end)):
             dur = samples_to_ms(st_end - st_start, fs)
             if dur > kwargs.get("min_st_duration", 80):
+                cycledata["ST"]["start"] = st_start
+                cycledata["ST"]["stplus"] = st_plus
+                cycledata["ST"]["end"] = st_end
                 cycledata["ST"]["duration"] = dur
-                cycledata["ST"]["start_level"] = sig[st_start]
-                cycledata["ST"]["end_level"] = sig[st_plus]
+                cycledata["ST"]["start_level"] = sig[st_start] - bias
+                cycledata["ST"]["stplus_level"] = sig[st_plus] - bias
+                cycledata["ST"]["end_level"] = sig[st_end] - bias

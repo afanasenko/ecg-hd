@@ -51,12 +51,10 @@ def get_qrsclass(recordname, tend):
         bias_window_ms=1500
     )
 
-    meta, foo = qrs_detection(
+    meta = qrs_detection(
         sig,
-        fs=fs,
-        bias=hdr["baseline"],
-        gain=hdr["adc_gain"]
-    )
+        fs=fs
+    )[0]
 
     qrs_classes = incremental_classifier(
         sig,

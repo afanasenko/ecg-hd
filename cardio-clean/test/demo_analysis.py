@@ -93,25 +93,23 @@ def show_waves():
 
     s = sig[:,0]
 
-    metadata, debugdata = qrs_detection(
+    qrs_meta = qrs_detection(
         sig[:,:],
-        fs=header["fs"],
-        bias=header["baseline"],
-        gain=header["adc_gain"],
-        minqrs_ms=20)
+        fs=header["fs"]
+    )[0]
 
-    newmeta = find_points(s, header["fs"], metadata)
-    newmeta = stt_analysis(
+    metadata = find_points(s, header["fs"], qrs_meta)
+    metadata = stt_analysis(
         s,
         fs=header["fs"],
-        metadata=newmeta
+        metadata=metadata
     )
     plt.plot(s, "b")
 
     qrsTypes = {}
     stcount=0
 
-    for qrs in newmeta:
+    for qrs in metadata:
 
         qrstype = qrs["qrsType"]
         qrsTypes[qrstype] = qrsTypes.get(qrstype, 0) + 1
@@ -138,12 +136,12 @@ def show_waves():
 
     print(qrsTypes)
 
-    stdur = [qrs["stt_params"]["duration"] for qrs in newmeta if
+    stdur = [qrs["stt_params"]["duration"] for qrs in metadata if
              qrs["stt_params"]["duration"]]
 
     print("{} ST segments of {} cycles, avg. {} ms".format(
         stcount,
-        len(newmeta),
+        len(metadata),
         np.mean(stdur)
     ))
 

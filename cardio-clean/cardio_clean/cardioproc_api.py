@@ -150,31 +150,30 @@ def blobapi_detect_qrs(
     """
 
     header, indata = read_buffer(inbuf)
-    metadata, debugdata = qrs_detection(
+    qrs_meta = qrs_detection(
         indata,
         fs=header["fs"],
-        bias=header["baseline"],
-        gain=header["adc_gain"],
-        minqrs_ms=min_qrs_ms)
+        minqrs_ms=min_qrs_ms
+    )[0]
 
     metadata_per_channel = []
     if channel is None:
         # сегментация производится в каждом отведении
         for delineate_chan in range(header["channels"]):
-            new_meta = find_points(
+            metadata = find_points(
                 indata[:,delineate_chan],
                 fs=header["fs"],
-                qrs_metadata=metadata
+                qrs_metadata=qrs_meta
             )
 
             if postprocessing:
-                new_meta = stt_analysis(
+                metadata = stt_analysis(
                     indata[:,channel],
                     fs=header["fs"],
                     metadata=metadata
                 )
 
-            metadata_per_channel.append(new_meta)
+            metadata_per_channel.append(metadata)
         return metadata_per_channel
 
     else:
