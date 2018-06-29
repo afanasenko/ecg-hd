@@ -28,7 +28,8 @@ RR-интервал в миллисекундах
 ЧСС (число ударов в минуту)
 
 Вторичные данные по ST-сегменту
-точки J и J+: положение, уровень
+начало ST-сегмента (точка J): положение, уровень
+точка ST+ (J + 0,08с): положение, уровень
 наклон сегмента
 смещение сегмента от изолинии
 длительность сегмента ST в миллисекундах
@@ -49,8 +50,6 @@ def metadata_new():
             "q": {"start": None, "end": None, "center": None, "height": None},
             "r": {"start": None, "end": None, "center": None, "height": None},
             "s": {"start": None, "end": None, "center": None, "height": None},
-            "j": {"center": None, "height": None},
-            "j+": {"center": None, "height": None},
             "t": {"start": None, "end": None, "center": None, "height": None}
         },
         "qrsType": None,
@@ -116,9 +115,6 @@ def metadata_postprocessing(metadata, sig, fs, **kwargs):
             j_point = None
             jplus_point = None
 
-        cycledata["waves"]["j"]["center"] = j_point
-        cycledata["waves"]["j+"]["center"] = jplus_point
-
         # ######################################
         # запись высоты зубцов
         bias = cycledata.get("isolevel", 0.0)
@@ -139,17 +135,27 @@ def metadata_postprocessing(metadata, sig, fs, **kwargs):
 
         # ######################################
         # ST
-        st_start = cycledata["waves"]["j"]["center"]
-        st_plus = cycledata["waves"]["j+"]["center"]
+        st_start = j_point
+        st_plus = jplus_point
         st_end = cycledata["waves"]["t"]["start"]
+
+        cycledata["ST"]["start"] = st_start
+        cycledata["ST"]["stplus"] = st_plus
+        cycledata["ST"]["end"] = st_end
+
+        if st_start is not None:
+            cycledata["ST"]["start_level"] = sig[st_start] - bias
+
+        if st_plus is not None:
+            cycledata["ST"]["stplus_level"] = sig[st_plus] - bias
+
+        if st_end is not None:
+            cycledata["ST"]["end_level"] = sig[st_end] - bias
 
         if all((st_start, st_end)):
             dur = samples_to_ms(st_end - st_start, fs)
             if dur > kwargs.get("min_st_duration", 80):
-                cycledata["ST"]["start"] = st_start
-                cycledata["ST"]["stplus"] = st_plus
-                cycledata["ST"]["end"] = st_end
                 cycledata["ST"]["duration"] = dur
-                cycledata["ST"]["start_level"] = sig[st_start] - bias
-                cycledata["ST"]["stplus_level"] = sig[st_plus] - bias
-                cycledata["ST"]["end_level"] = sig[st_end] - bias
+            else:
+                cycledata["ST"]["duration"] = None
+
