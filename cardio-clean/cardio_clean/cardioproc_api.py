@@ -163,6 +163,7 @@ def blobapi_detect_qrs(
             metadata = find_points(
                 indata[:,delineate_chan],
                 fs=header["fs"],
+                bias=header["baseline"][channel],
                 qrs_metadata=qrs_meta
             )
 
@@ -183,7 +184,7 @@ def blobapi_detect_qrs(
             fs=header["fs"],
             bias=header["baseline"][channel],
             qrs_metadata=qrs_meta,
-            debug=False
+            debug=True
         )
         if postprocessing:
             metadata_postprocessing(
