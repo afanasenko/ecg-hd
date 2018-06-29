@@ -82,12 +82,15 @@ def ms_to_samples(ms, fs):
 
 def metadata_postprocessing(metadata, sig, fs, **kwargs):
     """
-        Расчет вторичных параметров сигнала в одном отведении
+    Расчет вторичных параметров сигнала в одном отведении
+
+    Поскольку источник входных метаданных неизвестен, необходимо
+    перезаписать значения всех ключей.
     :param metadata:
     :param sig:
     :param fs:
-    :param kwargs:
-    :return:
+    :param kwargs: константы j_offset, jplus_offset_ms, min_st_ms
+    :return: None (результатом являются измененные значения в metadata)
     """
 
     j_offset_ms = kwargs.get("j_offset", 60)
@@ -164,7 +167,7 @@ def metadata_postprocessing(metadata, sig, fs, **kwargs):
 
         if all((st_start, st_end)):
             dur = samples_to_ms(st_end - st_start, fs)
-            if dur > kwargs.get("min_st_duration", 80):
+            if dur > kwargs.get("min_st_ms", 80):
                 cycledata["ST"]["duration"] = dur
                 cycledata["ST"]["offset"] = np.mean(sig[st_start:st_end]) - bias
                 cycledata["ST"]["slope"] = (cycledata["ST"]["end_level"] -
