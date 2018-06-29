@@ -98,7 +98,13 @@ def show_waves():
         fs=header["fs"]
     )[0]
 
-    metadata = find_points(s, header["fs"], qrs_meta)
+    metadata = find_points(
+        s,
+        fs=header["fs"],
+        bias=header["baseline"][0],
+        qrs_metadata=qrs_meta
+    )
+
     metadata_postprocessing(
         metadata,
         s,
@@ -127,9 +133,9 @@ def show_waves():
             #        plt.plot(np.arange(lb, rb), s[lb:rb], "r")
             #        stcount += 1
 
-        lb = qrs["waves"]["j"]["center"]
-        rb = qrs["waves"]["t"]["start"]
-        if lb is not None and rb is not None:
+        lb = qrs["ST"]["start"]
+        rb = qrs["ST"]["end"]
+        if all((lb, rb)):
             plt.plot(np.arange(lb, rb), s[lb:rb], "r")
             stcount += 1
 
