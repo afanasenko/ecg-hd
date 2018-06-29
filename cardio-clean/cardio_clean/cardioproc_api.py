@@ -184,7 +184,7 @@ def blobapi_detect_qrs(
             fs=header["fs"],
             bias=header["baseline"][channel],
             qrs_metadata=qrs_meta,
-            debug=True
+            debug=False
         )
         if postprocessing:
             metadata_postprocessing(
