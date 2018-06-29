@@ -140,7 +140,7 @@ def show_waves():
     stdur = [qrs["ST"]["duration"] for qrs in metadata if
              qrs["ST"]["duration"]]
 
-    print("{}cycles, {} ST segments, avg. {} ms".format(
+    print("{} cycles, {} ST segments, avg. {} ms".format(
         len(metadata),
         stcount,
         np.mean(stdur)

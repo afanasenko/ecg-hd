@@ -214,7 +214,6 @@ def blobapi_postprocessing_qrs(
     header, indata = read_buffer(inbuf)
     # анализ производится только в одном отведении
     if channel is None:
-        newmeta = []
         for chan in range(indata.shape[1]):
             metadata_postprocessing(
                 metadata[chan],
