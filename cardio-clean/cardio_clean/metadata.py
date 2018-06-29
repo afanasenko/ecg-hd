@@ -42,6 +42,8 @@ RR-интервал в миллисекундах
 сигнал (тип float).
 """
 
+import numpy as np
+
 
 def metadata_new():
     return {
@@ -159,3 +161,6 @@ def metadata_postprocessing(metadata, sig, fs, **kwargs):
             else:
                 cycledata["ST"]["duration"] = None
 
+            cycledata["ST"]["offset"] = np.mean(sig[st_start:st_end]) - bias
+            cycledata["ST"]["slope"] = (cycledata["ST"]["end_level"] -
+                                        cycledata["ST"]["start_level"]) / cycledata["ST"]["duration"]
