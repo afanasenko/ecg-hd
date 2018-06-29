@@ -122,7 +122,9 @@ def metadata_postprocessing(metadata, sig, fs, **kwargs):
         bias = cycledata.get("isolevel", 0.0)
         for wave in cycledata["waves"]:
             pos = cycledata["waves"][wave].get("center", None)
-            if pos is not None:
+            if pos is None:
+                cycledata["waves"][wave]["height"] = None
+            else:
                 cycledata["waves"][wave]["height"] = sig[pos] - bias
 
         # ######################################
@@ -145,22 +147,29 @@ def metadata_postprocessing(metadata, sig, fs, **kwargs):
         cycledata["ST"]["stplus"] = st_plus
         cycledata["ST"]["end"] = st_end
 
-        if st_start is not None:
+        if st_start is None:
+            cycledata["ST"]["start_level"] = None
+        else:
             cycledata["ST"]["start_level"] = sig[st_start] - bias
 
-        if st_plus is not None:
+        if st_plus is None:
+            cycledata["ST"]["stplus_level"] = None
+        else:
             cycledata["ST"]["stplus_level"] = sig[st_plus] - bias
 
-        if st_end is not None:
+        if st_end is None:
+            cycledata["ST"]["end_level"] = None
+        else:
             cycledata["ST"]["end_level"] = sig[st_end] - bias
 
         if all((st_start, st_end)):
             dur = samples_to_ms(st_end - st_start, fs)
             if dur > kwargs.get("min_st_duration", 80):
                 cycledata["ST"]["duration"] = dur
+                cycledata["ST"]["offset"] = np.mean(sig[st_start:st_end]) - bias
+                cycledata["ST"]["slope"] = (cycledata["ST"]["end_level"] -
+                                        cycledata["ST"]["start_level"]) / cycledata["ST"]["duration"]
             else:
                 cycledata["ST"]["duration"] = None
 
-            cycledata["ST"]["offset"] = np.mean(sig[st_start:st_end]) - bias
-            cycledata["ST"]["slope"] = (cycledata["ST"]["end_level"] -
-                                        cycledata["ST"]["start_level"]) / cycledata["ST"]["duration"]
+
