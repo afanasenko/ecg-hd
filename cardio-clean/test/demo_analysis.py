@@ -91,10 +91,10 @@ def show_waves():
     if fs != 250:
         print("Warning! fs={}".format(fs))
 
-    s = sig[:20000,0]
+    s = sig[:,0]
 
     qrs_meta = qrs_detection(
-        sig[:20000,:],
+        sig[:,:],
         fs=header["fs"]
     )[0]
 
@@ -140,9 +140,9 @@ def show_waves():
     stdur = [qrs["ST"]["duration"] for qrs in metadata if
              qrs["ST"]["duration"]]
 
-    print("{} ST segments of {} cycles, avg. {} ms".format(
-        stcount,
+    print("{}cycles, {} ST segments, avg. {} ms".format(
         len(metadata),
+        stcount,
         np.mean(stdur)
     ))
 

@@ -5,7 +5,7 @@ from sigbind import fix_baseline, mains_filter
 from qrsdetect import qrs_detection
 from qrsclassify import incremental_classifier
 from wavdetect import find_points
-from wavanalyze import stt_analysis
+from metadata import metadata_postprocessing
 
 # Числовые коды для поддерживаемых форматов
 SAMPLE_TYPE_SHORT = 1  # 16-битный целочисленный со знаком
@@ -167,10 +167,10 @@ def blobapi_detect_qrs(
             )
 
             if postprocessing:
-                metadata = stt_analysis(
-                    indata[:,channel],
-                    fs=header["fs"],
-                    metadata=metadata
+                metadata_postprocessing(
+                    metadata,
+                    indata[:, delineate_chan],
+                    fs=header["fs"]
                 )
 
             metadata_per_channel.append(metadata)
@@ -182,14 +182,14 @@ def blobapi_detect_qrs(
             indata[:,channel],
             fs=header["fs"],
             bias=header["baseline"][channel],
-            qrs_metadata=metadata,
+            qrs_metadata=qrs_meta,
             debug=False
         )
         if postprocessing:
-            metadata = stt_analysis(
+            metadata_postprocessing(
+                metadata,
                 indata[:, channel],
-                fs=header["fs"],
-                metadata=metadata
+                fs=header["fs"]
             )
         return [metadata]
 
@@ -208,7 +208,7 @@ def blobapi_postprocessing_qrs(
 
     :param inbuf:
     :param metadata: список словарей с данными сегментации каждого комплекса
-    :return: копия входных метаданных с добавлением рассчитанных параметров
+    :return: None (изменяется содержимое metadata)
     """
 
     header, indata = read_buffer(inbuf)
@@ -216,22 +216,18 @@ def blobapi_postprocessing_qrs(
     if channel is None:
         newmeta = []
         for chan in range(indata.shape[1]):
-
-            newmeta.append(
-                stt_analysis(
-                    indata[:, chan],
-                    fs=header["fs"],
-                    metadata=metadata[chan]
-                )
+            metadata_postprocessing(
+                metadata[chan],
+                indata[:, chan],
+                fs=header["fs"]
             )
-    else:
-        newmeta = stt_analysis(
-            indata[:,channel],
-            fs=header["fs"],
-            metadata=metadata
-        )
 
-    return newmeta
+    else:
+        metadata_postprocessing(
+            metadata,
+            indata[:, channel],
+            fs=header["fs"]
+        )
 
 
 def blobapi_classify_qrs(inbuf, metadata, classgen_threshold=0.85):

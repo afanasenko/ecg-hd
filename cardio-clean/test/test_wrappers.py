@@ -116,9 +116,12 @@ def test_parameters():
 
         assert len(meta[0]) == 3628
 
-        stdur = [nqrs["stt_params"]["duration"] for nqrs in meta[0] if nqrs["stt_params"]["duration"]]
+        stdur = [nqrs["ST"]["duration"] for nqrs in meta[0] if nqrs[
+            "ST"]["duration"]]
 
-        print("st-сегментов: {}\nСредняя длительность : {} мс".format(
+        print("{} циклов, st-сегментов: {}\nСредняя длительность : {} "
+              "мс".format(
+            len(meta[0]),
             len(stdur),
             np.mean(stdur))
         )
@@ -126,7 +129,7 @@ def test_parameters():
         assert len(stdur) > 0
 
 
-def disable_test_classify():
+def disabled_test_classify():
 
     filename_in = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
