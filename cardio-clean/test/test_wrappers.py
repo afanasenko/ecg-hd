@@ -2,7 +2,6 @@
 
 import os
 from cardio_clean.cardioproc_api import *
-from cardio_clean.metadata import samples_to_ms
 
 
 def test_readwrite():
@@ -51,7 +50,6 @@ def test_baseline():
         end_hdr, end_data = read_buffer(fcheck)
 
         assert start_data.shape == end_data.shape
-
 
     os.remove(filename_out)
 
@@ -119,11 +117,12 @@ def test_parameters():
         stdur = [nqrs["ST"]["duration"] for nqrs in meta[0] if nqrs[
             "ST"]["duration"]]
 
-        print("{} циклов, st-сегментов: {}\nСредняя длительность : {} "
-              "мс".format(
-            len(meta[0]),
-            len(stdur),
-            np.mean(stdur))
+        print(
+            "{} циклов, st-сегментов: {}\nСредняя длительность : {} мс".format(
+                len(meta[0]),
+                len(stdur),
+                np.mean(stdur)
+            )
         )
 
         assert len(stdur) > 0
@@ -168,8 +167,8 @@ def disabled_test_classify():
 
 
 if __name__ == "__main__":
-    #test_readwrite()
-    #test_baseline()
-    #test_mains()
+    # test_readwrite()
+    # test_baseline()
+    # test_mains()
     test_parameters()
-    #test_classify()
+    # test_classify()
