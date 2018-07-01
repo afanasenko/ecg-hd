@@ -11,7 +11,7 @@ import shutil
 
 import numpy as np
 
-from sigbind import fix_baseline, mains_filter
+from cardio_clean.sigbind import fix_baseline, mains_filter
 
 
 def build_options():
