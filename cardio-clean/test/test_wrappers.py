@@ -128,7 +128,7 @@ def test_parameters():
         assert len(stdur) > 0
 
 
-def disabled_test_classify():
+def test_classify():
 
     filename_in = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
@@ -144,8 +144,11 @@ def disabled_test_classify():
 
     print("Find QRS...")
     with open(filename_out, "rb") as fi:
-        meta = blobapi_detect_qrs(inbuf=fi)
-        print("cycles found: {}".format(len(meta)))
+        meta = blobapi_detect_qrs(
+            inbuf=fi,
+            channel=0
+        )
+        print("cycles found: {}".format(len(meta[0])))
 
     print("Classification...")
     with open(filename_out, "rb") as fi:
@@ -161,7 +164,8 @@ def disabled_test_classify():
 
         num_art = len([x for x in meta[0] if x["artifact"]])
 
-        assert num_art == 0
+        print("artifacts found: {}".format(num_art))
+        assert num_art == 1
 
     os.remove(filename_out)
 
@@ -170,5 +174,5 @@ if __name__ == "__main__":
     # test_readwrite()
     # test_baseline()
     # test_mains()
-    test_parameters()
-    # test_classify()
+    # test_parameters()
+    test_classify()
