@@ -108,7 +108,7 @@ def test_parameters():
         meta = blobapi_detect_qrs(
             inbuf=fi,
             min_qrs_ms=20,
-            channel=0,
+            channel=None,
             postprocessing=True
         )
 
