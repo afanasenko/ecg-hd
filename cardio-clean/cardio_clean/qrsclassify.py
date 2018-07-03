@@ -28,9 +28,15 @@ def correlate(sig1, sig2):
 
 
 def get_qrs_bounds(meta, fs):
+
     left = int(meta["qrs_start"] * fs)
     right = int(meta["qrs_end"] * fs)
-    center = int(meta["r_wave_center"][0] * fs)
+
+    c = meta["waves"]["r"]["center"]
+    if c is None:
+        center = int((left + right)/2)
+    else:
+        center = c
     return left, right, center
 
 
@@ -115,31 +121,30 @@ def finalize_classes(qrs_classes, metadata):
             "count": len(qcl["samples"])
         })
 
-    # помечаем неклассифицированные комплексы как артефакты
-    for m in metadata:
-        if "qrs_class_id" not in m:
-            m["qrs_class_id"] = None
-            m["artifact"] = True
-
     return classdesc
 
 
-def incremental_classifier(sig, hdr, metadata, classgen_t=0.9, include_data=0):
+def incremental_classifier(sig, hdr, metadata, classgen_t=0.9,
+                           include_data=0):
     """
         Однопроходный классификатор QRS-комплексов
-    :param sig: сигнал
+    :param sig: сигнал (многоканальный)
     :param hdr: заголовок сигнала
-    :param metadata: метаданные с разметкой QRS-комплексов
+    :param multimetadata: метаданные с разметкой QRS-комплексов (
+    одноканальные)
     :param classgen_t: нижний порог коэффициента корреляции на создание нового класса
+    :param include_data: включать первые include_data сырых комплексов в
+    результат
     :return: список классов
     """
 
+    # число циклов
     num_cyc = len(metadata)
     fs = hdr["fs"]
 
     first_qrs, first_c = extract_qrs(sig, fs, metadata[1])
 
-    # инициализировать первый класс вторым комплексом, т.к. 1-й может быть
+    # инициализируем первый класс вторым комплексом, т.к. 1-й может быть
     # обрезан
     qrs_classes = [
         {

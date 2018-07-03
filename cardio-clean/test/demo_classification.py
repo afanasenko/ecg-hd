@@ -7,10 +7,11 @@ import numpy as np
 
 from argparse import ArgumentParser
 from matplotlib import pyplot as plt
-from sigbind import fix_baseline
-from qrsdetect import *
-from qrsclassify import *
-from graphresults import ecgread
+from cardio_clean.sigbind import fix_baseline
+from cardio_clean.qrsdetect import *
+from cardio_clean.qrsclassify import *
+from cardio_clean.wavdetect import find_points
+from demo_preprocessing import ecgread
 
 
 def build_args():
@@ -31,7 +32,6 @@ def build_args():
         # /TestFromDcm.ecg")
         # 1003 2018
 
-
     if not filenames:
         print("At least one input file should be specified")
         sys.exit(1)
@@ -51,23 +51,29 @@ def get_qrsclass(recordname, tend):
         bias_window_ms=1500
     )
 
-    meta = qrs_detection(
+    qmeta = qrs_detection(
         sig,
         fs=fs
     )[0]
 
+    metadata = find_points(
+        sig[:, 0],
+        fs=fs,
+        qrs_metadata=qmeta
+    )
+
     qrs_classes = incremental_classifier(
         sig,
         hdr,
-        meta,
+        metadata,
         classgen_t=0.7,
         include_data=3
     )
 
-    print("{} cycles found".format(len(meta)))
+    print("{} cycles found".format(len(metadata[0])))
     print("{} classes detected".format(len(qrs_classes)))
     print("{} complexes not classified".format(len(
-        [1 for x in meta if x.get("qrs_class_id", None) is None]
+        [1 for x in metadata if x.get("qrs_class_id", None) is None]
     )))
 
     show_classes = min(len(qrs_classes), 5)

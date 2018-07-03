@@ -302,6 +302,9 @@ def find_points(
         lbound = int(qrs["qrs_start"] * fs)
         rbound = int(qrs["qrs_end"] * fs)
 
+        pkdata["qrs_start"] = qrs["qrs_start"]
+        pkdata["qrs_end"] = qrs["qrs_end"]
+
         modas_subset = range_filter( modas[r_scale], lbound, rbound, noise/2)
 
         codestr = qrssearch(modas_subset, detail[r_scale], pkdata)
