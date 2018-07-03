@@ -14,6 +14,8 @@ Q, R, S, R* : центр зубца (метки времени)
 P, Т: начало, центр, конец (метки времени)
 
 qrsType: вид комплекса. Обнаруживаемые разновидности qrs - R, qR, Rs, qs, qRs.
+
+
 Артефакты кодируются значением qrsType==None
 
 # ######################################
@@ -54,6 +56,10 @@ def metadata_new():
             "s": {"start": None, "end": None, "center": None, "height": None},
             "t": {"start": None, "end": None, "center": None, "height": None}
         },
+        "qrs_start": None,
+        "qrs_end": None,
+        "qrs_class_id": None,
+        "artifact": True,
         "qrsType": None,
         "RR": None,
         "heartrate": None,
