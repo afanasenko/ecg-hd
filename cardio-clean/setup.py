@@ -32,7 +32,7 @@ if __name__ == "__main__":
         include_package_data=True,
         entry_points={
             'console_scripts': [
-                'cardioclean = cardio_clean.cardioclean:main'
+                'cardioclean = tools.cardioclean:main'
                 'qrsdemo = cardio_clean.graphresults:main'
             ],
         },

@@ -157,13 +157,14 @@ def blobapi_detect_qrs(
     )[0]
 
     metadata_per_channel = []
+
     if channel is None:
         # сегментация производится в каждом отведении
         for delineate_chan in range(header["channels"]):
             metadata = find_points(
                 indata[:,delineate_chan],
                 fs=header["fs"],
-                bias=header["baseline"][channel],
+                bias=header["baseline"][delineate_chan],
                 qrs_metadata=qrs_meta
             )
 
