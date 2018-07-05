@@ -68,7 +68,7 @@ def anaread(f):
     if kv["CONVERT"] == "mV":
         scale *= 1000
 
-    return scale*np.array(data), fs, kv.get("name", "unknown")
+    return scale*np.array(data), fs, kv.get("name", "")
 
 
 def readint(f):

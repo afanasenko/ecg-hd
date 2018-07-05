@@ -329,6 +329,11 @@ def main():
         window=options.window,
     )
 
+    # чтобы не позакрывались графики
+    if not options.file_output:
+        print("Нажмите любую клавишу для завершения")
+        sys.stdin.read(1)
+
 
 
 if __name__ == "__main__":

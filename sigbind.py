@@ -262,7 +262,7 @@ def build_comb_filter(fs, n, att, base_freq=50.0, q=5.0):
     return f_grid, response
 
 
-def mains_filter(sig, fs, mains, attenuation, aperture):
+def mains_filter(sig, fs, bias, mains, attenuation, aperture):
     """
     Подавление гармоник частоты электрической сети
     :param sig:
@@ -281,29 +281,31 @@ def mains_filter(sig, fs, mains, attenuation, aperture):
         q=mains*0.03
     )
 
-    result = []
+    y = np.zeros(len(sig))
+    hamwnd = np.array(signal.hann(aperture))
+    step = int(aperture / 2)
 
-    for x in signal_channels(sig):
+    ham_left = hamwnd.copy()
+    ham_left[:step+1] = np.max(hamwnd)
 
-        y = np.zeros(len(x))
-        hamwnd = np.array(signal.hann(aperture))
-        step = int(aperture / 2)
+    n2 = len(sig) - aperture
+    for n1 in range(0, n2, step):
+        # для ослабления краевых эффектов берем несимметричное окно в
+        # начале
+        wnd = ham_left if n1 == 0 else hamwnd
+        # комплексный спектр с учетом окна и смещения
+        xf = fft(wnd * (np.array(sig[n1:n1 + aperture]) - bias))
+        # отфильтрованный сигнал в окне
+        yt = np.real(ifft(xf * fft_response))
 
-        n2 = len(x) - aperture
-        for n1 in range(0, n2, step):
-            # комплексный спектр с учетом окна
-            xf = fft(hamwnd * np.array(x[n1:n1 + aperture]))
-            # отфильтрованный сигнал в окне
-            yt = np.real(ifft(xf * fft_response))
+        y[n1:n1 + aperture] += yt
 
-            y[n1:n1 + aperture] += yt
+    result = y + bias
 
-        result.append(y)
-
-    return np.array(result)
+    return result
 
 
-def fix_baseline(sig, fs, bias_window_ms):
+def fix_baseline(sig, fs, bias_window_ms=1500.0):
     """
     fix_baseline выравнивает базовую линию
     :param sig: numpy array - отсчеты сигнала
@@ -318,12 +320,10 @@ def fix_baseline(sig, fs, bias_window_ms):
     h = signal.hann(int(samples_per_ms * bias_window_ms))
     h = h / sum(h)
 
-    result = []
+    bias = np.mean(x)
+    # огибающая (фон) вычисляется путем свертки со сглаживающей апертурой и затем вычитается из входного сигнала
+    bks = signal.convolve(sig - bias, h, mode="same")
+    return sig - bks
 
-    for x in signal_channels(sig):
-        bias = np.mean(x)
-        # огибающая (фон) вычисляется путем свертки со сглаживающей апертурой и затем вычитается из входного сигнала
-        bks = signal.convolve(x - bias, h, mode="same")
-        result.append(x - bks)
 
-    return np.array(result)
+
