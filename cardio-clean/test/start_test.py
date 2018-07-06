@@ -18,15 +18,16 @@ def test_classify():
 
     print("Find QRS...")
     with open(filename_out, "rb") as fi:
-        meta = blobapi_detect_qrs(inbuf=fi, min_qrs_ms=20, channel=None, postprocessing=True)
-        print("cycles found: {}".format(len(meta[0])))
-        print(meta)
+        meta = blobapi_detect_qrs(inbuf=fi, min_qrs_ms=20, postprocessing=True)
+        print("cycles found: {}".format(len(meta)))
+        #print(meta)
 
     print("Classification...")
     with open(filename_out, "rb") as fi:
+        print(meta[0])
         classes = blobapi_classify_qrs(
             inbuf=fi,
-            metadata=meta[0],
+            metadata=meta,
             classgen_threshold=0.8
         )
 
@@ -35,7 +36,7 @@ def test_classify():
 
         assert len(classes) == 1
 
-        num_art = len([x for x in meta[0] if x["artifact"]])
+        num_art = len([x for x in meta if x["artifact"]])
 
         assert num_art == 1
 

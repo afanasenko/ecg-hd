@@ -93,16 +93,16 @@ def show_waves():
 
     s = sig[:,0]
 
-    qrs_meta = qrs_detection(
+    metadata = qrs_detection(
         sig[:,:],
         fs=header["fs"]
     )[0]
 
-    metadata = find_points(
-        s,
+    find_points(
+        sig[:, :],
         fs=header["fs"],
-        bias=header["baseline"][0],
-        qrs_metadata=qrs_meta
+        bias=header["baseline"],
+        metadata=metadata
     )
 
     metadata_postprocessing(
@@ -121,10 +121,10 @@ def show_waves():
         qrstype = qrs["qrsType"]
         qrsTypes[qrstype] = qrsTypes.get(qrstype, 0) + 1
 
-        for k,v in qrs.get("waves", {}).items():
-            c = v["center"]
-            if c is not None:
-                plt.scatter(c, s[c])
+        #for k,v in qrs.get("waves", {}).items():
+        #    c = v["center"]
+        #    if c is not None:
+        #        plt.scatter(c, s[c])
 
             #if k == "t":
             #    lb = v["start"]
@@ -133,8 +133,8 @@ def show_waves():
             #        plt.plot(np.arange(lb, rb), s[lb:rb], "r")
             #        stcount += 1
 
-        lb = qrs["ST"]["start"]
-        rb = qrs["ST"]["end"]
+        lb = qrs["st_start"][0]
+        rb = qrs["st_end"][0]
         if all((lb, rb)):
             plt.plot(np.arange(lb, rb), s[lb:rb], "r")
             stcount += 1
@@ -143,8 +143,8 @@ def show_waves():
 
     print(qrsTypes)
 
-    stdur = [qrs["ST"]["duration"] for qrs in metadata if
-             qrs["ST"]["duration"]]
+    stdur = [qrs["st_duration"][0] for qrs in metadata if
+             qrs["st_duration"][0]]
 
     print("{} cycles, {} ST segments, avg. {} ms".format(
         len(metadata),

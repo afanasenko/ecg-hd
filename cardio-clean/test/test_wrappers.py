@@ -84,7 +84,7 @@ def test_qrs():
     with open(filename_in, "rb") as fi:
         meta = blobapi_detect_qrs(inbuf=fi)
 
-    assert len(meta[0]) == 3628
+    assert len(meta) == 3628
 
     # Проверка на адекватность значения средней ЧСС
     avg_heartrate = np.median([x["heartrate"] for x in meta])
@@ -108,18 +108,24 @@ def test_parameters():
         meta = blobapi_detect_qrs(
             inbuf=fi,
             min_qrs_ms=20,
-            channel=None,
             postprocessing=True
         )
 
-        assert len(meta[0]) == 3628
+        assert len(meta) == 3628
 
-        stdur = [nqrs["ST"]["duration"] for nqrs in meta[0] if nqrs[
-            "ST"]["duration"]]
+        hrts = []
+        for ch in range(len(meta)):
+            hrt = [nqrs["heartrate"] for nqrs in meta if nqrs["heartrate"]
+                   is not None]
+            hrts.append(len(hrt))
+        print("{} циклов с отметкой heartrate".format(hrts))
+
+        stdur = [nqrs["st_duration"] for nqrs in meta if nqrs[
+            "st_duration"] is not None]
 
         print(
             "{} циклов, st-сегментов: {}\nСредняя длительность : {} мс".format(
-                len(meta[0]),
+                len(meta),
                 len(stdur),
                 np.mean(stdur)
             )
@@ -174,5 +180,5 @@ if __name__ == "__main__":
     # test_readwrite()
     # test_baseline()
     # test_mains()
-    # test_parameters()
-    test_classify()
+    test_parameters()
+    # test_classify()
