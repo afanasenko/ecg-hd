@@ -76,8 +76,8 @@ def metadata_new(num_channels):
         "t_height": [None]*num_channels,  # float array
 
         # параметры ритма
-        "RR": None,
-        "heartrate": None,
+        "RR": None,  # [миллисекунды] float
+        "heartrate": None,  # [удары в минуту] float
 
         # оценка уровня изолинии
         "isolevel": [None]*num_channels,  # float array
@@ -199,9 +199,13 @@ def metadata_postprocessing(metadata, sig, fs, **kwargs):
 
             # ######################################
             # RR
-            if chan == heartbeat_channel and ncycle:
-                prev_r = metadata[ncycle-1]["r_pos"][chan]
-                if all((rc, prev_r)):
-                    rr = samples_to_ms(rc - prev_r, fs)
+            if chan == heartbeat_channel:
+                if ncycle:
+                    neighbour = metadata[ncycle-1]["r_pos"][chan]
+                else:
+                    neighbour = metadata[ncycle+1]["r_pos"][chan]
+
+                if rc is not None and neighbour is not None:
+                    rr = samples_to_ms(abs(rc - neighbour), fs)
                     cycledata["RR"] = rr
                     cycledata["heartrate"] = 60000.0 / rr
