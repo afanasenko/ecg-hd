@@ -113,18 +113,15 @@ def test_parameters():
 
         assert len(meta) == 3628
 
-        hrts = []
-        for ch in range(len(meta)):
-            hrt = [nqrs["heartrate"] for nqrs in meta if nqrs["heartrate"]
-                   is not None]
-            hrts.append(len(hrt))
-        print("{} циклов с отметкой heartrate".format(hrts))
+        hrt = [x["heartrate"] for x in meta if x["heartrate"] is not None]
 
-        stdur = [nqrs["st_duration"] for nqrs in meta if nqrs[
-            "st_duration"] is not None]
+        print("{} циклов с отметкой heartrate".format(len(hrt)))
+
+        stdur = [x["st_duration"][0] for x in meta if x[
+            "st_duration"][0] is not None]
 
         print(
-            "{} циклов, st-сегментов: {}\nСредняя длительность : {} мс".format(
+            "{} циклов, {} st-сегментов\nСредняя длительность: {} мс".format(
                 len(meta),
                 len(stdur),
                 np.mean(stdur)
@@ -137,8 +134,5 @@ def test_parameters():
 
 
 if __name__ == "__main__":
-    # test_readwrite()
-    # test_baseline()
-    # test_mains()
     test_parameters()
 
