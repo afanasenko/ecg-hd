@@ -116,15 +116,16 @@ def show_waves():
     qrsTypes = {}
     stcount=0
 
+    pt_keys = ["q_pos","r_pos", "s_pos", "p_pos", "t_pos"]
+
     for qrs in metadata:
 
         qrstype = qrs["qrsType"]
         qrsTypes[qrstype] = qrsTypes.get(qrstype, 0) + 1
 
-        #for k,v in qrs.get("waves", {}).items():
-        #    c = v["center"]
-        #    if c is not None:
-        #        plt.scatter(c, s[c])
+        for k in pt_keys:
+            if qrs[k] is not None:
+                plt.scatter(qrs[k], s[qrs[k]])
 
             #if k == "t":
             #    lb = v["start"]
@@ -138,6 +139,9 @@ def show_waves():
         if all((lb, rb)):
             plt.plot(np.arange(lb, rb), s[lb:rb], "r")
             stcount += 1
+
+    missing_hrt = [i for i,x in enumerate(metadata) if x["heartrate"] is None]
+    print("Heartrate missing in beats\n{}".format(missing_hrt))
 
     plt.xlim((200,700))
 
