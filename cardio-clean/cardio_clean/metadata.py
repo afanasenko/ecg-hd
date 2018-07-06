@@ -12,7 +12,7 @@ from sigbind import signal_channels
 # ######################################
 Первичные метаданные включают:
 
-Q, R, S, R* : центр зубца (метки времени)
+Q, R, S : центр зубца (метки времени)
 P, Т: начало, центр, конец (метки времени)
 
 qrsType: вид комплекса. Обнаруживаемые разновидности qrs - R, qR, Rs, qs, qRs.
@@ -23,9 +23,8 @@ qrsType: вид комплекса. Обнаруживаемые разнови�
 # ######################################
 
 Вторичные данные по зубцам
-Q, R, S, R* (амплитуда)
-P: амплитуда
-T: амплитуда, крутизна переднего фронта, крутизна заднего фронта, симметрия, острота
+P, Q, R, S, T (амплитуда)
+T: крутизна переднего фронта, крутизна заднего фронта, симметрия, острота
 
 Вторичные данные по ритму
 RR-интервал в миллисекундах
@@ -61,38 +60,38 @@ def metadata_new(num_channels):
         "qrsType": None,  # string
 
         # отдельные зубцы
-        "p_start": [None]*num_channels,
-        "p_end": [None]*num_channels,
-        "p_pos": [None]*num_channels,
-        "p_height": [None]*num_channels,
-        "q_pos": [None]*num_channels,
-        "q_height": [None]*num_channels,
-        "r_pos": [None]*num_channels,
-        "r_height": [None]*num_channels,
-        "s_pos": [None]*num_channels,
-        "s_height": [None]*num_channels,
-        "t_start": [None]*num_channels,
-        "t_end": [None]*num_channels,
-        "t_pos": [None]*num_channels,
-        "t_height": [None]*num_channels,
+        "p_start": [None]*num_channels,  # int array
+        "p_end": [None]*num_channels,  # int array
+        "p_pos": [None]*num_channels,  # int array
+        "p_height": [None]*num_channels,  # float array
+        "q_pos": [None]*num_channels,  # int array
+        "q_height": [None]*num_channels,  # float array
+        "r_pos": [None]*num_channels,  # int array
+        "r_height": [None]*num_channels,  # float array
+        "s_pos": [None]*num_channels,  # int array
+        "s_height": [None]*num_channels,  # float array
+        "t_start": [None]*num_channels,  # int array
+        "t_end": [None]*num_channels,  # int array
+        "t_pos": [None]*num_channels,  # int array
+        "t_height": [None]*num_channels,  # float array
 
         # параметры ритма
         "RR": None,
         "heartrate": None,
 
         # оценка уровня изолинии
-        "isolevel": [None]*num_channels,
+        "isolevel": [None]*num_channels,  # float array
 
         # ST-сегмент
-        "st_start": [None]*num_channels,
-        "st_plus": [None]*num_channels,
-        "st_end": [None]*num_channels,
-        "st_start_level": [None]*num_channels,
-        "st_plus_level": [None]*num_channels,
-        "st_end_level": [None]*num_channels,
-        "st_offset": [None]*num_channels,
-        "st_duration": [None]*num_channels,
-        "st_slope": [None]*num_channels
+        "st_start": [None]*num_channels,  # int array
+        "st_plus": [None]*num_channels,  # int array
+        "st_end": [None]*num_channels,  # int array
+        "st_start_level": [None]*num_channels,  # float array
+        "st_plus_level": [None]*num_channels,  # float array
+        "st_end_level": [None]*num_channels,  # float array
+        "st_offset": [None]*num_channels,  # float array
+        "st_duration": [None]*num_channels,  # float array
+        "st_slope": [None]*num_channels  # float array
     }
 
 
