@@ -51,15 +51,16 @@ def get_qrsclass(recordname, tend):
         bias_window_ms=1500
     )
 
-    qmeta = qrs_detection(
+    metadata = qrs_detection(
         sig,
         fs=fs
     )[0]
 
-    metadata = find_points(
+    find_points(
         sig[:, 0],
         fs=fs,
-        qrs_metadata=qmeta
+        metadata=metadata,
+        bias=hdr["baseline"]
     )
 
     qrs_classes = incremental_classifier(
@@ -70,7 +71,7 @@ def get_qrsclass(recordname, tend):
         include_data=3
     )
 
-    print("{} cycles found".format(len(metadata[0])))
+    print("{} cycles found".format(len(metadata)))
     print("{} classes detected".format(len(qrs_classes)))
     print("{} complexes not classified".format(len(
         [1 for x in metadata if x.get("qrs_class_id", None) is None]

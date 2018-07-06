@@ -130,7 +130,6 @@ def blobapi_mains_correction(
 def blobapi_detect_qrs(
         inbuf,
         min_qrs_ms=20,
-        channel=None,
         postprocessing=True
     ):
     """
@@ -143,63 +142,38 @@ def blobapi_detect_qrs(
 
     :param inbuf: входной буфер (остается неизменным)
     :param min_qrs_ms: минимальная длительность QRS-комплекса
-    :param channel: канал, в к-ром выполняется сегментация, None - все каналы
     :param postprocessing: расчет вторичных параметров (ритм, ST и др.)
     :return: [meta0, meta1, ..., metaN], где metaN - список найденных
     комплексов в N-ом канале
     """
 
     header, indata = read_buffer(inbuf)
-    qrs_meta = qrs_detection(
+    metadata = qrs_detection(
         indata,
         fs=header["fs"],
         minqrs_ms=min_qrs_ms
     )[0]
 
-    metadata_per_channel = []
-
-    if channel is None:
-        # сегментация производится в каждом отведении
-        for delineate_chan in range(header["channels"]):
-            metadata = find_points(
-                indata[:,delineate_chan],
-                fs=header["fs"],
-                bias=header["baseline"][delineate_chan],
-                qrs_metadata=qrs_meta
-            )
-
-            if postprocessing:
-                metadata_postprocessing(
-                    metadata,
-                    indata[:, delineate_chan],
-                    fs=header["fs"]
-                )
-
-            metadata_per_channel.append(metadata)
-        return metadata_per_channel
-
-    else:
-        # сегментация производится только в одном отведении
-        metadata = find_points(
-            indata[:,channel],
-            fs=header["fs"],
-            bias=header["baseline"][channel],
-            qrs_metadata=qrs_meta,
-            debug=False
+    # сегментация производится только в одном отведении
+    find_points(
+        indata,
+        fs=header["fs"],
+        metadata=metadata,
+        bias=header["baseline"],
+        debug=False
+    )
+    if postprocessing:
+        metadata_postprocessing(
+            metadata,
+            indata,
+            fs=header["fs"]
         )
-        if postprocessing:
-            metadata_postprocessing(
-                metadata,
-                indata[:, channel],
-                fs=header["fs"]
-            )
-        return [metadata]
+    return metadata
 
 
 def blobapi_postprocessing_qrs(
         inbuf,
-        metadata,
-        channel=None
+        metadata
     ):
     """
     Расчет вторичных параметров на основе ранее
@@ -214,21 +188,12 @@ def blobapi_postprocessing_qrs(
     """
 
     header, indata = read_buffer(inbuf)
-    # анализ производится только в одном отведении
-    if channel is None:
-        for chan in range(indata.shape[1]):
-            metadata_postprocessing(
-                metadata[chan],
-                indata[:, chan],
-                fs=header["fs"]
-            )
 
-    else:
-        metadata_postprocessing(
-            metadata,
-            indata[:, channel],
-            fs=header["fs"]
-        )
+    metadata_postprocessing(
+        metadata,
+        indata,
+        fs=header["fs"]
+    )
 
 
 def blobapi_classify_qrs(inbuf, metadata, classgen_threshold=0.85):

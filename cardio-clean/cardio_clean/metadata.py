@@ -1,5 +1,7 @@
 # coding: utf-8
 
+from sigbind import signal_channels
+
 """
 Метаданные подразделяются на первичные и вторичные.
 Первичные являются результатом автоматической сегментации и могут быть
@@ -10,7 +12,7 @@
 # ######################################
 Первичные метаданные включают:
 
-Q, R, S, R* : центр зубца (метки времени)
+Q, R, S : центр зубца (метки времени)
 P, Т: начало, центр, конец (метки времени)
 
 qrsType: вид комплекса. Обнаруживаемые разновидности qrs - R, qR, Rs, qs, qRs.
@@ -21,9 +23,8 @@ qrsType: вид комплекса. Обнаруживаемые разнови�
 # ######################################
 
 Вторичные данные по зубцам
-Q, R, S, R* (амплитуда)
-P: амплитуда
-T: амплитуда, крутизна переднего фронта, крутизна заднего фронта, симметрия, острота
+P, Q, R, S, T (амплитуда)
+T: крутизна переднего фронта, крутизна заднего фронта, симметрия, острота
 
 Вторичные данные по ритму
 RR-интервал в миллисекундах
@@ -47,34 +48,50 @@ RR-интервал в миллисекундах
 import numpy as np
 
 
-def metadata_new():
+def metadata_new(num_channels):
     return {
-        "waves": {
-            "p": {"start": None, "end": None, "center": None, "height": None},
-            "q": {"start": None, "end": None, "center": None, "height": None},
-            "r": {"start": None, "end": None, "center": None, "height": None},
-            "s": {"start": None, "end": None, "center": None, "height": None},
-            "t": {"start": None, "end": None, "center": None, "height": None}
-        },
-        "qrs_start": None,
-        "qrs_end": None,
+
+        # qrs-комплекс в целом
+        "qrs_start": None,  # [секунд от начала записи] float
+        "qrs_end": None,  # [секунд от начала записи] float
+        "qrs_center": None,  # [секунд от начала записи] float
         "qrs_class_id": None,
-        "artifact": True,
-        "qrsType": None,
+        "artifact": True,  # bool
+        "qrsType": None,  # string
+
+        # отдельные зубцы
+        "p_start": [None]*num_channels,  # int array
+        "p_end": [None]*num_channels,  # int array
+        "p_pos": [None]*num_channels,  # int array
+        "p_height": [None]*num_channels,  # float array
+        "q_pos": [None]*num_channels,  # int array
+        "q_height": [None]*num_channels,  # float array
+        "r_pos": [None]*num_channels,  # int array
+        "r_height": [None]*num_channels,  # float array
+        "s_pos": [None]*num_channels,  # int array
+        "s_height": [None]*num_channels,  # float array
+        "t_start": [None]*num_channels,  # int array
+        "t_end": [None]*num_channels,  # int array
+        "t_pos": [None]*num_channels,  # int array
+        "t_height": [None]*num_channels,  # float array
+
+        # параметры ритма
         "RR": None,
         "heartrate": None,
-        "isolevel": None,
-        "ST": {
-            "start": None,
-            "stplus": None,
-            "end": None,
-            "start_level": None,
-            "stplus_level": None,
-            "end_level": None,
-            "offset": None,
-            "duration": None,
-            "slope": None
-        }
+
+        # оценка уровня изолинии
+        "isolevel": [None]*num_channels,  # float array
+
+        # ST-сегмент
+        "st_start": [None]*num_channels,  # int array
+        "st_plus": [None]*num_channels,  # int array
+        "st_end": [None]*num_channels,  # int array
+        "st_start_level": [None]*num_channels,  # float array
+        "st_plus_level": [None]*num_channels,  # float array
+        "st_end_level": [None]*num_channels,  # float array
+        "st_offset": [None]*num_channels,  # float array
+        "st_duration": [None]*num_channels,  # float array
+        "st_slope": [None]*num_channels  # float array
     }
 
 
@@ -86,12 +103,20 @@ def ms_to_samples(ms, fs):
     return int(ms * fs / 1000.0)
 
 
+def level_from_pos(d, chan, pos_key, val_key, sig, bias):
+    pos = d[pos_key][chan]
+    if pos is None:
+        d[val_key][chan] = None
+    else:
+        d[val_key][chan] = sig[pos] - bias
+
+
 def metadata_postprocessing(metadata, sig, fs, **kwargs):
     """
     Расчет вторичных параметров сигнала в одном отведении
 
     Поскольку источник входных метаданных неизвестен, необходимо
-    перезаписать значения всех ключей.
+    перезаписать значения всех зависимых ключей.
     :param metadata:
     :param sig:
     :param fs:
@@ -102,83 +127,81 @@ def metadata_postprocessing(metadata, sig, fs, **kwargs):
     j_offset_ms = kwargs.get("j_offset", 60)
     jplus_offset_ms = kwargs.get("jplus_offset", 80)
 
+    numch = sig.shape[1] if sig.ndim == 2 else 1
+
+    # ритм оценивается всегда по второму отведению
+    heartbeat_channel = 1 if numch > 1 else 0
+
     for ncycle, cycledata in enumerate(metadata):
 
-        # ######################################
-        # точки J и J+
-        # ставится со смещением от R-зубца
-        rc = cycledata["waves"]["r"]["center"]
-        if rc is not None:
-            j_point = rc + ms_to_samples(j_offset_ms, fs)
-            if j_point > len(sig) - 1:
+        for chan, x in signal_channels(sig):
+
+            # ######################################
+            # точки J и J+
+            # ставится со смещением от R-зубца
+            rc = cycledata["r_pos"][chan]
+            if rc is not None:
+                j_point = rc + ms_to_samples(j_offset_ms, fs)
+                if j_point > len(x) - 1:
+                    j_point = None
+                    jplus_point = None
+                else:
+                    jplus_point = j_point + ms_to_samples(jplus_offset_ms, fs)
+                    if jplus_point > len(x) - 1:
+                        jplus_point = None
+
+                    elif cycledata["t_start"][chan] is not None:
+                        tstart = cycledata["t_start"][chan]
+                        jplus_point = min(j_point, tstart)
+
+            else:
                 j_point = None
                 jplus_point = None
-            else:
-                jplus_point = j_point + ms_to_samples(jplus_offset_ms, fs)
-                if jplus_point > len(sig) - 1:
-                    jplus_point = None
 
-                elif cycledata["waves"]["t"]["center"] is not None:
-                    tstart = cycledata["waves"]["t"]["center"]
-                    jplus_point = min(j_point, tstart)
+            # ######################################
+            # ST
+            st_end = cycledata["t_start"][chan]
+            cycledata["st_start"][chan] = j_point
+            cycledata["st_plus"][chan] = jplus_point
+            cycledata["st_end"][chan] = st_end
 
-        else:
-            j_point = None
-            jplus_point = None
+            # ######################################
+            # запись высоты зубцов
+            bias = cycledata["isolevel"][chan]
 
-        # ######################################
-        # запись высоты зубцов
-        bias = cycledata.get("isolevel", 0.0)
-        for wave in cycledata["waves"]:
-            pos = cycledata["waves"][wave].get("center", None)
-            if pos is None:
-                cycledata["waves"][wave]["height"] = None
-            else:
-                cycledata["waves"][wave]["height"] = sig[pos] - bias
+            level_from_pos(cycledata, chan, "p_pos", "p_height", x, bias)
+            level_from_pos(cycledata, chan, "q_pos", "q_height", x, bias)
+            level_from_pos(cycledata, chan, "r_pos", "r_height", x, bias)
+            level_from_pos(cycledata, chan, "s_pos", "s_height", x, bias)
+            level_from_pos(cycledata, chan, "t_pos", "t_height", x, bias)
+            level_from_pos(cycledata, chan, "st_start",
+                           "st_start_level", x, bias)
+            level_from_pos(cycledata, chan, "st_plus", "st_plus_level", x,
+                           bias)
+            level_from_pos(cycledata, chan, "st_end", "st_end_level", x, bias)
 
-        # ######################################
-        # RR
-        if ncycle:
-            cur_r = cycledata["waves"]["r"]["center"]
-            prev_r = metadata[ncycle-1]["waves"]["r"]["center"]
-            if all((cur_r, prev_r)):
-                rr = samples_to_ms(cur_r - prev_r, fs)
-                cycledata["RR"] = rr
-                cycledata["heartrate"] = 60000.0 / rr
+            # ######################################
+            # ST (продолжение)
+            if all((j_point, st_end)):
+                dur = samples_to_ms(st_end - j_point, fs)
+                if dur > kwargs.get("min_st_ms", 80):
+                    cycledata["st_duration"][chan] = dur
 
-        # ######################################
-        # ST
-        st_start = j_point
-        st_plus = jplus_point
-        st_end = cycledata["waves"]["t"]["start"]
+                    cycledata["st_offset"][chan] = np.mean(
+                        sig[j_point:st_end]) - bias
 
-        cycledata["ST"]["start"] = st_start
-        cycledata["ST"]["stplus"] = st_plus
-        cycledata["ST"]["end"] = st_end
+                    cycledata["st_slope"][chan] = \
+                        (cycledata["st_end_level"][chan] -
+                         cycledata["st_start_level"][chan]) / \
+                        cycledata["st_duration"][chan]
+                else:
+                    cycledata["st_duration"][chan] = None
 
-        if st_start is None:
-            cycledata["ST"]["start_level"] = None
-        else:
-            cycledata["ST"]["start_level"] = sig[st_start] - bias
-
-        if st_plus is None:
-            cycledata["ST"]["stplus_level"] = None
-        else:
-            cycledata["ST"]["stplus_level"] = sig[st_plus] - bias
-
-        if st_end is None:
-            cycledata["ST"]["end_level"] = None
-        else:
-            cycledata["ST"]["end_level"] = sig[st_end] - bias
-
-        if all((st_start, st_end)):
-            dur = samples_to_ms(st_end - st_start, fs)
-            if dur > kwargs.get("min_st_ms", 80):
-                cycledata["ST"]["duration"] = dur
-                cycledata["ST"]["offset"] = np.mean(sig[st_start:st_end]) - bias
-                cycledata["ST"]["slope"] = (cycledata["ST"]["end_level"] -
-                                        cycledata["ST"]["start_level"]) / cycledata["ST"]["duration"]
-            else:
-                cycledata["ST"]["duration"] = None
-
-
+            # ######################################
+            # RR
+            if chan == heartbeat_channel and ncycle:
+                prev_r = metadata[ncycle-1]["r_pos"][chan]
+                if all((rc, prev_r)):
+                    rr = samples_to_ms(rc - prev_r, fs)
+                    cycledata["RR"] = rr
+                    cycledata["heartrate"] = 60000.0 / rr

@@ -4,7 +4,7 @@ import numpy as np
 from scipy.signal import lfilter
 
 from sigbind import signal_channels
-from metadata import ms_to_samples
+from metadata import *
 
 
 def dummy_shift(x, n):
@@ -100,18 +100,15 @@ def qrs_detection(sig, fs, minqrs_ms=20):
             qrs_len = qrs_end - qrs_start
             if qrs_len >= minqrs_smp:
 
-                rpk_pos = []
-                for chan in range(sig.shape[1]):
-                    # R-зубец всегда либо положительный, либо отсутствует
-                    r_pos = qrs_start + np.argmax(
-                        sig[qrs_start:qrs_end, chan]
-                    )
-                    rpk_pos.append(float(r_pos)/fs)
+                qrs_center = qrs_start + np.argmax(
+                        pp[qrs_start:qrs_end])
 
-                qrs_metadata.append({
-                    "qrs_start": float(qrs_start)/fs,
-                    "qrs_end": float(qrs_end)/fs,
-                    "r_position": rpk_pos
-                })
+                numch = sig.shape[1]
+                qrs = metadata_new(numch)
+                qrs["qrs_start"] = float(qrs_start) / fs
+                qrs["qrs_end"] = float(qrs_end) / fs
+                qrs["qrs_center"] = float(qrs_center) / fs
+
+                qrs_metadata.append(qrs)
 
     return qrs_metadata, qrsmask

@@ -20,7 +20,7 @@ metadata = qrs_detection(
 )[0]
 
 pr.enable()
-newmeta = find_points(sig[:, 0], header["fs"], metadata)
+find_points(sig[:, 0], header["fs"], metadata, header["baseline"])
 pr.disable()
 
 pr.dump_stats('profile.pstat')

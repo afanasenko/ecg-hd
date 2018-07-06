@@ -8,4 +8,4 @@ def test_conv():
     smp = fs
 
     assert ms_to_samples(samples_to_ms(smp, fs), fs) == smp
-    assert samples_to_ms(smp, fs) == 1.0
+    assert samples_to_ms(fs, fs) == 1000.0

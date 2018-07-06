@@ -4,6 +4,7 @@ import json
 import numpy as np
 from scipy.signal import convolve, argrelmax, argrelmin
 from metadata import *
+from sigbind import signal_channels
 
 
 def modefind(x, lb=0, rb=0, bias=0.0):
@@ -100,7 +101,7 @@ def ddwt(x, num_scales):
     return approx, detail
 
 
-def qrssearch(modes, derivative, params):
+def qrssearch(modes, derivative, params, chan):
     """
 
     :param modes:
@@ -130,14 +131,14 @@ def qrssearch(modes, derivative, params):
 
     i0 = maxpair[0]
 
-    params["waves"]["r"]["center"] = zcfind(
+    params["r_pos"][chan] = zcfind(
         derivative,
         lb=modes[i0][0],
         rb=modes[i0 + 1][0]
     )
 
     if i0 > 0:
-        params["waves"]["q"]["center"] = zcfind(
+        params["q_pos"][chan] = zcfind(
             derivative,
             lb=modes[i0-1][0],
             rb=modes[i0][0]
@@ -145,7 +146,7 @@ def qrssearch(modes, derivative, params):
 
     i0 = maxpair[0]+1
     if i0+1 < len(modes):
-        params["waves"]["s"]["center"] = zcfind(
+        params["s_pos"][chan] = zcfind(
             derivative,
             lb=modes[i0][0],
             rb=modes[i0+1][0]
@@ -153,14 +154,14 @@ def qrssearch(modes, derivative, params):
 
     # Определение типа qrs-комплекса
     if params["qrsType"] is None:
-        if params["waves"]["r"]["center"] is not None:
-            if params["waves"]["q"]["center"] is not None:
-                if params["waves"]["s"]["center"] is not None:
+        if params["r_pos"] is not None:
+            if params["q_pos"] is not None:
+                if params["s_pos"] is not None:
                     params["qrsType"] = "qRs"
                 else:
                     params["qrsType"] = "qR"
             else:
-                if params["waves"]["s"]["center"] is not None:
+                if params["s_pos"] is not None:
                     params["qrsType"] = "Rs"
                 else:
                     params["qrsType"] = "R"
@@ -241,19 +242,20 @@ def range_filter(x, lb, rb, thresh):
 
 
 def find_points(
-        x,
+        sig,
         fs,
-        qrs_metadata,
-        bias=0.0,
+        metadata,
+        bias,
         debug=False):
     """
         Поиск характерных точек
-    :param x: входной сигнал (1 канал)
+    :param sig: входной сигнал (многоканальный)
     :param fs: частота дискретизации
-    :param qrs_metadata: первичная сегментация: qrs_start, qrs_end, r_position
+    :param metadata: первичная сегментация, содержащая qrs_start, qrs_end,
+    qrs_center
     :param bias: уровень изолинии
-    :param debug:
-    :return: список словарей метаданных по каждому циклу
+    :param debug: отладочный флаг
+    :return: None (результатом являются измененные значения в metadata)
     """
 
     r_scale = 2
@@ -262,118 +264,101 @@ def find_points(
     t_window_fraction = 0.6
     p_window_fraction = 1.0 - t_window_fraction
 
-    approx, detail = ddwt(x-bias, num_scales=max(r_scale, p_scale,
-                                                     t_scale))
-    modas = []
-    for band in detail:
-        moda = []
-        # ищем положительные максимумы
-        pos = argrelmax(band)[0]
-        for i in pos:
-            y = band[i]
-            if y > 0:
-                moda.append((i, y))
-        # ищем отрицательные минимумы
-        neg = argrelmin(band)[0]
-        for i in neg:
-            y = band[i]
-            if y < 0:
-                moda.append((i, y))
+    num_scales = max(r_scale, p_scale, t_scale)
 
-        moda.sort()
-        modas.append(moda)
+    for chan, x in signal_channels(sig):
+        approx, detail = ddwt(x-bias[chan], num_scales=num_scales)
 
-    # границы QRS здесь не определяем, надеемся на qrs_metadata
+        modas = []
+        for band in detail:
+            moda = []
+            # ищем положительные максимумы
+            pos = argrelmax(band)[0]
+            for i in pos:
+                y = band[i]
+                if y > 0:
+                    moda.append((i, y))
+            # ищем отрицательные минимумы
+            neg = argrelmin(band)[0]
+            for i in neg:
+                y = band[i]
+                if y < 0:
+                    moda.append((i, y))
 
-    summary = {}
-    metadata = []
+            moda.sort()
+            modas.append(moda)
 
-    # очень приближенная оценка шума
-    noise = np.std(detail[1]) * 0.7
-    if debug:
-        print(noise)
+        # границы QRS здесь не определяем, надеемся на metadata
 
-    for ncycle, qrs in enumerate(qrs_metadata):
-
-        pkdata = metadata_new()
-
-        # Поиск зубцов Q, R, S
-        # окно для поиска
-        lbound = int(qrs["qrs_start"] * fs)
-        rbound = int(qrs["qrs_end"] * fs)
-
-        pkdata["qrs_start"] = qrs["qrs_start"]
-        pkdata["qrs_end"] = qrs["qrs_end"]
-
-        modas_subset = range_filter( modas[r_scale], lbound, rbound, noise/2)
-
-        codestr = qrssearch(modas_subset, detail[r_scale], pkdata)
-
+        # очень приближенная оценка шума
+        noise = np.std(detail[1]) * 0.7
         if debug:
-            # для отладки: кодируем найденные фронты знаками +/-
-            if codestr:
-                summary[codestr] = summary.get(codestr, 0) + 1
+            print(noise)
 
-        prev_r = int(qrs_metadata[ncycle - 1]["r_position"][0] * fs) \
-            if ncycle else 0
-        next_r = int(qrs_metadata[ncycle + 1]["r_position"][0] * fs) \
-            if ncycle < len(qrs_metadata) - 1 else len(x)
-        cur_r = int(qrs["r_position"][0] * fs)
+        for ncycle, qrs in enumerate(metadata):
 
-        # оценка изолинии
-        iso = np.percentile(approx[r_scale][prev_r:next_r], 15)
-        pkdata["isolevel"] = iso
+            # Поиск зубцов Q, R, S
+            # окно для поиска
 
-        # поиск P-зубца
-        # окно для поиска
-        wlen = (cur_r - prev_r) * p_window_fraction
-        pwindow = [
-            int(prev_r + wlen),
-            cur_r
-        ]
+            lbound = int(qrs["qrs_start"] * fs)
+            rbound = int(qrs["qrs_end"] * fs)
 
-        modas_subset = range_filter(
-            modas[p_scale], pwindow[0], pwindow[1], noise/2
-        )
+            modas_subset = range_filter( modas[r_scale], lbound, rbound, noise/2)
 
-        # последняя мода перед R не учитывается, потому что относится к QRS
-        pleft, pcenter, pright = ptsearch(
-            modas_subset[:-1],
-            approx[r_scale+1],
-            bias=iso
-        )
+            qrssearch(modas_subset, detail[r_scale], qrs, chan)
 
-        pkdata["waves"]["p"]["center"] = pcenter
-        pkdata["waves"]["p"]["start"] = pleft
-        pkdata["waves"]["p"]["end"] = pright
+            prev_r = int(metadata[ncycle - 1]["qrs_center"] * fs) \
+                if ncycle else 0
+            next_r = int(metadata[ncycle + 1]["qrs_center"] * fs) \
+                if ncycle < len(metadata) - 1 else len(x)
+            cur_r = int(qrs["qrs_center"] * fs)
 
-        # поиск T-зубца
-        # окно для поиска
-        wlen = (next_r - cur_r) * t_window_fraction
-        twindow = [
-            cur_r,
-            int(cur_r + wlen)
-        ]
+            # оценка изолинии
+            iso = np.percentile(approx[r_scale][prev_r:next_r], 15)
+            qrs["isolevel"][chan] = iso
 
-        modas_subset = range_filter(
-            modas[p_scale], twindow[0], twindow[1], noise / 4
-        )
+            # поиск P-зубца
+            # окно для поиска
+            wlen = (cur_r - prev_r) * p_window_fraction
+            pwindow = [
+                int(prev_r + wlen),
+                cur_r
+            ]
 
-        # первая мода справа от R не учитывается, потому что относится к QRS
-        tleft, tcenter, tright = ptsearch(
-            modas_subset[1:],
-            approx[r_scale+1],
-            bias=iso
-        )
+            modas_subset = range_filter(
+                modas[p_scale], pwindow[0], pwindow[1], noise/2
+            )
 
-        pkdata["waves"]["t"]["center"] = tcenter
-        pkdata["waves"]["t"]["start"] = tleft
-        pkdata["waves"]["t"]["end"] = tright
+            # последняя мода перед R не учитывается, потому что относится к QRS
+            pleft, pcenter, pright = ptsearch(
+                modas_subset[:-1],
+                approx[r_scale+1],
+                bias=iso
+            )
 
-        #print(json.dumps(pkdata, indent=1))
-        metadata.append(pkdata)
+            qrs["p_pos"][chan] = pcenter
+            qrs["p_start"][chan] = pleft
+            qrs["p_end"][chan] = pright
 
-    if debug:
-        print(json.dumps(summary, indent=1))
+            # поиск T-зубца
+            # окно для поиска
+            wlen = (next_r - cur_r) * t_window_fraction
+            twindow = [
+                cur_r,
+                int(cur_r + wlen)
+            ]
 
-    return metadata
+            modas_subset = range_filter(
+                modas[p_scale], twindow[0], twindow[1], noise / 4
+            )
+
+            # первая мода справа от R не учитывается, потому что относится к QRS
+            tleft, tcenter, tright = ptsearch(
+                modas_subset[1:],
+                approx[r_scale+1],
+                bias=iso
+            )
+
+            qrs["t_pos"][chan] = tcenter
+            qrs["t_start"][chan] = tleft
+            qrs["t_end"][chan] = tright

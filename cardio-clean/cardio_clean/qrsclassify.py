@@ -32,7 +32,7 @@ def get_qrs_bounds(meta, fs):
     left = int(meta["qrs_start"] * fs)
     right = int(meta["qrs_end"] * fs)
 
-    c = meta["waves"]["r"]["center"]
+    c = int(meta["qrs_center"] * fs)
     if c is None:
         center = int((left + right)/2)
     else:
@@ -63,7 +63,6 @@ def extract_qrs(sig, fs, meta):
 def qrs_reference_correlation(ref, sig, offset):
 
     smp = ref.shape[0]
-
     cc = correlate(
         ref,
         sig[offset:offset+smp, :]
@@ -140,6 +139,11 @@ def incremental_classifier(sig, hdr, metadata, classgen_t=0.9,
 
     # число циклов
     num_cyc = len(metadata)
+
+    if num_cyc < 2:
+        print("Empty metadata")
+        return {}
+
     fs = hdr["fs"]
 
     first_qrs, first_c = extract_qrs(sig, fs, metadata[1])
