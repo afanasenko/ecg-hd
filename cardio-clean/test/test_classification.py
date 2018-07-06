@@ -1,3 +1,5 @@
+# coding: utf-8
+
 import os
 import datetime
 from cardio_clean.cardioproc_api import *
@@ -21,11 +23,11 @@ def test_classify():
     with open(filename_out, "rb") as fi:
         meta = blobapi_detect_qrs(inbuf=fi, min_qrs_ms=20, postprocessing=True)
         print("cycles found: {}".format(len(meta)))
-        #print(meta)
+        print(meta[0])
 
     print("Classification...")
     with open(filename_out, "rb") as fi:
-        print(meta[0])
+
         classes = blobapi_classify_qrs(
             inbuf=fi,
             metadata=meta,
@@ -40,6 +42,9 @@ def test_classify():
         num_art = len([x for x in meta if x["artifact"]])
 
         assert num_art == 1
+
+    os.remove(filename_out)
+
 
 if __name__ == "__main__":
     print(datetime.datetime.now())
