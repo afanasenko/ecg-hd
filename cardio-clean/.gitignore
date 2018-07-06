@@ -1,4 +1,7 @@
+.cache/*
+.pytest_cache/*
 .idea/*
+*.egg-info/*
 *.hea
 *.dat
 *.atr
