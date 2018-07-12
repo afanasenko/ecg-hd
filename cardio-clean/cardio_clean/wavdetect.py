@@ -169,10 +169,6 @@ def qrssearch(modes, derivative, params, chan):
     return signcode
 
 
-def edgefind(x0, y0, dx, dy, bias):
-    return int(x0 - dx * (y0-bias) / dy)
-
-
 def ptsearch(modes, approx, bias=0.0):
     """
     Поиск зубцов P и T
@@ -201,11 +197,11 @@ def ptsearch(modes, approx, bias=0.0):
     # строим касательную в наиболее крутой точке переднего фронта
 
     x0 = modes[i0][0]
-    y0 = approx[x0]
+    y0 = approx[x0] - bias
     dy = approx[x0+1] - approx[x0-1]
 
-    if dy > 0:
-        wave_left = edgefind(x0, y0, 2.0, dy, bias)
+    if abs(approx[x0+1] - bias) > abs(approx[x0-1] - bias):
+        wave_left = int(x0 - 2.0 * y0 / dy)
         if wave_left >= wave_center or wave_left <= 0:
             wave_left = None
     else:
@@ -214,11 +210,11 @@ def ptsearch(modes, approx, bias=0.0):
     # строим касательную в наиболее крутой точке заднего фронта
 
     x0 = modes[i0+1][0]
-    y0 = approx[x0]
+    y0 = approx[x0] - bias
     dy = approx[x0+1] - approx[x0-1]
 
-    if dy < 0:
-        wave_right = edgefind(x0, y0, 2.0, dy, bias)
+    if abs(approx[x0+1] - bias) < abs(approx[x0-1] - bias):
+        wave_right = int(x0 - 2.0 * y0 / dy)
         if wave_right <= wave_center or wave_right >= len(approx):
             wave_right = None
     else:
@@ -267,6 +263,7 @@ def find_points(
     num_scales = max(r_scale, p_scale, t_scale)
 
     for chan, x in signal_channels(sig):
+
         approx, detail = ddwt(x-bias[chan], num_scales=num_scales)
 
         modas = []
