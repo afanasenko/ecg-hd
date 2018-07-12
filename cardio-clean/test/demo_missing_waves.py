@@ -47,8 +47,8 @@ def plot_with_markup(s, fs, metadata, chan):
             plt.plot(np.arange(lb, rb), s[lb:rb, chan], "r")
 
     plt.xlim((left_p, right_p))
-    plt.grid(True, "minor")
-    plt.show(block=False)
+    plt.grid(True)
+    plt.show()
 
 
 def show_waves(filename):
@@ -97,7 +97,6 @@ def show_waves(filename):
 
     missing_hrt = [i for i,x in enumerate(metadata) if x["heartrate"] is None]
     print("Heartrate missing in beats\n{}".format(missing_hrt))
-
 
     print(qrsTypes)
 
