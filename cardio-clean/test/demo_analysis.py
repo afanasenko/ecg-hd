@@ -17,7 +17,7 @@ def dummy_shift(x, n):
 
 
 def multiplot(siglist):
-    fig, axarr = plt.subplots(len(siglist), 1, sharex=True)
+    fig, axarr = plt.subplots(len(siglist), 1, sharex="col")
     for i, s in enumerate(siglist):
         axarr[i].plot(s)
         axarr[i].grid()
@@ -26,7 +26,7 @@ def multiplot(siglist):
 
 
 def multispectrum(siglist):
-    fig, axarr = plt.subplots(len(siglist), 1, sharex=True)
+    fig, axarr = plt.subplots(len(siglist), 1, sharex="col")
     for i, s in enumerate(siglist):
         n1 = len(s)
         n2 = int(n1/2)
@@ -91,12 +91,13 @@ def show_waves():
     if fs != 250:
         print("Warning! fs={}".format(fs))
 
-    s = sig[:,0]
+    chan = 1
+    s = sig[:,chan]
 
-    metadata = qrs_detection(
+    metadata, foo = qrs_detection(
         sig[:,:],
         fs=header["fs"]
-    )[0]
+    )
 
     find_points(
         sig[:, :],
@@ -116,7 +117,8 @@ def show_waves():
     qrsTypes = {}
     stcount=0
 
-    pt_keys = ["q_pos","r_pos", "s_pos", "p_pos", "t_pos"]
+    pt_keys = {"q_pos": "r","r_pos": "b", "s_pos": "b", "p_pos": "y", "t_pos":
+    "g"}
 
     for qrs in metadata:
 
@@ -124,8 +126,9 @@ def show_waves():
         qrsTypes[qrstype] = qrsTypes.get(qrstype, 0) + 1
 
         for k in pt_keys:
-            if qrs[k] is not None:
-                plt.scatter(qrs[k], s[qrs[k]])
+            point = qrs[k][chan]
+            if point is not None:
+                plt.scatter(point, s[point], c=pt_keys[k])
 
             #if k == "t":
             #    lb = v["start"]
