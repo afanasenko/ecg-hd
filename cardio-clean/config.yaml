@@ -15,8 +15,10 @@
     min_qrs_ms: 20
     min_st_ms: 80
     j_offset_ms: 60
+    jplus_offset_ms: 80
     relative_t_search: 0.6
     relative_p_search: 0.4
+    heartrate_channel: 1
 
   BATCH_PROCESSING:
     output_file_suffix: _F
