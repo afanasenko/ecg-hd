@@ -209,3 +209,15 @@ def metadata_postprocessing(metadata, sig, fs, **kwargs):
                     rr = samples_to_ms(abs(rc - neighbour), fs)
                     cycledata["RR"] = rr
                     cycledata["heartrate"] = 60000.0 / rr
+                else:
+                    cycledata["RR"] = None
+                    cycledata["heartrate"] = None
+
+
+def is_superventricular(meta, channel=1):
+    supervent_max_qrs = 0.12
+    if meta["p_pos"][channel] is not None:
+        # qrs_start, qrs_end нен могут быть None при штатном порядке вызова
+        if meta["qrs_end"] - meta["qrs_start"] < supervent_max_qrs:
+            return True
+    return False
