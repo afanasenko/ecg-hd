@@ -1,6 +1,7 @@
 # coding: utf-8
 
 import os
+import json
 from cardio_clean.cardioproc_api import *
 
 
@@ -104,12 +105,20 @@ def test_parameters():
         with open(filename_out, "wb") as fo:
             blobapi_fix_baseline(inbuf=fi, outbuf=fo)
 
-    with open(filename_out, "rb") as fi:
+    with open(filename_in, "rb") as fi:
         meta = blobapi_detect_qrs(
             inbuf=fi,
             min_qrs_ms=20,
             postprocessing=True
         )
+
+        filename_metadump = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "TestFromDcm.json"
+        )
+
+        with open(filename_metadump, "w") as fmeta:
+            json.dump(meta, fmeta, indent=1, sort_keys=True)
 
         assert len(meta) == 3628
 
