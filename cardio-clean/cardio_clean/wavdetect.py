@@ -223,18 +223,24 @@ def ptsearch(modes, approx, bias=0.0):
     return wave_left, wave_center, wave_right
 
 
-def range_filter(x, lb, rb, thresh):
-    ret = []
-    for m0, m1 in x:
-        if m0 < lb:
-            continue
-        if m0 > rb:
-            break
+def find_extrema(band, start_idx, end_idx, thresh):
 
-        if abs(m1) > thresh:
-            ret.append((m0, m1))
+    moda = []
+    # ищем положительные максимумы
+    pos = start_idx + argrelmax(band[start_idx:end_idx+1])[0]
+    for i in pos:
+        y = band[i]
+        if y > thresh:
+            moda.append((i, y))
+    # ищем отрицательные минимумы
+    neg = start_idx + argrelmin(band[start_idx:end_idx+1])[0]
+    for i in neg:
+        y = band[i]
+        if y < -thresh:
+            moda.append((i, y))
 
-    return ret
+    moda.sort()
+    return moda
 
 
 def find_points(
@@ -300,7 +306,9 @@ def find_points(
             lbound = int(qrs["qrs_start"] * fs)
             rbound = int(qrs["qrs_end"] * fs)
 
-            modas_subset = range_filter( modas[r_scale], lbound, rbound, noise/2)
+            modas_subset = find_extrema(
+                detail[r_scale], lbound, rbound, noise/2
+            )
 
             qrssearch(modas_subset, detail[r_scale], qrs, chan)
 
@@ -322,8 +330,8 @@ def find_points(
                 cur_r
             ]
 
-            modas_subset = range_filter(
-                modas[p_scale], pwindow[0], pwindow[1], noise/2
+            modas_subset = find_extrema(
+                detail[p_scale], pwindow[0], pwindow[1], noise/2
             )
 
             # последняя мода перед R не учитывается, потому что относится к QRS
@@ -345,8 +353,8 @@ def find_points(
                 int(cur_r + wlen)
             ]
 
-            modas_subset = range_filter(
-                modas[p_scale], twindow[0], twindow[1], noise / 4
+            modas_subset = find_extrema(
+                detail[p_scale], twindow[0], twindow[1], noise / 4
             )
 
             # первая мода справа от R не учитывается, потому что относится к QRS
