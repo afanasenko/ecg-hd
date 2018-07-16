@@ -152,19 +152,20 @@ def qrssearch(modes, derivative, params, chan):
             rb=modes[i0+1][0]
         )
 
-    # Определение типа qrs-комплекса
-    if params["qrsType"] is None:
-        if params["r_pos"] is not None:
-            if params["q_pos"] is not None:
-                if params["s_pos"] is not None:
-                    params["qrsType"] = "qRs"
+    # Определение типа qrs-комплекса по II-му стандартному отведению
+    if chan == 1:
+        if params["qrsType"] is None:
+            if params["r_pos"][chan] is not None:
+                if params["q_pos"][chan] is not None:
+                    if params["s_pos"][chan] is not None:
+                        params["qrsType"] = "qRs"
+                    else:
+                        params["qrsType"] = "qR"
                 else:
-                    params["qrsType"] = "qR"
-            else:
-                if params["s_pos"] is not None:
-                    params["qrsType"] = "Rs"
-                else:
-                    params["qrsType"] = "R"
+                    if params["s_pos"][chan] is not None:
+                        params["qrsType"] = "Rs"
+                    else:
+                        params["qrsType"] = "R"
 
     return signcode
 
