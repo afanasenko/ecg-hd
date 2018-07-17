@@ -154,7 +154,7 @@ def blobapi_detect_qrs(
         minqrs_ms=min_qrs_ms
     )[0]
 
-    # сегментация производится только в одном отведении
+    # поиск характерных точек производится во всех отведениях
     find_points(
         indata,
         fs=header["fs"],
