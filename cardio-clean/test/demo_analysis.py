@@ -74,15 +74,16 @@ def show_filter_responses(spectral=False):
 
 def show_decomposition():
 
-    sig, hdr = ecgread("/Users/arseniy/SERDECH/data/ROXMINE/Rh2024")
-    app, ders = ddwt(sig[:20000,0], num_scales=5)
+    sig, hdr = ecgread("/Users/arseniy/SERDECH/data/ROXMINE/Rh2022")
+    app, ders = ddwt(sig[:20000,1], num_scales=5)
     multiplot(ders)
 
 
 def print_summary(metadata, ch=1):
     classes = {}
     qrs_types = {}
-
+    st_intervals = []
+    rr_intervals = []
     wcount = {w: 0 for w in ("p", "q", "r", "s", "t")}
 
     for ncycle, qrs in enumerate(metadata):
@@ -103,6 +104,14 @@ def print_summary(metadata, ch=1):
         if qrs["t_pos"][ch] is not None:
             wcount["t"] += 1
 
+        if qrs["st_duration"][ch] is not None:
+            st_intervals.append(qrs["st_duration"][ch])
+
+        if qrs["RR"] is not None:
+            rr_intervals.append(qrs["RR"])
+
+    print("Комплексы: {}".format(len(metadata)))
+
     print("Зубцы:")
     print(wcount)
     print("Конфигурации qrs:")
@@ -110,13 +119,21 @@ def print_summary(metadata, ch=1):
     print("Типы комплексов:")
     print(classes)
 
+    print("ST-интервалы: {}, в среднем {} мс".format(
+        len(st_intervals), np.mean(st_intervals)
+    ))
+
+    print("RR-интервалы: {}, в среднем {} мс".format(
+        len(rr_intervals), np.mean(rr_intervals)
+    ))
+
 
 def show_waves():
     # Rh2022 = qr, noise
     # Rh2021 - Rs, extracyc
     # Rh2024 - p(q)RsT
     # Rh2025 = rs
-    sig, header = ecgread("/Users/arseniy/SERDECH/data/ROXMINE/Rh2025")
+    sig, header = ecgread("/Users/arseniy/SERDECH/data/ROXMINE/Rh2021")
     #sig, header = ecgread("TestFromDcm.ecg")
     fs = header["fs"]
     if fs != 250:
@@ -148,8 +165,8 @@ def show_waves():
 
     stcount=0
 
-    pt_keys = {"q_pos": "r","r_pos": "b", "s_pos": "b", "p_pos": "y", "t_pos":
-    "g"}
+    pt_keys = {"q_pos": "r","r_pos": "g", "s_pos": "b", "p_pos": "y", "t_pos":
+    "m"}
 
     for ncycle, qrs in enumerate(metadata):
 
@@ -167,22 +184,11 @@ def show_waves():
         rb = qrs["st_end"][chan]
         if all((lb, rb)):
             plt.plot(np.arange(lb, rb), s[lb:rb], "r")
-            stcount += 1
 
     missing_hrt = [i for i,x in enumerate(metadata) if x["heartrate"] is None]
     print("Heartrate missing in beats\n{}".format(missing_hrt))
 
     plt.xlim((200,700))
-
-    stdur = [qrs["st_duration"][chan] for qrs in metadata if
-             qrs["st_duration"][chan]]
-
-    print("{} cycles, {} ST segments, avg. {} ms of {} cycles".format(
-        len(metadata),
-        stcount,
-        np.mean(stdur) if stdur else "-",
-        len(stdur)
-    ))
 
     print_summary(metadata)
     plt.show()
@@ -190,6 +196,6 @@ def show_waves():
 if __name__ == "__main__":
 
     #show_filter_responses()
-    #show_decomposition()
-    show_waves()
+    show_decomposition()
+    #show_waves()
 
