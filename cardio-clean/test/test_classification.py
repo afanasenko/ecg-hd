@@ -49,6 +49,13 @@ def test_classify():
 
         print(num_classified)
 
+        ry = blobapi_classify_rythms(
+            inbuf=fi,
+            metadata=meta,
+        )
+
+        print(ry)
+
     os.remove(filename_out)
 
 
