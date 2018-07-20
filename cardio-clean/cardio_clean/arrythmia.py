@@ -82,10 +82,12 @@ def mock_rythm_episodes(metadata):
 
         rythms.append({
             "id": type,
-            "вуыс": rythm_codes[type],
+            "desc": rythm_codes[type],
             "start": start_time,
             "end": end_time,
             "modified": False
         })
+
+        i += duration
 
     return rythms
