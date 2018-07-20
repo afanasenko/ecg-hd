@@ -2,7 +2,7 @@
 
 Функция *blobapi_detect_qrs*: обнаружение QRS-комплексов и сегментация отдельных волн.
 
-qrs_metadata = blobapi_detect_qrs(inbuf, min_qrs_ms=20, delineate=False)
+qrs_metadata = blobapi_detect_qrs(inbuf, min_qrs_ms=20, postprocessing=True)
 
     Предварительные условия:
     blobapi_detect_qrs желательно вызывать после функций подавления
@@ -11,7 +11,7 @@ qrs_metadata = blobapi_detect_qrs(inbuf, min_qrs_ms=20, delineate=False)
 
     :param inbuf: входной буфер (остается неизменным)
     :param min_qrs_ms: минимальная длительность QRS-комплекса
-    :param delineate: выполнить сегментацию найденных комплексов
+    :param postprocessing: расчет вторичных параметров (ритм, ST и др.)
     :return: qrs_metadata (список найденных комплексов)
 
 
@@ -23,100 +23,56 @@ qrs_metadata = blobapi_detect_qrs(inbuf, min_qrs_ms=20, delineate=False)
 ```
 Каждый словарь в списке содержит информацию по одному QRS-комплексу в виде пар "ключ-значение"
 
-Описание полей в словаре метаданных:
+Внутри blobapi_detect_qrs выполняется последовательный вызов 3 функций:
+*qrs_detection* - первичное выделение QRS-комплексов
+*find_points* - поиск характерных точек
+*metadata_postprocessing* - расчет вторичных параметров
 
-```
->>> qrs0
-{
-    "cycle_num": порядковый номер кардиоцикла, начиная с 0
-    "qrs_start": метка времени начала QRS
-    "qrs_end": метка времени конца QRS
-    "qrs_class_id": цифровой код класса или None, если не принадлежит ни одному классу
-    "r_wave_center": метки времени вершин R-зубцов в каждом канале. В секундах от начала записи
-    "r_wave_amplitude": Амплитуды R-зубца в каждом канале. Милливольт относительно изолинии
-    "heartrate": Частота сердечных сокращений (ЧСС). уд/мин
-    "artifact": Флаг наличия артефакта (True/False)
-    "waves": {...} Параметры зубцов (словарь, см. далее)
-    "qrsType" - тип (конфигурация) комплекса qrs - qR, Rs, qRs и т.д. None если артефакт
-    "stt_params": {...} Параметры сегмента ST и зубца T (словарь, см. далее)
-}
-```
+Для повторного расчета вторичных параметров (например,
+после ручной коррекции характерных точек), необходимо вызвать функцию
+*blobapi_postprocessing_qrs*
 
 Примечания:
-
-1. Временные метки qrs_start, qrs_end и r_wave_center - в секундах от начала записи, формат float32.
-Временные метки отдельных зубцов q, r, s, p, t (start, end, center) - это номера отсчетов в сигнале.
-2. Корректность значений *r_wave_amplitude* зависит от того, была ли предварительно
-применена к сигналу коррекция дрейфа изолинии (*blobapi_fix_baseline*).
-Это связано с тем, что функция *blobapi_detect_qrs* нечувствительна
-к уровню изолинии и всегда вычисляет амплитуды зубцов относительно нулевого уровня.
-3. ЧСС рассчитывается на основе положения вершин двух соседних R-зубцов.
-4. Поле qrs_class_id отсутствует в метаданных, если не была выполнена классификация.
-
-
-
-Параметры зубцов хранятся во вложенном словаре waves. Если зубец на обнаружен, все его параметры равны None.
-```
-"waves": {
-    "p": {
-        "start":
-        "end":
-        "center":
-        "height":
-    },
-    "q": {
-        "start":
-        "end":
-        "center":
-        "height":
-    },
-    "r": {
-        ...
-    },
-    "s": {
-        ...
-    },
-    "j": {
-        ...
-    }
-    "t": {
-        ...
-    }
-}
-```
-
-
-Примечания:
-
-1. Все временные метки в этом слваре являются номерами отсчетов сигнала, начиная с 0.
-2. Начало и конец (start/end) в текущей реализации оцениваются только для зубца T.
-
-Функция *blobapi_postprocessing_qrs*: Расчет вторичных параметров
-на основе ранее сегментированного сигнала.
-Включает расчет параметров ритма, расчет параметров сегмента ST и зубца T,
-пересчет всех амплитудных параметров
-
-Функция *blobapi_postprocessing_qrs* сделана самостоятельной,
-чтобы можно было учесть ручную корректировку данных врачом.
-
-Предварительные условия:
-1. Проведена коррекция дрейфа изолинии
-2. Выполнена автоматическая или ручная сегментация характерных точек
-
-Дополняет метаданные параметрами сегмента ST и зубца T. Для каждого кардиоцикла где есть валидные
-координаты точки J и зубца T, в словарь metadata записывается поле *stt_params*
-
-```
-"stt_params" = {
-        "start": метка времени начала начала ST
-        "end": метка времени конца ST
-        "start_level": смещение начала ST от изолинии
-        "end_level": смещение конца ST от изолинии
-        "offset": общее смещение ST от изолинии
-        "duration": длительность ST в мс
-        "slope": средний наклон ST (в единицах сигнала на миллисекунду)
-}
-```
 
 Параметры, которые невозможно определить, записываются как None.
-Если в поле "waves" отсутствуют необходимые данные, все элементы stt_params записываются как None.
+Параметры, которые не могут быть None после вызова соответствуюей функции,
+отмечены **жирным шрифтом**.
+Параметры, имеюие тип данных array, индивидуально рассчитываются в каждом отведении.
+
+
+| Ключ | Назначение | Тип данных | Размерность | Какая процедура рассчитывает |
+| ---- |:---------- | :--------- | :---------- | ---------------------------: |
+| **qrs_start** | Начало QRS | float | [с] от начала записи | qrs_detection |
+| **qrs_end** | Конец QRS | float | [с] от начала записи | qrs_detection |
+| **qrs_center** | Середина QRS | float | [с] от начала записи | qrs_detection |
+| qrs_class_id | № класса QRS | int | - | incremental_classifier |
+| **artifact** | артефакт | bool | - | incremental_classifier |
+| qrsType | форма комплекса | string | строковый код | find_points |
+| p_start | начало P-зубца | int array | № отсчета | find_points |
+| p_end | конец P-зубца | int array | № отсчета | find_points |
+| p_pos | вершина P-зубца | int array | № отсчета | find_points |
+| p_height | высота P-зубца | float array | как у сигнала | metadata_postprocessing |
+| q_pos | вершина Q-зубца | int array | № отсчета | find_points |
+| q_height | высота Q-зубца | float array | как у сигнала | metadata_postprocessing |
+| r_pos | вершина R-зубца | int array | № отсчета | find_points |
+| r_height | высота R-зубца | float array | как у сигнала | metadata_postprocessing |
+| s_pos | вершина S-зубца | int array | № отсчета | find_points |
+| s_height | высота S-зубца | float array | как у сигнала | metadata_postprocessing |
+| t_start | начало T-зубца | int array | № отсчета | find_points |
+| t_end | конец T-зубца | int array | № отсчета | find_points |
+| t_pos | вершина T-зубца | int array | № отсчета | find_points |
+| t_height | высота T-зубца | float array | как у сигнала | metadata_postprocessing |
+| параметры ритма |
+| RR | RR-интервал | float | [мс] | metadata_postprocessing |
+| heartrate | ЧСС = 60000/RR| float | уд/мин | metadata_postprocessing |
+| isolevel | уровень изолинии | float array | как у сигнала | find_points |
+| ST-сегмент |
+| st_start | Начало ST (J) | int array | № отсчета | metadata_postprocessing |
+| st_plus | Точка J+0.08 | int array | № отсчета | metadata_postprocessing |
+| st_end | Конец ST = начало T | int array | № отсчета | metadata_postprocessing |
+| st_start_level | Смещение J от изолинии | float array | как у сигнала | metadata_postprocessing |
+| st_plus_level | Смещение J+ от изолинии | float array | как у сигнала | metadata_postprocessing |
+| st_end_level | Смещение конца ST от изолинии | float array | как у сигнала | metadata_postprocessing |
+| st_offset | Средниее смещение ST от изолинии | float array | как у сигнала | metadata_postprocessing |
+| st_duration | Длительность ST | float array | [мс] | metadata_postprocessing |
+| st_slope | Наклон ST | float array | отн. ед. | metadata_postprocessing |

@@ -55,7 +55,7 @@ def metadata_new(num_channels):
         "qrs_start": None,  # [секунд от начала записи] float
         "qrs_end": None,  # [секунд от начала записи] float
         "qrs_center": None,  # [секунд от начала записи] float
-        "qrs_class_id": None,
+        "qrs_class_id": None, # код класса string
         "artifact": True,  # bool
         "qrsType": None,  # string
 
@@ -76,8 +76,8 @@ def metadata_new(num_channels):
         "t_height": [None]*num_channels,  # float array
 
         # параметры ритма
-        "RR": None,
-        "heartrate": None,
+        "RR": None,  # [миллисекунды] float
+        "heartrate": None,  # [удары в минуту] float
 
         # оценка уровня изолинии
         "isolevel": [None]*num_channels,  # float array
@@ -132,6 +132,9 @@ def metadata_postprocessing(metadata, sig, fs, **kwargs):
     # ритм оценивается всегда по второму отведению
     heartbeat_channel = 1 if numch > 1 else 0
 
+    # классификация тоже по второму отведению
+    classification_channel = 1 if numch > 1 else 0
+
     for ncycle, cycledata in enumerate(metadata):
 
         for chan, x in signal_channels(sig):
@@ -184,7 +187,7 @@ def metadata_postprocessing(metadata, sig, fs, **kwargs):
             # ST (продолжение)
             if all((j_point, st_end)):
                 dur = samples_to_ms(st_end - j_point, fs)
-                if dur > kwargs.get("min_st_ms", 80):
+                if dur > kwargs.get("min_st_ms", 40):
                     cycledata["st_duration"][chan] = dur
 
                     cycledata["st_offset"][chan] = np.mean(
@@ -199,9 +202,39 @@ def metadata_postprocessing(metadata, sig, fs, **kwargs):
 
             # ######################################
             # RR
-            if chan == heartbeat_channel and ncycle:
-                prev_r = metadata[ncycle-1]["r_pos"][chan]
-                if all((rc, prev_r)):
-                    rr = samples_to_ms(rc - prev_r, fs)
+            if chan == heartbeat_channel:
+                if ncycle:
+                    neighbour = metadata[ncycle-1]["r_pos"][chan]
+                else:
+                    neighbour = metadata[ncycle+1]["r_pos"][chan]
+
+                if rc is not None and neighbour is not None:
+                    rr = samples_to_ms(abs(rc - neighbour), fs)
                     cycledata["RR"] = rr
                     cycledata["heartrate"] = 60000.0 / rr
+                else:
+                    cycledata["RR"] = None
+                    cycledata["heartrate"] = None
+
+            # ######################################
+            #
+            if chan == classification_channel:
+                cycledata["qrs_class_id"] = define_complex(
+                    cycledata, classification_channel
+                )
+
+def define_complex(meta, channel=1):
+    # наджелудочковые комплексы - обычные, с P-зубцом
+    supervent_max_qrs = 0.12
+    # желудочковые комплексы - широкие, похожие на период синусоиды
+    ventricular_min_qrs = 0.14
+
+    if meta["p_pos"][channel] is not None:
+        # qrs_start, qrs_end не могут быть None при штатном порядке вызова
+        if meta["qrs_end"] - meta["qrs_start"] < supervent_max_qrs:
+            return "S"
+    else:
+        if meta["qrs_end"] - meta["qrs_start"] > ventricular_min_qrs:
+            return "V"
+
+    return "U"

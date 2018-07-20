@@ -152,25 +152,22 @@ def qrssearch(modes, derivative, params, chan):
             rb=modes[i0+1][0]
         )
 
-    # Определение типа qrs-комплекса
-    if params["qrsType"] is None:
-        if params["r_pos"] is not None:
-            if params["q_pos"] is not None:
-                if params["s_pos"] is not None:
-                    params["qrsType"] = "qRs"
+    # Определение типа qrs-комплекса по II-му стандартному отведению
+    if chan == 1:
+        if params["qrsType"] is None:
+            if params["r_pos"][chan] is not None:
+                if params["q_pos"][chan] is not None:
+                    if params["s_pos"][chan] is not None:
+                        params["qrsType"] = "qRs"
+                    else:
+                        params["qrsType"] = "qR"
                 else:
-                    params["qrsType"] = "qR"
-            else:
-                if params["s_pos"] is not None:
-                    params["qrsType"] = "Rs"
-                else:
-                    params["qrsType"] = "R"
+                    if params["s_pos"][chan] is not None:
+                        params["qrsType"] = "Rs"
+                    else:
+                        params["qrsType"] = "R"
 
     return signcode
-
-
-def edgefind(x0, y0, dx, dy, bias):
-    return int(x0 - dx * (y0-bias) / dy)
 
 
 def ptsearch(modes, approx, bias=0.0):
@@ -201,11 +198,11 @@ def ptsearch(modes, approx, bias=0.0):
     # строим касательную в наиболее крутой точке переднего фронта
 
     x0 = modes[i0][0]
-    y0 = approx[x0]
+    y0 = approx[x0] - bias
     dy = approx[x0+1] - approx[x0-1]
 
-    if dy > 0:
-        wave_left = edgefind(x0, y0, 2.0, dy, bias)
+    if abs(approx[x0+1] - bias) > abs(approx[x0-1] - bias):
+        wave_left = int(x0 - 2.0 * y0 / dy)
         if wave_left >= wave_center or wave_left <= 0:
             wave_left = None
     else:
@@ -214,11 +211,11 @@ def ptsearch(modes, approx, bias=0.0):
     # строим касательную в наиболее крутой точке заднего фронта
 
     x0 = modes[i0+1][0]
-    y0 = approx[x0]
+    y0 = approx[x0] - bias
     dy = approx[x0+1] - approx[x0-1]
 
-    if dy < 0:
-        wave_right = edgefind(x0, y0, 2.0, dy, bias)
+    if abs(approx[x0+1] - bias) < abs(approx[x0-1] - bias):
+        wave_right = int(x0 - 2.0 * y0 / dy)
         if wave_right <= wave_center or wave_right >= len(approx):
             wave_right = None
     else:
@@ -227,18 +224,24 @@ def ptsearch(modes, approx, bias=0.0):
     return wave_left, wave_center, wave_right
 
 
-def range_filter(x, lb, rb, thresh):
-    ret = []
-    for m0, m1 in x:
-        if m0 < lb:
-            continue
-        if m0 > rb:
-            break
+def find_extrema(band, start_idx, end_idx, thresh):
 
-        if abs(m1) > thresh:
-            ret.append((m0, m1))
+    moda = []
+    # ищем положительные максимумы
+    pos = start_idx + argrelmax(band[start_idx:end_idx+1])[0]
+    for i in pos:
+        y = band[i]
+        if y > thresh:
+            moda.append((i, y))
+    # ищем отрицательные минимумы
+    neg = start_idx + argrelmin(band[start_idx:end_idx+1])[0]
+    for i in neg:
+        y = band[i]
+        if y < -thresh:
+            moda.append((i, y))
 
-    return ret
+    moda.sort()
+    return moda
 
 
 def find_points(
@@ -267,6 +270,7 @@ def find_points(
     num_scales = max(r_scale, p_scale, t_scale)
 
     for chan, x in signal_channels(sig):
+
         approx, detail = ddwt(x-bias[chan], num_scales=num_scales)
 
         modas = []
@@ -303,7 +307,9 @@ def find_points(
             lbound = int(qrs["qrs_start"] * fs)
             rbound = int(qrs["qrs_end"] * fs)
 
-            modas_subset = range_filter( modas[r_scale], lbound, rbound, noise/2)
+            modas_subset = find_extrema(
+                detail[r_scale], lbound, rbound, noise/2
+            )
 
             qrssearch(modas_subset, detail[r_scale], qrs, chan)
 
@@ -325,8 +331,8 @@ def find_points(
                 cur_r
             ]
 
-            modas_subset = range_filter(
-                modas[p_scale], pwindow[0], pwindow[1], noise/2
+            modas_subset = find_extrema(
+                detail[p_scale], pwindow[0], pwindow[1], noise/2
             )
 
             # последняя мода перед R не учитывается, потому что относится к QRS
@@ -348,8 +354,8 @@ def find_points(
                 int(cur_r + wlen)
             ]
 
-            modas_subset = range_filter(
-                modas[p_scale], twindow[0], twindow[1], noise / 4
+            modas_subset = find_extrema(
+                detail[p_scale], twindow[0], twindow[1], noise / 4
             )
 
             # первая мода справа от R не учитывается, потому что относится к QRS

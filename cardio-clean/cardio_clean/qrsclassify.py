@@ -141,7 +141,7 @@ def incremental_classifier(sig, hdr, metadata, classgen_t=0.9,
     num_cyc = len(metadata)
 
     if num_cyc < 2:
-        print("Empty metadata")
+        print("Not enough data for classification")
         return {}
 
     fs = hdr["fs"]

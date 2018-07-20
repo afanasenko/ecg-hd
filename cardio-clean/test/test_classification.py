@@ -43,6 +43,19 @@ def test_classify():
 
         assert num_art == 1
 
+        num_classified = len(
+            [x for x in meta if x["qrs_class_id"] is not None]
+        )
+
+        print(num_classified)
+
+        ry = blobapi_classify_rythms(
+            inbuf=fi,
+            metadata=meta,
+        )
+
+        print(ry)
+
     os.remove(filename_out)
 
 
