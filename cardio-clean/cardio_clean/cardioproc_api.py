@@ -6,6 +6,7 @@ from qrsdetect import qrs_detection
 from qrsclassify import incremental_classifier
 from wavdetect import find_points
 from metadata import metadata_postprocessing
+from arrythmia import mock_rythm_episodes
 
 # Числовые коды для поддерживаемых форматов
 SAMPLE_TYPE_SHORT = 1  # 16-битный целочисленный со знаком
@@ -249,3 +250,29 @@ def blobapi_classify_qrs(inbuf, metadata, classgen_threshold=0.85):
     )
 
     return qrs_classes
+
+
+def blobapi_classify_rythms(
+        inbuf,
+        metadata
+):
+    """
+        Выделение эпизодов нарушения ритма
+    :param inbuf:
+    :param metadata: метаданные с результатами сегментации
+    :return: список эпизодов нарушения ритма
+    [
+     {
+            "id": (int) цифровое обозначение аритмии,
+            "desc": (string) текстовое описание
+            "start": (float) начало эпизода в секундах от начала записи
+            "end": (float) конец эпизода в секундах от начала записи
+            "modified": (bool) флаг ручного редактирования
+     },
+     ...
+    ]
+    Пока неясно, могут ли эпизоды перекрываться. Есть подозрение, что могут.
+    """
+
+    # пока сделана имитация
+    return mock_rythm_episodes(metadata)
