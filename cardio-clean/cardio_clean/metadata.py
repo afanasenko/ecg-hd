@@ -58,6 +58,7 @@ def metadata_new(num_channels):
         "qrs_class_id": None, # код класса string
         "artifact": True,  # bool
         "qrsType": None,  # string
+        "complex_type": "U",
 
         # отдельные зубцы
         "p_start": [None]*num_channels,  # int array
@@ -219,22 +220,78 @@ def metadata_postprocessing(metadata, sig, fs, **kwargs):
             # ######################################
             #
             if chan == classification_channel:
-                cycledata["qrs_class_id"] = define_complex(
+                cycledata["complex_type"] = define_complex(
                     cycledata, classification_channel
                 )
 
+
+def is_sinus_cycle(meta):
+    """
+    Проверка на синусовый цикл
+    :param meta:
+    :return: True / False
+    """
+
+    std2 = 1
+
+    # R-зубцы присутствуют во всех отведениях
+    if all(meta["r_pos"]):
+        for i, p in enumerate(meta["p_pos"]):
+            # P-зубцы присутствуют во всех отведениях
+            if p is None:
+                return False
+            # P-зубцы идут перед R-зубцами
+            if meta["r_pos"][i] < p:
+                return False
+
+        # P-зубец во II-м отведении  положительный
+        if meta["p_height"][std2] > 0:
+            return True
+
+        return False
+
+
 def define_complex(meta, channel=1):
+    """
+
+    :param meta:
+    :param channel:
+    :return: N - син. V - желуд. S - наджелуд. U - неизвестный
+    """
+
+    if is_sinus_cycle(meta):
+        return "N"
+
     # наджелудочковые комплексы - обычные, с P-зубцом
-    supervent_max_qrs = 0.12
     # желудочковые комплексы - широкие, похожие на период синусоиды
-    ventricular_min_qrs = 0.14
+    ventricular_min_qrs = 0.12
+
+    if meta["qrs_end"] - meta["qrs_start"] > ventricular_min_qrs:
+        return "V"
 
     if meta["p_pos"][channel] is not None:
         # qrs_start, qrs_end не могут быть None при штатном порядке вызова
-        if meta["qrs_end"] - meta["qrs_start"] < supervent_max_qrs:
+        if meta["qrs_end"] - meta["qrs_start"] < ventricular_min_qrs:
             return "S"
     else:
         if meta["qrs_end"] - meta["qrs_start"] > ventricular_min_qrs:
             return "V"
 
     return "U"
+
+
+def estimate_pq(meta):
+    guess = []
+    for i, p in enumerate(meta["p_pos"]):
+        if p is None:
+            continue
+        q_pos =  meta["q_pos"][i]
+        if q_pos is not None:
+            guess.append(q_pos - p)
+        else:
+            r_pos = meta["r_pos"][i]
+            if r_pos is not None:
+                guess.append(r_pos - p)
+
+    if guess:
+        return np.mean(guess)
