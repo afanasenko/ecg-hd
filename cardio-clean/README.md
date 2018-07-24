@@ -23,4 +23,4 @@ blobapi_fix_baseline
 Вся обработка выполняется функцией  *blobapi_classify_qrs*
 
 ### Классификация аритмий
-В разработке.
+Вся обработка выполняется функцией  *blobapi_classify_rythms*
