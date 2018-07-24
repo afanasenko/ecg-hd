@@ -1,11 +1,11 @@
 # coding: utf-8
 
+
 from matplotlib import pyplot as plt
-from scipy.signal import lfilter, hann
+from scipy.signal import hann
 from scipy.fftpack import fft
 
 from cardio_clean.wavdetect import ddwt, find_points, zcfind
-from cardio_clean.metadata import *
 from cardio_clean.arrythmia import *
 
 from cardio_clean.qrsdetect import qrs_detection
@@ -91,7 +91,7 @@ def print_summary(metadata, ch=1):
         qrstype = qrs["qrsType"]
         qrs_types[qrstype] = qrs_types.get(qrstype, 0) + 1
 
-        classletter = qrs["qrs_class_id"][0]
+        classletter = qrs["complex_type"]
         classes[classletter] = classes.get(classletter, 0) + 1
 
         if qrs["p_pos"][ch] is not None:
@@ -112,9 +112,8 @@ def print_summary(metadata, ch=1):
             rr_intervals.append(qrs["RR"])
 
     print("Комплексы: {}".format(len(metadata)))
+    print("Зубцы: {}".format(wcount))
 
-    print("Зубцы:")
-    print(wcount)
     print("Конфигурации qrs:")
     print(qrs_types)
     print("Типы комплексов:")
@@ -129,14 +128,17 @@ def print_summary(metadata, ch=1):
     ))
 
 
-def show_waves(filename, chan):
+def show_waves(filename, chan, lim):
     sig, header = ecgread(filename)
 
     fs = header["fs"]
     if fs != 250:
         print("Warning! fs={}".format(fs))
 
-    lim = min(20000000, sig.shape[0])
+    if lim:
+        lim = min(lim, sig.shape[0])
+    else:
+        lim = sig.shape[0]
     s = sig[:lim, chan]
 
     metadata, foo = qrs_detection(
@@ -159,6 +161,7 @@ def show_waves(filename, chan):
 
     plt.plot(s, "b")
 
+    # Цвета для раскрашивания зубцов на графике
     pt_keys = {"q_pos": "r","r_pos": "g", "s_pos": "b", "p_pos": "y", "t_pos":
     "m"}
 
@@ -184,8 +187,11 @@ def show_waves(filename, chan):
 
     plt.xlim((200,700))
 
-    r = mock_rythm_episodes(metadata)
+    r = define_rythm(metadata)
     print(r)
+
+    for x in r:
+        print("ритм {}: {} с".format(x["desc"], x["end"] - x["start"]))
 
     print_summary(metadata)
     plt.show()
@@ -197,8 +203,9 @@ if __name__ == "__main__":
     # Rh2024 - p(q)RsT
     # Rh2025 = rs
     filename = "/Users/arseniy/SERDECH/data/ROXMINE/Rh2021"
+    filename = "TestFromDcm.ecg"
 
     #show_filter_responses()
     #show_decomposition(filename, 1)
-    show_waves(filename, 1)
+    show_waves(filename, 1, 0)
 
