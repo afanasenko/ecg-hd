@@ -6,7 +6,7 @@ from qrsdetect import qrs_detection
 from qrsclassify import incremental_classifier
 from wavdetect import find_points
 from metadata import metadata_postprocessing
-from arrythmia import mock_rythm_episodes
+from arrythmia import mock_rythm_episodes, define_rythm
 
 # Числовые коды для поддерживаемых форматов
 SAMPLE_TYPE_SHORT = 1  # 16-битный целочисленный со знаком
@@ -271,8 +271,9 @@ def blobapi_classify_rythms(
      },
      ...
     ]
-    Пока неясно, могут ли эпизоды перекрываться. Есть подозрение, что могут.
+    Мнимальная длительность эпизода принята равной 10 циклам для всех
+    видов ритма. Поэтому фрагмент записи может не принадлежать ни одному из
+    эпизодов, если в нем были обнаружены короткие эпизобы различных ритмов.
     """
 
-    # пока сделана имитация
-    return mock_rythm_episodes(metadata)
+    return define_rythm(metadata)

@@ -1,11 +1,12 @@
 # coding: utf-8
 
+
 from matplotlib import pyplot as plt
-from scipy.signal import lfilter, hann
+from scipy.signal import hann
 from scipy.fftpack import fft
 
 from cardio_clean.wavdetect import ddwt, find_points, zcfind
-from cardio_clean.metadata import *
+from cardio_clean.arrythmia import *
 
 from cardio_clean.qrsdetect import qrs_detection
 from demo_preprocessing import ecgread
@@ -72,10 +73,10 @@ def show_filter_responses(spectral=False):
             print(dt_theor, dt_exrep)
 
 
-def show_decomposition():
+def show_decomposition(filename, ch):
 
-    sig, hdr = ecgread("/Users/arseniy/SERDECH/data/ROXMINE/Rh2022")
-    app, ders = ddwt(sig[:20000,1], num_scales=5)
+    sig, hdr = ecgread(filename)
+    app, ders = ddwt(sig[:20000, ch], num_scales=5)
     multiplot(ders)
 
 
@@ -90,7 +91,7 @@ def print_summary(metadata, ch=1):
         qrstype = qrs["qrsType"]
         qrs_types[qrstype] = qrs_types.get(qrstype, 0) + 1
 
-        classletter = qrs["qrs_class_id"][0]
+        classletter = qrs["complex_type"]
         classes[classletter] = classes.get(classletter, 0) + 1
 
         if qrs["p_pos"][ch] is not None:
@@ -111,9 +112,8 @@ def print_summary(metadata, ch=1):
             rr_intervals.append(qrs["RR"])
 
     print("Комплексы: {}".format(len(metadata)))
+    print("Зубцы: {}".format(wcount))
 
-    print("Зубцы:")
-    print(wcount)
     print("Конфигурации qrs:")
     print(qrs_types)
     print("Типы комплексов:")
@@ -128,20 +128,18 @@ def print_summary(metadata, ch=1):
     ))
 
 
-def show_waves():
-    # Rh2022 = qr, noise
-    # Rh2021 - Rs, extracyc
-    # Rh2024 - p(q)RsT
-    # Rh2025 = rs
-    sig, header = ecgread("/Users/arseniy/SERDECH/data/ROXMINE/Rh2021")
-    #sig, header = ecgread("TestFromDcm.ecg")
+def show_waves(filename, chan, lim):
+    sig, header = ecgread(filename)
+
     fs = header["fs"]
     if fs != 250:
         print("Warning! fs={}".format(fs))
 
-    chan = 1
-    lim = min(20000000, sig.shape[0])
-    s = sig[:lim,chan]
+    if lim:
+        lim = min(lim, sig.shape[0])
+    else:
+        lim = sig.shape[0]
+    s = sig[:lim, chan]
 
     metadata, foo = qrs_detection(
         sig[:lim,:],
@@ -163,8 +161,7 @@ def show_waves():
 
     plt.plot(s, "b")
 
-    stcount=0
-
+    # Цвета для раскрашивания зубцов на графике
     pt_keys = {"q_pos": "r","r_pos": "g", "s_pos": "b", "p_pos": "y", "t_pos":
     "m"}
 
@@ -190,12 +187,25 @@ def show_waves():
 
     plt.xlim((200,700))
 
+    r = define_rythm(metadata)
+    print(r)
+
+    for x in r:
+        print("ритм {}: {} с".format(x["desc"], x["end"] - x["start"]))
+
     print_summary(metadata)
     plt.show()
 
 if __name__ == "__main__":
 
+    # Rh2022 = qr, noise
+    # Rh2021 - Rs, extracyc
+    # Rh2024 - p(q)RsT
+    # Rh2025 = rs
+    filename = "/Users/arseniy/SERDECH/data/ROXMINE/Rh2021"
+    filename = "TestFromDcm.ecg"
+
     #show_filter_responses()
-    show_decomposition()
-    #show_waves()
+    #show_decomposition(filename, 1)
+    show_waves(filename, 1, 0)
 
