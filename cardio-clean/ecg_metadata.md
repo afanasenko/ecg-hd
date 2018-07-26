@@ -55,6 +55,8 @@ qrs_metadata = blobapi_detect_qrs(inbuf, min_qrs_ms=20, postprocessing=True)
 | p_height | высота P-зубца | float array | как у сигнала | metadata_postprocessing |
 | q_pos | вершина Q-зубца | int array | № отсчета | find_points |
 | q_height | высота Q-зубца | float array | как у сигнала | metadata_postprocessing |
+| r_start | начало R-зубца | int array | № отсчета | find_points |
+| r_end | конец R-зубца | int array | № отсчета | find_points |
 | r_pos | вершина R-зубца | int array | № отсчета | find_points |
 | r_height | высота R-зубца | float array | как у сигнала | metadata_postprocessing |
 | s_pos | вершина S-зубца | int array | № отсчета | find_points |
