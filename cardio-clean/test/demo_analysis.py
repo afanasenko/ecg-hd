@@ -1,6 +1,6 @@
 # coding: utf-8
 
-
+import time
 from matplotlib import pyplot as plt
 from scipy.signal import hann
 from scipy.fftpack import fft
@@ -73,10 +73,17 @@ def show_filter_responses(spectral=False):
             print(dt_theor, dt_exrep)
 
 
-def show_decomposition(filename, ch):
+def show_decomposition(filename, ch, lim):
 
     sig, hdr = ecgread(filename)
-    app, ders = ddwt(sig[:20000, ch], num_scales=5)
+
+    if lim:
+        lim = min(lim, sig.shape[0])
+    else:
+        lim = sig.shape[0]
+    s = sig[:lim, ch]
+
+    app, ders = ddwt(s, num_scales=5)
     multiplot(ders)
 
 
@@ -128,6 +135,51 @@ def print_summary(metadata, ch=1):
     ))
 
 
+def show_qrs(filename, chan, lim):
+    sig, header = ecgread(filename)
+
+    fs = header["fs"]
+    if fs != 250:
+        print("Warning! fs={}".format(fs))
+
+    if lim:
+        lim = min(lim, sig.shape[0])
+    else:
+        lim = sig.shape[0]
+
+    metadata, pant = qrs_detection(
+        sig[:lim,:],
+        fs=header["fs"]
+    )
+
+    approx, ders = ddwt(sig[:lim, chan], num_scales=5)
+
+    #ders.insert(1,pant)
+
+    fig, axarr = plt.subplots(len(ders), 1, sharex="col")
+    for i, s in enumerate(ders):
+        axarr[i].plot(s,"b")
+        axarr[i].plot(approx[i],"g")
+
+        for ncycle, qrs in enumerate(metadata):
+            lb = int(qrs["qrs_start"] * fs)
+            rb = int(qrs["qrs_end"] * fs)
+            axarr[i].plot(np.arange(lb, rb), s[lb:rb], "r")
+
+        axarr[i].grid()
+
+    ms_step = 1000
+    locs = np.arange(0, len(ders[0]), ms_to_samples(ms_step, fs))
+    labs = [time.strftime("%M:%S", time.gmtime(x * ms_step)) for x in locs]
+    axarr[-1].set_xticks(locs, labs)
+    ms_step = 100
+    locs = np.arange(0, len(ders[0]), ms_to_samples(ms_step, fs))
+    axarr[-1].set_xticks(locs, minor=True)
+
+    print("Look at the plots")
+    plt.show()
+
+
 def show_waves(filename, chan, lim):
     sig, header = ecgread(filename)
 
@@ -174,26 +226,43 @@ def show_waves(filename, chan, lim):
 
         for k in pt_keys:
             point = qrs[k][chan]
-            if point is not None and point < 15500:
+            if point is not None and point < 20000:
                 plt.scatter(point, s[point], c=pt_keys[k])
+
+        lb = qrs["r_start"][chan]
+        rb = qrs["r_end"][chan]
+        if all((lb, rb)):
+            plt.plot(np.arange(lb, rb), s[lb:rb], "g")
 
         lb = qrs["st_start"][chan]
         rb = qrs["st_end"][chan]
         if all((lb, rb)):
             plt.plot(np.arange(lb, rb), s[lb:rb], "r")
 
-    missing_hrt = [i for i,x in enumerate(metadata) if x["heartrate"] is None]
-    print("Heartrate missing in beats\n{}".format(missing_hrt))
+        if qrs["complex_type"] == "V":
 
-    plt.xlim((200,700))
+            if qrs["r_pos"][chan] is not None:
+                plt.text(
+                    qrs["r_pos"][chan],
+                    qrs["r_height"][chan],
+                    qrs["complex_type"],
+                    color="r"
+                )
 
-    r = define_rythm(metadata)
-    print(r)
+    #missing_hrt = [i for i,x in enumerate(metadata) if x["heartrate"] is None]
+    #print("Heartrate missing in beats\n{}".format(missing_hrt))
 
-    for x in r:
-        print("ритм {}: {} с".format(x["desc"], x["end"] - x["start"]))
+    #plt.xlim((200,700))
+
+    #r = define_rythm(metadata)
+    #print(r)
+
+    #for x in r:
+    #    print("ритм {}: {} с".format(x["desc"], x["end"] - x["start"]))
 
     print_summary(metadata)
+
+    plt.grid(True)
     plt.show()
 
 if __name__ == "__main__":
@@ -202,10 +271,11 @@ if __name__ == "__main__":
     # Rh2021 - Rs, extracyc
     # Rh2024 - p(q)RsT
     # Rh2025 = rs
-    filename = "/Users/arseniy/SERDECH/data/ROXMINE/Rh2021"
-    filename = "TestFromDcm.ecg"
+    filename = "/Users/arseniy/SERDECH/data/ROXMINE/Rh2010"
+    #filename = "TestFromDcm.ecg"
 
     #show_filter_responses()
-    #show_decomposition(filename, 1)
-    show_waves(filename, 1, 0)
+    #show_decomposition(filename, 1, 50000)
+    #show_qrs(filename, 1, 20000)
+    show_waves(filename, 1, 20000)
 

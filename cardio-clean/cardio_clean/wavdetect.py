@@ -360,8 +360,17 @@ def find_points(
             # поиск P-зубца
             # окно для поиска
             wlen = (cur_r - prev_r) * p_window_fraction
+
+            p_search_lb = int(prev_r + wlen)
+            if ncycle:
+                prev_t = metadata[ncycle-1]["t_end"][chan]
+                if prev_t is None:
+                    prev_t = metadata[ncycle - 1]["t_pos"][chan]
+                if prev_t is not None:
+                    p_search_lb = max(p_search_lb,  prev_t)
+
             pwindow = [
-                int(prev_r + wlen),
+                p_search_lb,
                 cur_r
             ]
 
