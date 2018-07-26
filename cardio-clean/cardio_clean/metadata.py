@@ -67,6 +67,8 @@ def metadata_new(num_channels):
         "p_height": [None]*num_channels,  # float array
         "q_pos": [None]*num_channels,  # int array
         "q_height": [None]*num_channels,  # float array
+        "r_start": [None]*num_channels,  # int array
+        "r_end": [None]*num_channels,  # int array
         "r_pos": [None]*num_channels,  # int array
         "r_height": [None]*num_channels,  # float array
         "s_pos": [None]*num_channels,  # int array
@@ -146,6 +148,10 @@ def metadata_postprocessing(metadata, sig, fs, **kwargs):
             rc = cycledata["r_pos"][chan]
             if rc is not None:
                 j_point = rc + ms_to_samples(j_offset_ms, fs)
+                # J не может быть раньше конца R
+                r_end = cycledata["r_end"][chan]
+                if r_end is not None:
+                    j_point = max(j_point, r_end)
                 if j_point > len(x) - 1:
                     j_point = None
                     jplus_point = None
@@ -221,7 +227,7 @@ def metadata_postprocessing(metadata, sig, fs, **kwargs):
             #
             if chan == classification_channel:
                 cycledata["complex_type"] = define_complex(
-                    cycledata, classification_channel
+                    cycledata, fs, classification_channel
                 )
 
 
@@ -251,7 +257,7 @@ def is_sinus_cycle(meta):
         return False
 
 
-def define_complex(meta, channel=1):
+def define_complex(meta, fs, channel):
     """
 
     :param meta:
@@ -262,19 +268,21 @@ def define_complex(meta, channel=1):
     if is_sinus_cycle(meta):
         return "N"
 
+    qrslen = estimate_qrslen(meta, fs, channel)
+
     # наджелудочковые комплексы - обычные, с P-зубцом
     # желудочковые комплексы - широкие, похожие на период синусоиды
-    ventricular_min_qrs = 0.12
+    ventricular_min_qrs = ms_to_samples(120, fs)
 
-    if meta["qrs_end"] - meta["qrs_start"] > ventricular_min_qrs:
+    if qrslen > ventricular_min_qrs:
         return "V"
 
     if meta["p_pos"][channel] is not None:
         # qrs_start, qrs_end не могут быть None при штатном порядке вызова
-        if meta["qrs_end"] - meta["qrs_start"] < ventricular_min_qrs:
+        if qrslen < ventricular_min_qrs:
             return "S"
     else:
-        if meta["qrs_end"] - meta["qrs_start"] > ventricular_min_qrs:
+        if qrslen > ventricular_min_qrs:
             return "V"
 
     return "U"
@@ -295,3 +303,26 @@ def estimate_pq(meta):
 
     if guess:
         return np.mean(guess)
+
+
+def estimate_qrslen(meta, fs, chan):
+    lb = int(meta["qrs_start"]*fs)
+    rb = int(meta["qrs_end"]*fs)
+
+    q_left = meta["q_pos"][chan]
+    if q_left is not None:
+        lb = q_left
+    else:
+        r_left = meta["r_start"][chan]
+        if r_left is not None:
+            lb = r_left
+
+    s_right = meta["s_pos"][chan]
+    if s_right is not None:
+        rb = s_right
+    else:
+        r_right = meta["r_end"][chan]
+        if r_right is not None:
+            rb = r_right
+
+    return rb - lb

@@ -101,7 +101,7 @@ def ddwt(x, num_scales):
     return approx, detail
 
 
-def qrssearch(modes, derivative, params, chan):
+def qrssearch(modes, approx, derivative, params, chan, isolevel):
     """
 
     :param modes:
@@ -123,6 +123,8 @@ def qrssearch(modes, derivative, params, chan):
 
     # Фронты самого мощного (R или  qs) зубца
     maxpair = (0,0)
+    lb = modes[0][0]
+    rb = modes[-1][0]
     for i, posval in enumerate(modes):
         if i and posval[1]*modes[i - 1][1] < 0:
             diff = abs(posval[1]) + abs(modes[i - 1][1])
@@ -131,24 +133,55 @@ def qrssearch(modes, derivative, params, chan):
 
     i0 = maxpair[0]
 
-    params["r_pos"][chan] = zcfind(
+    rpos = zcfind(
         derivative,
         lb=modes[i0][0],
         rb=modes[i0 + 1][0]
     )
+    params["r_pos"][chan] = rpos
+
+    if rpos is not None:
+        r_thresh = 0.1 * abs(approx[rpos] - isolevel)
+        x = rpos
+        while abs(approx[x] - isolevel) > r_thresh:
+            if x <= lb:
+                break
+            x -= 1
+
+        params["r_start"][chan] = x
+        x = rpos
+        while abs(approx[x] - isolevel) > r_thresh:
+            if x >= rb:
+                break
+            x += 1
+
+        params["r_end"][chan] = x
+    else:
+        params["r_start"][chan] = None
+        params["r_end"][chan] = None
+
+
+    q_search_rb = modes[i0][0]
+    if params["r_start"][chan] is not None:
+        q_search_rb = min(q_search_rb, params["r_start"][chan])
 
     if i0 > 0:
         params["q_pos"][chan] = zcfind(
             derivative,
             lb=modes[i0-1][0],
-            rb=modes[i0][0]
+            rb=q_search_rb
         )
 
     i0 = maxpair[0]+1
+
+    s_search_lb = modes[i0][0]
+    if params["r_end"][chan] is not None:
+        s_search_lb = min(s_search_lb, params["r_end"][chan])
+
     if i0+1 < len(modes):
         params["s_pos"][chan] = zcfind(
             derivative,
-            lb=modes[i0][0],
+            lb=s_search_lb,
             rb=modes[i0+1][0]
         )
 
@@ -301,18 +334,6 @@ def find_points(
 
         for ncycle, qrs in enumerate(metadata):
 
-            # Поиск зубцов Q, R, S
-            # окно для поиска
-
-            lbound = int(qrs["qrs_start"] * fs)
-            rbound = int(qrs["qrs_end"] * fs)
-
-            modas_subset = find_extrema(
-                detail[r_scale], lbound, rbound, noise/2
-            )
-
-            qrssearch(modas_subset, detail[r_scale], qrs, chan)
-
             prev_r = int(metadata[ncycle - 1]["qrs_center"] * fs) \
                 if ncycle else 0
             next_r = int(metadata[ncycle + 1]["qrs_center"] * fs) \
@@ -322,6 +343,19 @@ def find_points(
             # оценка изолинии
             iso = np.percentile(approx[r_scale][prev_r:next_r], 15)
             qrs["isolevel"][chan] = iso
+
+            # Поиск зубцов Q, R, S
+            # окно для поиска
+            addsmp = 3
+            lbound = max(0, int(qrs["qrs_start"] * fs) - addsmp)
+            rbound = min(sig.shape[0]-1, int(qrs["qrs_end"] * fs) + addsmp)
+
+            modas_subset = find_extrema(
+                detail[r_scale], lbound, rbound, noise/2
+            )
+
+            qrssearch(modas_subset, approx[r_scale], detail[r_scale], qrs,
+                      chan, iso)
 
             # поиск P-зубца
             # окно для поиска
