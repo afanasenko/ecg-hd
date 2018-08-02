@@ -6,7 +6,8 @@ from qrsdetect import qrs_detection
 from qrsclassify import incremental_classifier
 from wavdetect import find_points
 from metadata import metadata_postprocessing
-from arrythmia import mock_rythm_episodes, define_rythm
+from arrythmia import define_rythm
+from ishemia import mock_ishemia_episodes
 
 # Числовые коды для поддерживаемых форматов
 SAMPLE_TYPE_SHORT = 1  # 16-битный целочисленный со знаком
@@ -277,3 +278,34 @@ def blobapi_classify_rythms(
     """
 
     return define_rythm(metadata)
+
+
+def blobapi_find_ishemia(
+            inbuf,
+            metadata
+    ):
+    """
+        Выделение эпизодов, содержащих признаки ишемии в ST-сегменте
+    :param inbuf:
+    :param metadata: метаданные с результатами сегментации
+    :return: список эпизодов ишемии
+    [
+     {
+            "id": (int) цифровое обозначение аритмии,
+            "desc": (string) текстовое описание
+
+            "modified": (bool) флаг ручного редактирования
+            "type": (string) тип эпизода ишемии, K1|K2|K3|E1|E2
+            "channel": (int) номер отведения
+            "start": (float) начало эпизода в секундах от начала записи
+            "end": (float) конец эпизода в секундах от начала записи
+            "count": (int) число комплексов данного типа
+            "max_offset": (float) максимальное смещение ST в эпизоде
+            "heartrate": (float) средняя ЧСС в эпизоде
+            "modified": False
+     },
+     ...
+    ]
+    """
+
+    return mock_ishemia_episodes(metadata)
