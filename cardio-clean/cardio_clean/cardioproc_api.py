@@ -291,10 +291,6 @@ def blobapi_find_ishemia(
     :return: список эпизодов ишемии
     [
      {
-            "id": (int) цифровое обозначение аритмии,
-            "desc": (string) текстовое описание
-
-            "modified": (bool) флаг ручного редактирования
             "type": (string) тип эпизода ишемии, K1|K2|K3|E1|E2
             "channel": (int) номер отведения
             "start": (float) начало эпизода в секундах от начала записи
@@ -302,7 +298,7 @@ def blobapi_find_ishemia(
             "count": (int) число комплексов данного типа
             "max_offset": (float) максимальное смещение ST в эпизоде
             "heartrate": (float) средняя ЧСС в эпизоде
-            "modified": False
+            "modified": (bool) флаг ручного редактирования
      },
      ...
     ]
