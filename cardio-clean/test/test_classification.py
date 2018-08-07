@@ -61,6 +61,13 @@ def test_classify():
 
         assert len(ry) > 1
 
+        ish = blobapi_find_ishemia(
+            inbuf=fi,
+            metadata=meta,
+        )
+
+        assert len(ish) > 1
+
     os.remove(filename_out)
 
 
