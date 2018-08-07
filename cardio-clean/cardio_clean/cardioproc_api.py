@@ -7,7 +7,7 @@ from qrsclassify import incremental_classifier
 from wavdetect import find_points
 from metadata import metadata_postprocessing
 from arrythmia import define_rythm
-from ishemia import mock_ishemia_episodes
+from ishemia import define_ishemia_episodes
 
 # Числовые коды для поддерживаемых форматов
 SAMPLE_TYPE_SHORT = 1  # 16-битный целочисленный со знаком
@@ -31,7 +31,7 @@ def read_buffer(buf):
     sample_type = SAMPLE_TYPE_SHORT if legacy_headers else rawheader[4]
 
     if sample_type != SAMPLE_TYPE_SHORT:
-        raise(Exception(("Unsupported sample type!")))
+        raise(Exception("Unsupported sample type!"))
 
     offset += np.dtype(np.uint32).itemsize * count
 
@@ -286,6 +286,7 @@ def blobapi_find_ishemia(
     ):
     """
         Выделение эпизодов, содержащих признаки ишемии в ST-сегменте
+        Предварительные условия: выполнена классификация (blobapi_classify_qrs)
     :param inbuf:
     :param metadata: метаданные с результатами сегментации
     :return: список эпизодов ишемии
@@ -304,4 +305,5 @@ def blobapi_find_ishemia(
     ]
     """
 
-    return mock_ishemia_episodes(metadata)
+    header, indata = read_buffer(inbuf)
+    return define_ishemia_episodes(indata, header, metadata)
