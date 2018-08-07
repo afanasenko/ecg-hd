@@ -7,10 +7,11 @@ from scipy.fftpack import fft
 
 from cardio_clean.wavdetect import ddwt, find_points, zcfind
 from cardio_clean.arrythmia import *
+from cardio_clean.ishemia import mock_ishemia_episodes, define_ishemia_episodes
 
+from cardio_clean.sigbind import fix_baseline
 from cardio_clean.qrsdetect import qrs_detection
 from demo_preprocessing import ecgread
-
 
 def dummy_shift(x, n):
     return np.concatenate((x[n:], np.ones(n)*x[-1]))
@@ -154,8 +155,6 @@ def show_qrs(filename, chan, lim):
 
     approx, ders = ddwt(sig[:lim, chan], num_scales=5)
 
-    #ders.insert(1,pant)
-
     fig, axarr = plt.subplots(len(ders), 1, sharex="col")
     for i, s in enumerate(ders):
         axarr[i].plot(s,"b")
@@ -186,6 +185,14 @@ def show_waves(filename, chan, lim):
     fs = header["fs"]
     if fs != 250:
         print("Warning! fs={}".format(fs))
+
+    print(header["adc_gain"])
+
+    sig = fix_baseline(
+        sig,
+        fs=fs,
+        bias_window_ms=1500
+    )
 
     if lim:
         lim = min(lim, sig.shape[0])
@@ -226,8 +233,11 @@ def show_waves(filename, chan, lim):
 
         for k in pt_keys:
             point = qrs[k][chan]
-            if point is not None and point < 20000:
+            if point is not None:
                 plt.scatter(point, s[point], c=pt_keys[k])
+
+        if qrs["qrs_center"] > 60:
+            break
 
         lb = qrs["r_start"][chan]
         rb = qrs["r_end"][chan]
@@ -249,6 +259,12 @@ def show_waves(filename, chan, lim):
                     color="r"
                 )
 
+        plt.text(
+            qrs["qrs_start"]*fs,
+            np.min(s),
+            str(ncycle)
+        )
+
     #missing_hrt = [i for i,x in enumerate(metadata) if x["heartrate"] is None]
     #print("Heartrate missing in beats\n{}".format(missing_hrt))
 
@@ -256,6 +272,11 @@ def show_waves(filename, chan, lim):
 
     #r = define_rythm(metadata)
     #print(r)
+
+    print("Ишемия...")
+    m = define_ishemia_episodes(sig[:lim, :], header, metadata)
+    print(m)
+    print("Число эпизодов: {}".format(len(m)))
 
     #for x in r:
     #    print("ритм {}: {} с".format(x["desc"], x["end"] - x["start"]))
@@ -271,8 +292,10 @@ if __name__ == "__main__":
     # Rh2021 - Rs, extracyc
     # Rh2024 - p(q)RsT
     # Rh2025 = rs
-    filename = "/Users/arseniy/SERDECH/data/ROXMINE/Rh2010"
-    #filename = "TestFromDcm.ecg"
+    # Rh2010 - дрейф, шум, артефакты
+
+    #filename = "/Users/arseniy/SERDECH/data/PHYSIONET/I60"
+    filename = "TestFromDcm.ecg"
 
     #show_filter_responses()
     #show_decomposition(filename, 1, 50000)
