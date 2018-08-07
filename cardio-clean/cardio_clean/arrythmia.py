@@ -6,10 +6,9 @@ from random import randint
 from metadata import *
 
 rythm_signatures = [
-    "sin_norm",  # - синусовый ритм: зубец Р есть во всех отведениях,
-    # PII (+)
-    "sin_tachy",
-    "sin_brady",
+    "sin_norm",  # синусовый ритм: зубец Р есть во всех отведениях, PII (+)
+    "sin_tachy", # синусовая тахикардия
+    "sin_brady", # синусовая брадикардия
     "sin_other",  # другая синусовая аритмия
     "pacemaker_migration",  # миграция водителя ритма
     "atrial",  # предсердный ритм: отрицательные PII, PIII, неизменный QRS
