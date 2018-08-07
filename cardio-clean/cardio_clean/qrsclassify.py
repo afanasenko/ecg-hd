@@ -85,6 +85,15 @@ def correlation_matrix(sig, hdr, metadata):
     print(np.min(corrmat))
 
 
+def dominant_val(x):
+    freq = {}
+    for n in x:
+        freq[n] = freq.get(n,0) + 1
+
+    for k,v in sorted(freq.items(), key=lambda x: x[1], reverse=True):
+        return k
+
+
 def finalize_classes(qrs_classes, metadata):
     """
         Пост-обработка метаданных и вычисление усредненных комплексов
@@ -105,7 +114,9 @@ def finalize_classes(qrs_classes, metadata):
                 reverse=True
             )
     ):
+        complex_types = []
         for s in qcl["samples"]:
+            complex_types.append(metadata[s]["complex_type"])
             metadata[s]["qrs_class_id"] = i
 
             # помечаем ущербные классы как артефакты
@@ -117,7 +128,8 @@ def finalize_classes(qrs_classes, metadata):
         classdesc.append({
             "id": i,
             "average": qcl["accumulator"] / len(qcl["samples"]),
-            "count": len(qcl["samples"])
+            "count": len(qcl["samples"]),
+            "type": dominant_val(complex_types)
         })
 
     return classdesc
