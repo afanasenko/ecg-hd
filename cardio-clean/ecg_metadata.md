@@ -76,6 +76,6 @@ qrs_metadata = blobapi_detect_qrs(inbuf, min_qrs_ms=20, postprocessing=True)
 | st_start_level | Смещение J от изолинии | float array | как у сигнала | metadata_postprocessing |
 | st_plus_level | Смещение J+ от изолинии | float array | как у сигнала | metadata_postprocessing |
 | st_end_level | Смещение конца ST от изолинии | float array | как у сигнала | metadata_postprocessing |
-| st_offset | Средниее смещение ST от изолинии | float array | как у сигнала | metadata_postprocessing |
+| st_offset | Среднее смещение ST от изолинии | float array | как у сигнала | metadata_postprocessing |
 | st_duration | Длительность ST | float array | [мс] | metadata_postprocessing |
 | st_slope | Наклон ST | float array | отн. ед. | metadata_postprocessing |
