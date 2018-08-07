@@ -17,13 +17,14 @@ ishemic_types = [
 
 def check_criteria(sig, chan, meta, gain, fs):
 
-    k1_thresh = 0.1/gain
-    k2_thresh = 0.1/gain
+    # перевод порогов из милливольт в значения сигнала
+    k1_thresh = 0.1 * gain
+    k2_thresh = 0.1 * gain
     k2_dur = 0.08 * fs
-    k3_thresh = 0.0014/gain
-    e1_thresh = -0.1 / gain
+    k3_thresh = 0.0014 * gain
+    e1_thresh = -0.1 * gain
     e1_dur = 0.08 * fs
-    e2_thresh = -0.2 / gain
+    e2_thresh = -0.2 * gain
     e2_dur = 0.08 * fs
 
     stbeg = meta["st_start"][chan]
