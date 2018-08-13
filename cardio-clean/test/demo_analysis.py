@@ -186,7 +186,7 @@ def show_waves(filename, chan, lim):
     if fs != 250:
         print("Warning! fs={}".format(fs))
 
-    print(header["adc_gain"])
+    print("Усиление: {}".format(header["adc_gain"]))
 
     sig = fix_baseline(
         sig,
@@ -215,7 +215,7 @@ def show_waves(filename, chan, lim):
     metadata_postprocessing(
         metadata,
         sig[:lim, :],
-        fs=header["fs"]
+        header
     )
 
     plt.plot(s, "b")

@@ -79,7 +79,7 @@ def show_waves(filename):
     metadata_postprocessing(
         metadata,
         s,
-        fs=header["fs"]
+        header
     )
 
     qrsTypes = {}
