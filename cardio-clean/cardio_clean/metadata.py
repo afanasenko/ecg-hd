@@ -56,7 +56,7 @@ def metadata_new(num_channels):
         "qrs_end": None,  # [секунд от начала записи] float
         "qrs_center": None,  # [секунд от начала записи] float
         "qrs_class_id": None, # код класса string
-        "artifact": True,  # bool
+        "artifact": False,  # bool
         "qrsType": None,  # string
         "complex_type": "U",
 
@@ -106,15 +106,15 @@ def ms_to_samples(ms, fs):
     return int(ms * fs / 1000.0)
 
 
-def level_from_pos(d, chan, pos_key, val_key, sig, bias):
+def level_from_pos(d, chan, pos_key, val_key, sig, bias, gain):
     pos = d[pos_key][chan]
     if pos is None:
         d[val_key][chan] = None
     else:
-        d[val_key][chan] = sig[pos] - bias
+        d[val_key][chan] = (sig[pos] - bias) / gain
 
 
-def metadata_postprocessing(metadata, sig, fs, **kwargs):
+def metadata_postprocessing(metadata, sig, header, **kwargs):
     """
     Расчет вторичных параметров сигнала в одном отведении
 
@@ -122,10 +122,12 @@ def metadata_postprocessing(metadata, sig, fs, **kwargs):
     перезаписать значения всех зависимых ключей.
     :param metadata:
     :param sig:
-    :param fs:
+    :param header: структура с полями fs, adc_gain, baseline
     :param kwargs: константы j_offset, jplus_offset_ms, min_st_ms
     :return: None (результатом являются измененные значения в metadata)
     """
+
+    fs = header["fs"]
 
     j_offset_ms = kwargs.get("j_offset", 60)
     jplus_offset_ms = kwargs.get("jplus_offset", 80)
@@ -178,17 +180,19 @@ def metadata_postprocessing(metadata, sig, fs, **kwargs):
             # ######################################
             # запись высоты зубцов
             bias = cycledata["isolevel"][chan]
+            gain = header["adc_gain"][chan]
 
-            level_from_pos(cycledata, chan, "p_pos", "p_height", x, bias)
-            level_from_pos(cycledata, chan, "q_pos", "q_height", x, bias)
-            level_from_pos(cycledata, chan, "r_pos", "r_height", x, bias)
-            level_from_pos(cycledata, chan, "s_pos", "s_height", x, bias)
-            level_from_pos(cycledata, chan, "t_pos", "t_height", x, bias)
+            level_from_pos(cycledata, chan, "p_pos", "p_height", x, bias, gain)
+            level_from_pos(cycledata, chan, "q_pos", "q_height", x, bias, gain)
+            level_from_pos(cycledata, chan, "r_pos", "r_height", x, bias, gain)
+            level_from_pos(cycledata, chan, "s_pos", "s_height", x, bias, gain)
+            level_from_pos(cycledata, chan, "t_pos", "t_height", x, bias, gain)
             level_from_pos(cycledata, chan, "st_start",
-                           "st_start_level", x, bias)
+                           "st_start_level", x, bias, gain)
             level_from_pos(cycledata, chan, "st_plus", "st_plus_level", x,
-                           bias)
-            level_from_pos(cycledata, chan, "st_end", "st_end_level", x, bias)
+                           bias, gain)
+            level_from_pos(cycledata, chan, "st_end", "st_end_level", x,
+                           bias, gain)
 
             # ######################################
             # ST (продолжение)
@@ -197,8 +201,8 @@ def metadata_postprocessing(metadata, sig, fs, **kwargs):
                 if dur > kwargs.get("min_st_ms", 40):
                     cycledata["st_duration"][chan] = dur
 
-                    cycledata["st_offset"][chan] = np.mean(
-                        sig[j_point:st_end]) - bias
+                    cycledata["st_offset"][chan] = (np.mean(
+                        sig[j_point:st_end]) - bias) / gain
 
                     cycledata["st_slope"][chan] = \
                         (cycledata["st_end_level"][chan] -
@@ -306,6 +310,13 @@ def estimate_pq(meta):
 
 
 def estimate_qrslen(meta, fs, chan):
+    """
+    # Оценка длительности QRS-комплекса по зубцам
+    :param meta:
+    :param fs:
+    :param chan:
+    :return:
+    """
     lb = int(meta["qrs_start"]*fs)
     rb = int(meta["qrs_end"]*fs)
 

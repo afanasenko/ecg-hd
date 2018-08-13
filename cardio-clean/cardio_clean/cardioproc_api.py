@@ -168,7 +168,7 @@ def blobapi_detect_qrs(
         metadata_postprocessing(
             metadata,
             indata,
-            fs=header["fs"]
+            header
         )
     return metadata
 
@@ -194,7 +194,7 @@ def blobapi_postprocessing_qrs(
     metadata_postprocessing(
         metadata,
         indata,
-        fs=header["fs"]
+        header
     )
 
 
