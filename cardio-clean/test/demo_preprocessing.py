@@ -22,6 +22,7 @@ def ecgread(filename):
 
     else:
         data, fields = wfdb.rdsamp(filename)
+        # rdsamp возвращает сигнал без смещения в физических единицах
         numch = data.shape[1]
         hdr = {
             "fs": fields["fs"],
