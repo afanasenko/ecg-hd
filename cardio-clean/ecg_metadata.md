@@ -79,3 +79,13 @@ qrs_metadata = blobapi_detect_qrs(inbuf, min_qrs_ms=20, postprocessing=True)
 | st_offset | Среднее смещение ST от изолинии | float array | мВ | metadata_postprocessing |
 | st_duration | Длительность ST | float array | [мс] | metadata_postprocessing |
 | st_slope | Наклон ST | float array | - | metadata_postprocessing |
+| **QT-интервал** |
+| qt_duration | Длительность QT | float array | [мс] | metadata_postprocessing |
+| qtc_duration | Длительность корригированного QT | float array | [мс] | metadata_postprocessing |
+
+Особенности оценки параметров
+*qt_duration*
+характеризует атрио-вентрикулярную проводимость, то есть
+проведение электрического импульса через соединение между предсердиями
+и желудочками (через АВ-узел). Если в комплексе отсутствует зубец Q,
+началом QT считается начало R-зубца.

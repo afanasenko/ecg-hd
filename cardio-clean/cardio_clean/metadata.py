@@ -95,6 +95,10 @@ def metadata_new(num_channels):
         "st_offset": [None]*num_channels,  # float array
         "st_duration": [None]*num_channels,  # float array
         "st_slope": [None]*num_channels  # float array
+
+        # QT-интервал
+        "qt_duration": [None]*num_channels  # float array
+        "qtc_duration": [None]*num_channels  # float array
     }
 
 
@@ -226,6 +230,19 @@ def metadata_postprocessing(metadata, sig, header, **kwargs):
                 else:
                     cycledata["RR"] = None
                     cycledata["heartrate"] = None
+
+            # ######################################
+            # QT
+            qt_start = cycledata["q_pos"][chan]
+            if qt_start is None:
+                qt_start = cycledata["r_start"][chan]
+
+            qt_end = cycledata["t_end"][chan]
+
+            if qt_start is not None and qt_end is not None:
+                cycledata["qt_duration"] = samples_to_ms(qt_end-qt_start, fs)
+            else:
+                cycledata["qt_duration"] = None
 
             # ######################################
             #
