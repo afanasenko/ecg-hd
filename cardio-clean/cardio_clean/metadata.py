@@ -144,7 +144,25 @@ def metadata_postprocessing(metadata, sig, header, **kwargs):
     # классификация тоже по второму отведению
     classification_channel = 1 if numch > 1 else 0
 
+    num_cycles = len(metadata)
+
     for ncycle, cycledata in enumerate(metadata):
+
+        # ######################################
+        # RR и ЧСС
+        rz = cycledata["r_pos"][heartbeat_channel]
+        if ncycle < num_cycles-1:
+            neighbour = metadata[ncycle + 1]["r_pos"][heartbeat_channel]
+        else:
+            neighbour = metadata[ncycle - 1]["r_pos"][heartbeat_channel]
+
+        if rz is not None and neighbour is not None:
+            rr = samples_to_ms(abs(rz - neighbour), fs)
+            cycledata["RR"] = rr
+            cycledata["heartrate"] = 60000.0 / rr
+        else:
+            cycledata["RR"] = None
+            cycledata["heartrate"] = None
 
         for chan, x in signal_channels(sig):
 
@@ -216,22 +234,6 @@ def metadata_postprocessing(metadata, sig, header, **kwargs):
                     cycledata["st_duration"][chan] = None
 
             # ######################################
-            # RR
-            if chan == heartbeat_channel:
-                if ncycle:
-                    neighbour = metadata[ncycle-1]["r_pos"][chan]
-                else:
-                    neighbour = metadata[ncycle+1]["r_pos"][chan]
-
-                if rc is not None and neighbour is not None:
-                    rr = samples_to_ms(abs(rc - neighbour), fs)
-                    cycledata["RR"] = rr
-                    cycledata["heartrate"] = 60000.0 / rr
-                else:
-                    cycledata["RR"] = None
-                    cycledata["heartrate"] = None
-
-            # ######################################
             # QT
             qt_start = cycledata["q_pos"][chan]
             if qt_start is None:
@@ -240,9 +242,19 @@ def metadata_postprocessing(metadata, sig, header, **kwargs):
             qt_end = cycledata["t_end"][chan]
 
             if qt_start is not None and qt_end is not None:
-                cycledata["qt_duration"] = samples_to_ms(qt_end-qt_start, fs)
+                cycledata["qt_duration"][chan] = samples_to_ms(
+                    qt_end - qt_start, fs)
             else:
-                cycledata["qt_duration"] = None
+                cycledata["qt_duration"][chan] = None
+
+            # QTc
+
+            qt = cycledata["qt_duration"][chan]
+            if qt is not None and cycledata["RR"] is not None:
+                cycledata["qtc_duration"][chan] = qt / np.sqrt(
+                    cycledata["RR"])
+            else:
+                cycledata["qtc_duration"][chan] = None
 
             # ######################################
             #
