@@ -94,10 +94,10 @@ def metadata_new(num_channels):
         "st_end_level": [None]*num_channels,  # float array
         "st_offset": [None]*num_channels,  # float array
         "st_duration": [None]*num_channels,  # float array
-        "st_slope": [None]*num_channels  # float array
+        "st_slope": [None]*num_channels,  # float array
 
         # QT-интервал
-        "qt_duration": [None]*num_channels  # float array
+        "qt_duration": [None]*num_channels,  # float array
         "qtc_duration": [None]*num_channels  # float array
     }
 
