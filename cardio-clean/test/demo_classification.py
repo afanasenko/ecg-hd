@@ -11,7 +11,7 @@ from cardio_clean.sigbind import fix_baseline
 from cardio_clean.qrsdetect import *
 from cardio_clean.qrsclassify import *
 from cardio_clean.wavdetect import find_points
-from demo_preprocessing import ecgread
+from cardio_clean.util import ecgread
 
 
 def build_args():
