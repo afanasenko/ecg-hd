@@ -66,7 +66,7 @@ qrs_metadata = blobapi_detect_qrs(inbuf, min_qrs_ms=20, postprocessing=True)
 | t_pos | вершина T-зубца | int array | № отсчета | find_points |
 | t_height | высота T-зубца | float array | мВ | metadata_postprocessing |
 | **параметры ритма** |
-| RR | RR-интервал | float | [мс] | metadata_postprocessing |
+| RR | RR-интервал | float | [с] | metadata_postprocessing |
 | heartrate | ЧСС = 60000/RR| float | уд/мин | metadata_postprocessing |
 | isolevel | уровень изолинии | float array | как у сигнала | find_points |
 | **ST-сегмент** |

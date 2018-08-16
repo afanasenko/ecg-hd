@@ -157,9 +157,9 @@ def metadata_postprocessing(metadata, sig, header, **kwargs):
             neighbour = metadata[ncycle - 1]["r_pos"][heartbeat_channel]
 
         if rz is not None and neighbour is not None:
-            rr = samples_to_ms(abs(rz - neighbour), fs)
+            rr = abs(rz - neighbour) / fs
             cycledata["RR"] = rr
-            cycledata["heartrate"] = 60000.0 / rr
+            cycledata["heartrate"] = 60.0 / rr
         else:
             cycledata["RR"] = None
             cycledata["heartrate"] = None
