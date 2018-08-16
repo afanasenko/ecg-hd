@@ -102,6 +102,10 @@ def metadata_new(num_channels):
     }
 
 
+def samples_to_sec(smp, fs):
+    return float(smp) / fs
+
+
 def samples_to_ms(smp, fs):
     return smp * 1000.0 / fs
 
@@ -242,7 +246,7 @@ def metadata_postprocessing(metadata, sig, header, **kwargs):
             qt_end = cycledata["t_end"][chan]
 
             if qt_start is not None and qt_end is not None:
-                cycledata["qt_duration"][chan] = samples_to_ms(
+                cycledata["qt_duration"][chan] = samples_to_sec(
                     qt_end - qt_start, fs)
             else:
                 cycledata["qt_duration"][chan] = None

@@ -52,19 +52,19 @@ qrs_metadata = blobapi_detect_qrs(inbuf, min_qrs_ms=20, postprocessing=True)
 | p_start | начало P-зубца | int array | № отсчета | find_points |
 | p_end | конец P-зубца | int array | № отсчета | find_points |
 | p_pos | вершина P-зубца | int array | № отсчета | find_points |
-| p_height | высота P-зубца | float array | мВ | metadata_postprocessing |
+| p_height | высота P-зубца над/под изолинией| float array | мВ | metadata_postprocessing |
 | q_pos | вершина Q-зубца | int array | № отсчета | find_points |
-| q_height | высота Q-зубца | float array | мВ | metadata_postprocessing |
+| q_height | высота Q-зубца над/под изолинией| float array | мВ | metadata_postprocessing |
 | r_start | начало R-зубца | int array | № отсчета | find_points |
 | r_end | конец R-зубца | int array | № отсчета | find_points |
 | r_pos | вершина R-зубца | int array | № отсчета | find_points |
-| r_height | высота R-зубца | float array | мВ | metadata_postprocessing |
+| r_height | высота R-зубца над/под изолинией | float array | мВ | metadata_postprocessing |
 | s_pos | вершина S-зубца | int array | № отсчета | find_points |
-| s_height | высота S-зубца | float array | мВ | metadata_postprocessing |
+| s_height | высота S-зубца над/под изолинией | float array | мВ | metadata_postprocessing |
 | t_start | начало T-зубца | int array | № отсчета | find_points |
 | t_end | конец T-зубца | int array | № отсчета | find_points |
 | t_pos | вершина T-зубца | int array | № отсчета | find_points |
-| t_height | высота T-зубца | float array | мВ | metadata_postprocessing |
+| t_height | высота T-зубца над/под изолинией | float array | мВ | metadata_postprocessing |
 | **параметры ритма** |
 | RR | RR-интервал | float | [с] | metadata_postprocessing |
 | heartrate | ЧСС = 60000/RR| float | уд/мин | metadata_postprocessing |
@@ -80,12 +80,12 @@ qrs_metadata = blobapi_detect_qrs(inbuf, min_qrs_ms=20, postprocessing=True)
 | st_duration | Длительность ST | float array | [мс] | metadata_postprocessing |
 | st_slope | Наклон ST | float array | - | metadata_postprocessing |
 | **QT-интервал** |
-| qt_duration | Длительность QT | float array | [мс] | metadata_postprocessing |
-| qtc_duration | Длительность корригированного QT | float array | [мс] | metadata_postprocessing |
+| qt_duration | Длительность QT интервала| float array | [с] | metadata_postprocessing |
+| qtc_duration | Длительность корригированного QT интервала | float array | [с] | metadata_postprocessing |
 
 Особенности оценки параметров
 *qt_duration*
 характеризует атрио-вентрикулярную проводимость, то есть
 проведение электрического импульса через соединение между предсердиями
-и желудочками (через АВ-узел). Если в комплексе отсутствует зубец Q,
-началом QT считается начало R-зубца.
+и желудочками (через АВ-узел). В случае, если в комплексе отсутствует
+выраженный зубец Q, началом интервала QT считается начало R-зубца.
