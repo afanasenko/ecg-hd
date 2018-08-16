@@ -11,7 +11,7 @@ from cardio_clean.ishemia import mock_ishemia_episodes, define_ishemia_episodes
 
 from cardio_clean.sigbind import fix_baseline
 from cardio_clean.qrsdetect import qrs_detection
-from demo_preprocessing import ecgread
+from cardio_clean.util import ecgread
 
 def dummy_shift(x, n):
     return np.concatenate((x[n:], np.ones(n)*x[-1]))
@@ -186,7 +186,7 @@ def show_waves(filename, chan, lim):
     if fs != 250:
         print("Warning! fs={}".format(fs))
 
-    print(header["adc_gain"])
+    print("Усиление: {}".format(header["adc_gain"]))
 
     sig = fix_baseline(
         sig,
@@ -215,7 +215,7 @@ def show_waves(filename, chan, lim):
     metadata_postprocessing(
         metadata,
         sig[:lim, :],
-        fs=header["fs"]
+        header
     )
 
     plt.plot(s, "b")

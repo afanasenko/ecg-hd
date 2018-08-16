@@ -8,7 +8,7 @@ from cardio_clean.wavdetect import find_points
 from cardio_clean.metadata import *
 
 from cardio_clean.qrsdetect import qrs_detection
-from demo_preprocessing import ecgread
+from cardio_clean.util import ecgread
 
 
 def plot_with_markup(s, fs, metadata, chan):
@@ -79,7 +79,7 @@ def show_waves(filename):
     metadata_postprocessing(
         metadata,
         s,
-        fs=header["fs"]
+        header
     )
 
     qrsTypes = {}

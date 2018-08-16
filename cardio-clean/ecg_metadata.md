@@ -1,6 +1,6 @@
-**Описание метаданных, генерируемых при анализе кардиосигнала**
+## Метаданные, генерируемые при анализе кардиосигнала
 
-Функция *blobapi_detect_qrs*: обнаружение QRS-комплексов и сегментация отдельных волн.
+Функция *blobapi_detect_qrs* выполняет обнаружение QRS-комплексов и сегментация отдельных волн.
 
 qrs_metadata = blobapi_detect_qrs(inbuf, min_qrs_ms=20, postprocessing=True)
 
@@ -37,10 +37,10 @@ qrs_metadata = blobapi_detect_qrs(inbuf, min_qrs_ms=20, postprocessing=True)
 Параметры, которые невозможно определить, записываются как None.
 Параметры, которые никогда не могут быть None после вызова соответствуюей функции,
 отмечены **жирным шрифтом**.
-Параметры, имеюие тип данных array, индивидуально рассчитываются в каждом отведении.
+Тип данных "array" указывает на то, что параметр индивидуально рассчитывается в каждом отведении.
 
 
-| Ключ | Назначение | Тип данных | Размерность или диапазон | Какая процедура рассчитывает |
+| Ключ | Расшифровка | Тип данных | Размерность или диапазон | Какая процедура рассчитывает |
 | ---- |:---------- | :--------- | :---------- | ---------------------------: |
 | **qrs_start** | Начало QRS | float | [с] от начала записи | qrs_detection |
 | **qrs_end** | Конец QRS | float | [с] от начала записи | qrs_detection |
@@ -52,30 +52,40 @@ qrs_metadata = blobapi_detect_qrs(inbuf, min_qrs_ms=20, postprocessing=True)
 | p_start | начало P-зубца | int array | № отсчета | find_points |
 | p_end | конец P-зубца | int array | № отсчета | find_points |
 | p_pos | вершина P-зубца | int array | № отсчета | find_points |
-| p_height | высота P-зубца | float array | как у сигнала | metadata_postprocessing |
+| p_height | высота P-зубца над/под изолинией| float array | мВ | metadata_postprocessing |
 | q_pos | вершина Q-зубца | int array | № отсчета | find_points |
-| q_height | высота Q-зубца | float array | как у сигнала | metadata_postprocessing |
+| q_height | высота Q-зубца над/под изолинией| float array | мВ | metadata_postprocessing |
 | r_start | начало R-зубца | int array | № отсчета | find_points |
 | r_end | конец R-зубца | int array | № отсчета | find_points |
 | r_pos | вершина R-зубца | int array | № отсчета | find_points |
-| r_height | высота R-зубца | float array | как у сигнала | metadata_postprocessing |
+| r_height | высота R-зубца над/под изолинией | float array | мВ | metadata_postprocessing |
 | s_pos | вершина S-зубца | int array | № отсчета | find_points |
-| s_height | высота S-зубца | float array | как у сигнала | metadata_postprocessing |
+| s_height | высота S-зубца над/под изолинией | float array | мВ | metadata_postprocessing |
 | t_start | начало T-зубца | int array | № отсчета | find_points |
 | t_end | конец T-зубца | int array | № отсчета | find_points |
 | t_pos | вершина T-зубца | int array | № отсчета | find_points |
-| t_height | высота T-зубца | float array | как у сигнала | metadata_postprocessing |
-| параметры ритма |
-| RR | RR-интервал | float | [мс] | metadata_postprocessing |
+| t_height | высота T-зубца над/под изолинией | float array | мВ | metadata_postprocessing |
+| **параметры ритма** |
+| RR | RR-интервал | float | [с] | metadata_postprocessing |
 | heartrate | ЧСС = 60000/RR| float | уд/мин | metadata_postprocessing |
 | isolevel | уровень изолинии | float array | как у сигнала | find_points |
-| ST-сегмент |
+| **ST-сегмент** |
 | st_start | Начало ST (J) | int array | № отсчета | metadata_postprocessing |
 | st_plus | Точка J+0.08 | int array | № отсчета | metadata_postprocessing |
 | st_end | Конец ST = начало T | int array | № отсчета | metadata_postprocessing |
-| st_start_level | Смещение J от изолинии | float array | как у сигнала | metadata_postprocessing |
-| st_plus_level | Смещение J+ от изолинии | float array | как у сигнала | metadata_postprocessing |
-| st_end_level | Смещение конца ST от изолинии | float array | как у сигнала | metadata_postprocessing |
-| st_offset | Среднее смещение ST от изолинии | float array | как у сигнала | metadata_postprocessing |
+| st_start_level | Смещение J от изолинии | float array | мВ | metadata_postprocessing |
+| st_plus_level | Смещение J+ от изолинии | float array | мВ | metadata_postprocessing |
+| st_end_level | Смещение конца ST от изолинии | float array | мВ | metadata_postprocessing |
+| st_offset | Среднее смещение ST от изолинии | float array | мВ | metadata_postprocessing |
 | st_duration | Длительность ST | float array | [мс] | metadata_postprocessing |
-| st_slope | Наклон ST | float array | отн. ед. | metadata_postprocessing |
+| st_slope | Наклон ST | float array | - | metadata_postprocessing |
+| **QT-интервал** |
+| qt_duration | Длительность QT интервала| float array | [с] | metadata_postprocessing |
+| qtc_duration | Длительность корригированного QT интервала | float array | [с] | metadata_postprocessing |
+
+Особенности оценки параметров
+*qt_duration*
+характеризует атрио-вентрикулярную проводимость, то есть
+проведение электрического импульса через соединение между предсердиями
+и желудочками (через АВ-узел). В случае, если в комплексе отсутствует
+выраженный зубец Q, началом интервала QT считается начало R-зубца.

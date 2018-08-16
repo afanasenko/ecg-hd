@@ -5,7 +5,7 @@ import pstats
 
 from cardio_clean.wavdetect import find_points
 from cardio_clean.qrsdetect import qrs_detection
-from demo_preprocessing import ecgread
+from cardio_clean.util import ecgread
 
 pr = profile.Profile()
 
