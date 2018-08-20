@@ -370,3 +370,33 @@ def estimate_qrslen(meta, fs, chan):
             rb = r_right
 
     return rb - lb
+
+
+def calculate_histogram(metadata, param_name, channel=None, nbins=10):
+
+    if channel is None:
+        param_val = [
+            x[param_name] for x in metadata if x[param_name] is not None
+        ]
+    else:
+        param_val = [
+            x[param_name][channel] for x in metadata if x[param_name][channel] is not
+            None
+        ]
+
+    hist, bine = np.histogram(param_val, bins=nbins)
+
+    hdata = []
+
+    for i, v in enumerate(hist):
+        hdata.append(
+            {
+                "bin_left": bine[i+1],
+                "bin_right": bine[i],
+                "count": v,
+                "percent": 100.0 * v / np.sum(hist)
+            }
+        )
+
+    return hdata
+
