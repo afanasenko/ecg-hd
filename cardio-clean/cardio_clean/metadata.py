@@ -399,8 +399,8 @@ def calculate_histogram(metadata, param_name, channel=None, nbins=10):
     for i, v in enumerate(hist):
         hdata.append(
             {
-                "bin_left": bine[i+1],
-                "bin_right": bine[i],
+                "bin_left": bine[i],
+                "bin_right": bine[i+1],
                 "count": v,
                 "percent": 100.0 * v / np.sum(hist)
             }
@@ -408,3 +408,21 @@ def calculate_histogram(metadata, param_name, channel=None, nbins=10):
 
     return hdata
 
+
+def remove_outliers(x):
+    """
+    Удаление далеко отстоящих точек
+    :param x:
+    :return:
+    """
+
+    y = x[:]
+
+    m = np.median(x)
+    sigma = 2.5
+
+    for i, v in enumerate(x):
+        if abs(v - m) > m*sigma:
+           y[i] = None
+
+    return y
