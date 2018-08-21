@@ -150,6 +150,15 @@ def metadata_postprocessing(metadata, sig, header, **kwargs):
 
     num_cycles = len(metadata)
 
+    # Удаление выбросов
+    for ncycle, cycledata in enumerate(metadata):
+        delta = ms_to_samples(50, fs)
+        remove_outliers(cycledata, "p_pos", ("p_start", "p_end"), delta)
+        remove_outliers(cycledata, "q_pos", [], delta)
+        remove_outliers(cycledata, "r_pos", ("r_start", "r_end"), delta)
+        remove_outliers(cycledata, "s_pos", [], delta)
+        remove_outliers(cycledata, "t_pos", ("t_start", "t_end"), delta)
+
     for ncycle, cycledata in enumerate(metadata):
 
         # ######################################
@@ -409,20 +418,24 @@ def calculate_histogram(metadata, param_name, channel=None, nbins=10):
     return hdata
 
 
-def remove_outliers(x):
+def remove_outliers(metadata, key, dep_keys, delta):
     """
     Удаление далеко отстоящих точек
-    :param x:
-    :return:
+    :param x: массив значений
+    :return: копия входного массива со значениями None для выбросов
     """
 
-    y = x[:]
+    xreal = [i for i in metadata[key] if i is not None]
 
-    m = np.median(x)
-    sigma = 2.5
+    # нужно хотя бы три значения
+    if len(xreal) < 3:
+        return
 
-    for i, v in enumerate(x):
-        if abs(v - m) > m*sigma:
-           y[i] = None
+    m = np.median(xreal)
 
-    return y
+    for i, v in enumerate(metadata[key]):
+        if v is not None and abs(v - m) > delta:
+            print("{}: {}".format(key, abs(v - m)))
+            metadata[key][i] = None
+            for k in dep_keys:
+                metadata[k][i] = None
