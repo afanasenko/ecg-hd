@@ -1,9 +1,6 @@
 # coding: utf-8
 
 import numpy as np
-from scipy.signal import lfilter
-
-from sigbind import signal_channels
 
 
 def correlate(sig1, sig2):

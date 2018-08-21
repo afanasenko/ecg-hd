@@ -59,7 +59,7 @@ def plot_with_markup(sig, fs, metadata):
             lb = qrs["st_start"][chan]
             rb = qrs["st_end"][chan]
             if all((lb, rb)):
-                ax[chan].plot(np.arange(lb, rb)*tscale, s[lb:rb], "r")
+                ax[chan].plot(np.arange(lb, rb)*tscale, s[lb:rb], "m")
 
     plt.show()
 

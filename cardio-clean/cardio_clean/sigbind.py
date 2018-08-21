@@ -5,21 +5,7 @@
 from scipy.signal import convolve, hann
 import numpy as np
 from scipy.fftpack import fft, ifft
-
-
-def signal_channels(signal):
-    """
-        Генератор для перебора каналов многоканального ЭКС
-    :param signal: np.array [samples x channels]
-    :return:
-    """
-    if len(signal.shape) == 1:
-        yield 0, signal
-    else:
-        numch = signal.shape[1]
-        for chan in range(numch):
-            yield chan, signal[:,chan]
-
+from util import signal_channels
 
 """
     Расчет усредненного амплитудного спектра

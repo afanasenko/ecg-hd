@@ -1,10 +1,8 @@
 # coding: utf-8
 
-import json
-import numpy as np
 from scipy.signal import convolve, argrelmax, argrelmin
 from metadata import *
-from sigbind import signal_channels
+from util import signal_channels
 
 
 def modefind(x, lb=0, rb=0, bias=0.0):
