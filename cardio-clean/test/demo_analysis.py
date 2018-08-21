@@ -186,8 +186,6 @@ def show_waves(filename, chan, lim):
     if fs != 250:
         print("Warning! fs={}".format(fs))
 
-    print("Усиление: {}".format(header["adc_gain"]))
-
     sig = fix_baseline(
         sig,
         fs=fs,
@@ -282,6 +280,15 @@ def show_waves(filename, chan, lim):
     #    print("ритм {}: {} с".format(x["desc"], x["end"] - x["start"]))
 
     print_summary(metadata)
+
+    f, ax = plt.subplots(1,2)
+
+    hdqt = calculate_histogram(metadata, "qt_duration", channel=0)
+    print(hdqt)
+    ax[0].plot([x["percent"] for x in hdqt])
+    hdqt = calculate_histogram(metadata, "qtc_duration", channel=0)
+    print(hdqt)
+    ax[1].plot([x["percent"] for x in hdqt])
 
     plt.grid(True)
     plt.show()

@@ -22,8 +22,6 @@ def plot_with_markup(s, fs, metadata, chan):
     right_p = min(s.shape[0]-1, metadata[-1]["qrs_center"]*fs + 100)
     plt.plot(s[int(left_p):int(right_p),chan], "b")
 
-    print("plot")
-
     for ncycle, qrs in enumerate(metadata):
 
         for k in pt_keys:
@@ -47,8 +45,6 @@ def plot_with_markup(s, fs, metadata, chan):
         rb = qrs["st_end"][chan]
         if all((lb, rb)):
             plt.plot(np.arange(lb, rb), s[lb:rb, chan], "r")
-
-        print("nplot")
 
     plt.xlim((left_p, right_p))
     plt.grid(True)
