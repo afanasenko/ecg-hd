@@ -327,7 +327,7 @@ def blobapi_histogram_qt(metadata, channel=1):
     ]
     Элементы списка уже упорядочены по положению интервала
     """
-    calculate_histogram(metadata, "qt_duration", channel)
+    return calculate_histogram(metadata, "qt_duration", channel)
 
 
 def blobapi_histogram_qtc(metadata, channel=1):
@@ -337,4 +337,4 @@ def blobapi_histogram_qtc(metadata, channel=1):
     :param channel: интересующий номер отведения
     :return: см. описание для blobapi_histogram_qt
     """
-    calculate_histogram(metadata, "qtc_duration", channel)
+    return calculate_histogram(metadata, "qtc_duration", channel)
