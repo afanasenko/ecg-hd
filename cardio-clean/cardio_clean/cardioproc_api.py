@@ -5,7 +5,7 @@ from sigbind import fix_baseline, mains_filter
 from qrsdetect import qrs_detection
 from qrsclassify import incremental_classifier
 from wavdetect import find_points
-from metadata import metadata_postprocessing
+from metadata import metadata_postprocessing, calculate_histogram
 from arrythmia import define_rythm
 from ishemia import define_ishemia_episodes
 
@@ -307,3 +307,34 @@ def blobapi_find_ishemia(
 
     header, indata = read_buffer(inbuf)
     return define_ishemia_episodes(indata, header, metadata)
+
+
+def blobapi_histogram_qt(metadata, channel=1):
+    """
+        Расчет гистограммы длин интервалов QT
+    :param metadata: метаданные с результатами сегментации
+    :param channel: интересующий номер отведения
+    :return: данные для построения гистограммы в виде списка интервальных
+    значений
+    [
+     {
+        "bin_left": левая граница интервала (в секундах)
+        "bin_right": правая граница интервала (в секундах)
+        "count": число попаданий в интервал
+        "percent": процент попаданий в интервал от общего числа (0 - 100)
+     },
+     ...
+    ]
+    Элементы списка уже упорядочены по положению интервала
+    """
+    calculate_histogram(metadata, "qt_duration", channel)
+
+
+def blobapi_histogram_qtc(metadata, channel=1):
+    """
+        Расчет гистограммы длин интервалов корригированного QT
+    :param metadata: метаданные с результатами сегментации
+    :param channel: интересующий номер отведения
+    :return: см. описание для blobapi_histogram_qt
+    """
+    calculate_histogram(metadata, "qtc_duration", channel)

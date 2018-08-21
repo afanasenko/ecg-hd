@@ -373,6 +373,14 @@ def estimate_qrslen(meta, fs, chan):
 
 
 def calculate_histogram(metadata, param_name, channel=None, nbins=10):
+    """
+    Расчет гистограммы значений выбранного параметра в выбранном отведени
+    :param metadata:
+    :param param_name:
+    :param channel:
+    :param nbins:
+    :return:
+    """
 
     if channel is None:
         param_val = [
