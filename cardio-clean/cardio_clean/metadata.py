@@ -381,13 +381,20 @@ def estimate_qrslen(meta, fs, chan):
     return rb - lb
 
 
-def calculate_histogram(metadata, param_name, channel=None, nbins=10):
+def calculate_histogram(
+        metadata,
+        param_name,
+        channel=None,
+        nbins=10,
+        censoring=False
+):
     """
     Расчет гистограммы значений выбранного параметра в выбранном отведени
     :param metadata:
     :param param_name:
     :param channel:
     :param nbins:
+    :param censoring: отбрасывание самых больших и самых маленьких значений
     :return:
     """
 
@@ -400,6 +407,11 @@ def calculate_histogram(metadata, param_name, channel=None, nbins=10):
             x[param_name][channel] for x in metadata if x[param_name][channel] is not
             None
         ]
+
+    # цензурирование - отбрасывем хвосты
+    if censoring:
+        q = np.percentile(param_val, [1,99])
+        param_val = [x for x in param_val if q[0] < x < q[1]]
 
     hist, bine = np.histogram(param_val, bins=nbins)
 
