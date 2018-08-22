@@ -13,6 +13,7 @@ from cardio_clean.sigbind import fix_baseline
 from cardio_clean.qrsdetect import qrs_detection
 from cardio_clean.util import ecgread
 
+
 def dummy_shift(x, n):
     return np.concatenate((x[n:], np.ones(n)*x[-1]))
 
@@ -92,6 +93,7 @@ def print_summary(metadata, ch=1):
     classes = {}
     qrs_types = {}
     st_intervals = []
+    qt_intervals = []
     rr_intervals = []
     wcount = {w: 0 for w in ("p", "q", "r", "s", "t")}
 
@@ -119,6 +121,9 @@ def print_summary(metadata, ch=1):
         if qrs["RR"] is not None:
             rr_intervals.append(qrs["RR"])
 
+        if qrs["qt_duration"][ch] is not None:
+            qt_intervals.append(qrs["qt_duration"][ch])
+
     print("Комплексы: {}".format(len(metadata)))
     print("Зубцы: {}".format(wcount))
 
@@ -131,8 +136,12 @@ def print_summary(metadata, ch=1):
         len(st_intervals), np.mean(st_intervals)
     ))
 
+    print("QT-интервалы: {}, в среднем {} мс".format(
+        len(rr_intervals), 1000 * np.mean(qt_intervals)
+    ))
+
     print("RR-интервалы: {}, в среднем {} мс".format(
-        len(rr_intervals), np.mean(rr_intervals)
+        len(rr_intervals), 1000 * np.mean(rr_intervals)
     ))
 
 
@@ -179,14 +188,12 @@ def show_qrs(filename, chan, lim):
     plt.show()
 
 
-def show_waves(filename, chan, lim):
+def show_waves(filename, chan, lim, draw):
     sig, header = ecgread(filename)
 
     fs = header["fs"]
     if fs != 250:
         print("Warning! fs={}".format(fs))
-
-    print("Усиление: {}".format(header["adc_gain"]))
 
     sig = fix_baseline(
         sig,
@@ -218,52 +225,53 @@ def show_waves(filename, chan, lim):
         header
     )
 
-    plt.plot(s, "b")
+    if draw:
+        plt.plot(s, "b")
 
-    # Цвета для раскрашивания зубцов на графике
-    pt_keys = {"q_pos": "r","r_pos": "g", "s_pos": "b", "p_pos": "y", "t_pos":
-    "m"}
+        # Цвета для раскрашивания зубцов на графике
+        pt_keys = {"q_pos": "r","r_pos": "g", "s_pos": "b", "p_pos": "y", "t_pos":
+        "m"}
 
-    for ncycle, qrs in enumerate(metadata):
+        for ncycle, qrs in enumerate(metadata):
 
-        lb = int(qrs["qrs_start"] * fs)
-        rb = int(qrs["qrs_end"] * fs)
-        iso = qrs["isolevel"][chan] + header["baseline"][chan]
-        plt.plot([lb, rb], [iso]*2, "g:")
+            lb = int(qrs["qrs_start"] * fs)
+            rb = int(qrs["qrs_end"] * fs)
+            iso = qrs["isolevel"][chan] + header["baseline"][chan]
+            plt.plot([lb, rb], [iso]*2, "g:")
 
-        for k in pt_keys:
-            point = qrs[k][chan]
-            if point is not None:
-                plt.scatter(point, s[point], c=pt_keys[k])
+            for k in pt_keys:
+                point = qrs[k][chan]
+                if point is not None:
+                    plt.scatter(point, s[point], c=pt_keys[k])
 
-        if qrs["qrs_center"] > 60:
-            break
+            if qrs["qrs_center"] > 60:
+                break
 
-        lb = qrs["r_start"][chan]
-        rb = qrs["r_end"][chan]
-        if all((lb, rb)):
-            plt.plot(np.arange(lb, rb), s[lb:rb], "g")
+            lb = qrs["r_start"][chan]
+            rb = qrs["r_end"][chan]
+            if all((lb, rb)):
+                plt.plot(np.arange(lb, rb), s[lb:rb], "g")
 
-        lb = qrs["st_start"][chan]
-        rb = qrs["st_end"][chan]
-        if all((lb, rb)):
-            plt.plot(np.arange(lb, rb), s[lb:rb], "r")
+            lb = qrs["st_start"][chan]
+            rb = qrs["st_end"][chan]
+            if all((lb, rb)):
+                plt.plot(np.arange(lb, rb), s[lb:rb], "r")
 
-        if qrs["complex_type"] == "V":
+            if qrs["complex_type"] == "V":
 
-            if qrs["r_pos"][chan] is not None:
-                plt.text(
-                    qrs["r_pos"][chan],
-                    qrs["r_height"][chan],
-                    qrs["complex_type"],
-                    color="r"
-                )
+                if qrs["r_pos"][chan] is not None:
+                    plt.text(
+                        qrs["r_pos"][chan],
+                        qrs["r_height"][chan],
+                        qrs["complex_type"],
+                        color="r"
+                    )
 
-        plt.text(
-            qrs["qrs_start"]*fs,
-            np.min(s),
-            str(ncycle)
-        )
+            plt.text(
+                qrs["qrs_start"]*fs,
+                np.min(s),
+                str(ncycle)
+            )
 
     #missing_hrt = [i for i,x in enumerate(metadata) if x["heartrate"] is None]
     #print("Heartrate missing in beats\n{}".format(missing_hrt))
@@ -283,8 +291,31 @@ def show_waves(filename, chan, lim):
 
     print_summary(metadata)
 
+    f, ax = plt.subplots(1,2)
+    show_qt_hist(ax[0], metadata, "qt_duration")
+    show_qt_hist(ax[1], metadata, "qtc_duration")
+
     plt.grid(True)
     plt.show()
+
+
+def show_qt_hist(ax, metadata, key):
+    numch = len(metadata[0]["r_pos"])
+    for chan in range(numch):
+        hdqt = calculate_histogram(metadata, key, channel=chan)
+        x = [hdqt[0]["bin_left"]*1000]
+        y = [0]
+        for bin in hdqt:
+            x.append(bin["bin_right"]*1000)
+            y.append(bin["percent"])
+
+        x.append(hdqt[-1]["bin_right"] * 1000)
+        y.append(0)
+
+        ax.step(x,y)
+        ax.set_title("{}".format(sum(x["count"] for x in hdqt)))
+
+
 
 if __name__ == "__main__":
 
@@ -294,11 +325,18 @@ if __name__ == "__main__":
     # Rh2025 = rs
     # Rh2010 - дрейф, шум, артефакты
 
-    #filename = "/Users/arseniy/SERDECH/data/PHYSIONET/I60"
+    # filename = "/Users/arseniy/SERDECH/data/PHYSIONET/I60"
     filename = "TestFromDcm.ecg"
+    filename = "/Users/arseniy/SERDECH/data/ROXMINE/Rh2025"
 
     #show_filter_responses()
     #show_decomposition(filename, 1, 50000)
     #show_qrs(filename, 1, 20000)
-    show_waves(filename, 1, 20000)
+
+    show_waves(
+        filename,
+        chan=1,
+        lim=0,
+        draw=False
+    )
 

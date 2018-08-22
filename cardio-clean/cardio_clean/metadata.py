@@ -1,6 +1,6 @@
 # coding: utf-8
 
-from sigbind import signal_channels
+from util import signal_channels
 
 """
 Метаданные подразделяются на первичные и вторичные.
@@ -149,6 +149,15 @@ def metadata_postprocessing(metadata, sig, header, **kwargs):
     classification_channel = 1 if numch > 1 else 0
 
     num_cycles = len(metadata)
+
+    # Удаление выбросов
+    for ncycle, cycledata in enumerate(metadata):
+        delta = ms_to_samples(50, fs)
+    #     remove_outliers(cycledata, "p_pos", ("p_start", "p_end"), delta)
+    #     remove_outliers(cycledata, "q_pos", [], delta)
+    #     remove_outliers(cycledata, "r_pos", ("r_start", "r_end"), delta)
+    #     remove_outliers(cycledata, "s_pos", [], delta)
+        remove_outliers(cycledata, "t_pos", ("t_start", "t_end"), delta)
 
     for ncycle, cycledata in enumerate(metadata):
 
@@ -399,8 +408,8 @@ def calculate_histogram(metadata, param_name, channel=None, nbins=10):
     for i, v in enumerate(hist):
         hdata.append(
             {
-                "bin_left": bine[i+1],
-                "bin_right": bine[i],
+                "bin_left": bine[i],
+                "bin_right": bine[i+1],
                 "count": v,
                 "percent": 100.0 * v / np.sum(hist)
             }
@@ -408,3 +417,27 @@ def calculate_histogram(metadata, param_name, channel=None, nbins=10):
 
     return hdata
 
+
+def remove_outliers(metadata, key, dep_keys, delta):
+    """
+    Удаление далеко отстоящих точек
+    :param x: массив значений
+    :return: копия входного массива со значениями None для выбросов
+    """
+
+    xreal = [i for i in metadata[key] if i is not None]
+
+    # нужно хотя бы три значения
+    if len(xreal) < 3:
+        return
+
+    m = np.median(xreal)
+
+    for i, v in enumerate(metadata[key]):
+        if v is not None and abs(v - m) > delta:
+            print("{}[{}]: deviation {} samples".format(
+                key, i, int(abs(v - m))))
+
+            metadata[key][i] = None
+            for k in dep_keys:
+                metadata[k][i] = None
