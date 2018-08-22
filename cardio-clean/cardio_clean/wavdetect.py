@@ -201,7 +201,7 @@ def qrssearch(modes, approx, derivative, params, chan, isolevel):
     return signcode
 
 
-def ptsearch(modes, approx, bias=0.0):
+def ptsearch(modes, approx, bias, limits):
     """
     Поиск зубцов P и T
     :param modes: список экстремумов производной
@@ -234,7 +234,7 @@ def ptsearch(modes, approx, bias=0.0):
 
     if abs(approx[x0+1] - bias) > abs(approx[x0-1] - bias):
         wave_left = int(x0 - 2.0 * y0 / dy)
-        if wave_left >= wave_center or wave_left <= 0:
+        if wave_left >= wave_center or wave_left <= limits[0]:
             wave_left = None
     else:
         wave_left = None
@@ -247,7 +247,7 @@ def ptsearch(modes, approx, bias=0.0):
 
     if abs(approx[x0+1] - bias) < abs(approx[x0-1] - bias):
         wave_right = int(x0 - 2.0 * y0 / dy)
-        if wave_right <= wave_center or wave_right >= len(approx):
+        if wave_right <= wave_center or wave_right >= limits[1]:
             wave_right = None
     else:
         wave_right = None
@@ -380,7 +380,8 @@ def find_points(
             pleft, pcenter, pright = ptsearch(
                 modas_subset[:-1],
                 approx[r_scale+1],
-                bias=iso
+                bias=iso,
+                limits=pwindow
             )
 
             qrs["p_pos"][chan] = pcenter
@@ -403,7 +404,8 @@ def find_points(
             tleft, tcenter, tright = ptsearch(
                 modas_subset[1:],
                 approx[r_scale+1],
-                bias=iso
+                bias=iso,
+                limits=twindow
             )
 
             qrs["t_pos"][chan] = tcenter
