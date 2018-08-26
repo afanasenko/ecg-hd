@@ -122,9 +122,64 @@ def level_from_pos(d, chan, pos_key, val_key, sig, bias, gain):
         d[val_key][chan] = (sig[pos] - bias) / gain
 
 
+def safe_r_pos(cycledata):
+    heartbeat_channel=1
+
+    # RR и ЧСС
+    rz = cycledata["r_pos"][heartbeat_channel]
+    if rz is None:
+        qz = cycledata["q_pos"][heartbeat_channel]
+        sz = cycledata["s_pos"][heartbeat_channel]
+        if qz is not None and sz is not None:
+            rz = (qz + sz)/2
+    return rz
+
+
+def find_rr(metadata, pos, fs):
+
+    cycledata = metadata[pos]
+    num_cycles = len(metadata)
+
+    # Не считаем RR для артефактов
+    if cycledata["artifact"]:
+        return
+
+    # RR и ЧСС
+    rz = safe_r_pos(cycledata)
+
+    if rz is None:
+        return
+
+    vice = None
+
+    if pos < num_cycles - 1:
+        cand = pos + 1
+
+        while cand < num_cycles:
+            if metadata[cand]["artifact"]:
+                continue
+            vice = safe_r_pos(metadata[cand])
+            if vice is not None:
+                break
+            cand += 1
+    else:
+        cand = pos - 1
+
+        while cand > 0:
+            if metadata[cand]["artifact"]:
+                continue
+            vice = safe_r_pos(metadata[cand])
+            if vice is not None:
+                break
+            cand -= 1
+
+    if vice is not None and vice != rz:
+        return float(abs(rz - vice)) / fs
+
+
 def metadata_postprocessing(metadata, sig, header, **kwargs):
     """
-    Расчет вторичных параметров сигнала в одном отведении
+    Расчет вторичных параметров сигнала во всех отведениях
 
     Поскольку источник входных метаданных неизвестен, необходимо
     перезаписать значения всех зависимых ключей.
@@ -163,19 +218,14 @@ def metadata_postprocessing(metadata, sig, header, **kwargs):
 
         # ######################################
         # RR и ЧСС
-        rz = cycledata["r_pos"][heartbeat_channel]
-        if ncycle < num_cycles-1:
-            neighbour = metadata[ncycle + 1]["r_pos"][heartbeat_channel]
-        else:
-            neighbour = metadata[ncycle - 1]["r_pos"][heartbeat_channel]
-
-        if rz is not None and neighbour is not None and rz != neighbour:
-            rr = float(abs(rz - neighbour)) / fs
-            cycledata["RR"] = rr
-            cycledata["heartrate"] = 60.0 / rr
-        else:
+        rr = find_rr(metadata, ncycle, fs)
+        if rr is None:
+            cycledata["artifact"] = True
             cycledata["RR"] = None
             cycledata["heartrate"] = None
+        else:
+            cycledata["RR"] = rr
+            cycledata["heartrate"] = 60.0 / rr
 
         for chan, x in signal_channels(sig):
 
