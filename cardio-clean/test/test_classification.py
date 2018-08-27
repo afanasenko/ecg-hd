@@ -54,6 +54,7 @@ def test_classify():
         print(num_classified)
         print(classids)
 
+    with open(filename_out, "rb") as fi:
         ry = blobapi_classify_rythms(
             inbuf=fi,
             metadata=meta,
@@ -61,12 +62,13 @@ def test_classify():
 
         assert len(ry) > 1
 
+    with open(filename_out, "rb") as fi:
         ish = blobapi_find_ishemia(
             inbuf=fi,
             metadata=meta,
         )
 
-        assert len(ish) > 1
+        assert len(ish) == 0
 
     os.remove(filename_out)
 
