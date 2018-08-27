@@ -102,6 +102,8 @@ def finalize_classes(qrs_classes, metadata):
 
     artifact_threshold = 1
     classdesc = []
+    known_complexes = set()
+
     # Номера классов - абстрактные, присваиваются исходя из количества
     # экземпляров
     for i, qcl in enumerate(
@@ -121,6 +123,7 @@ def finalize_classes(qrs_classes, metadata):
                 metadata[s]["artifact"] = True
             else:
                 metadata[s]["artifact"] = False
+                known_complexes.add(s)
 
         classdesc.append({
             "id": i,
@@ -128,6 +131,10 @@ def finalize_classes(qrs_classes, metadata):
             "count": len(qcl["samples"]),
             "type": dominant_val(complex_types)
         })
+
+    for i, qrs in enumerate(metadata):
+        if i not in known_complexes:
+            metadata[i]["qrs_class_id"] = None
 
     return classdesc
 
@@ -169,6 +176,9 @@ def incremental_classifier(sig, hdr, metadata, classgen_t=0.9,
     ]
 
     for i in range(num_cyc):
+
+        if metadata[i]["artifact"]:
+            continue
 
         l1, r1, c1 = get_qrs_bounds(metadata[i], fs)
         cormat = np.zeros(len(qrs_classes), float)

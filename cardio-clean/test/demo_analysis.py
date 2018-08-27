@@ -327,7 +327,7 @@ if __name__ == "__main__":
 
     # filename = "/Users/arseniy/SERDECH/data/PHYSIONET/I60"
     filename = "TestFromDcm.ecg"
-    filename = "/Users/arseniy/SERDECH/data/ROXMINE/Rh2025"
+    filename = "/Users/arseniy/SERDECH/data/ROXMINE/Rh2024"
 
     #show_filter_responses()
     #show_decomposition(filename, 1, 50000)

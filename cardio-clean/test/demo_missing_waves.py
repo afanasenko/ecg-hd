@@ -99,7 +99,7 @@ def show_waves(filename):
 
     for ncycle, qrs in enumerate(metadata):
 
-        if max(qrs["qt_duration"]) > 1.0:
+        if any(qrs["qt_duration"]) and max(qrs["qt_duration"]) < 0.2:
             suspicious.append(ncycle)
 
     missing_hrt = [i for i,x in enumerate(metadata) if x["heartrate"] is None]

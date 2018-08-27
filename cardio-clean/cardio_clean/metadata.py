@@ -122,9 +122,64 @@ def level_from_pos(d, chan, pos_key, val_key, sig, bias, gain):
         d[val_key][chan] = (sig[pos] - bias) / gain
 
 
+def safe_r_pos(cycledata):
+    heartbeat_channel=1
+
+    # RR и ЧСС
+    rz = cycledata["r_pos"][heartbeat_channel]
+    if rz is None:
+        qz = cycledata["q_pos"][heartbeat_channel]
+        sz = cycledata["s_pos"][heartbeat_channel]
+        if qz is not None and sz is not None:
+            rz = (qz + sz)/2
+    return rz
+
+
+def find_rr(metadata, pos, fs):
+
+    cycledata = metadata[pos]
+    num_cycles = len(metadata)
+
+    # Не считаем RR для артефактов
+    if cycledata["artifact"]:
+        return
+
+    # RR и ЧСС
+    rz = safe_r_pos(cycledata)
+
+    if rz is None:
+        return
+
+    vice = None
+
+    if pos < num_cycles - 1:
+        cand = pos + 1
+
+        while cand < num_cycles:
+            if metadata[cand]["artifact"]:
+                continue
+            vice = safe_r_pos(metadata[cand])
+            if vice is not None:
+                break
+            cand += 1
+    else:
+        cand = pos - 1
+
+        while cand > 0:
+            if metadata[cand]["artifact"]:
+                continue
+            vice = safe_r_pos(metadata[cand])
+            if vice is not None:
+                break
+            cand -= 1
+
+    if vice is not None and vice != rz:
+        return float(abs(rz - vice)) / fs
+
+
 def metadata_postprocessing(metadata, sig, header, **kwargs):
     """
-    Расчет вторичных параметров сигнала в одном отведении
+    Расчет вторичных параметров сигнала во всех отведениях
 
     Поскольку источник входных метаданных неизвестен, необходимо
     перезаписать значения всех зависимых ключей.
@@ -152,30 +207,25 @@ def metadata_postprocessing(metadata, sig, header, **kwargs):
 
     # Удаление выбросов
     for ncycle, cycledata in enumerate(metadata):
-        delta = ms_to_samples(50, fs)
-    #     remove_outliers(cycledata, "p_pos", ("p_start", "p_end"), delta)
-    #     remove_outliers(cycledata, "q_pos", [], delta)
-    #     remove_outliers(cycledata, "r_pos", ("r_start", "r_end"), delta)
-    #     remove_outliers(cycledata, "s_pos", [], delta)
+        delta = ms_to_samples(60, fs)
+        remove_outliers(cycledata, "p_pos", ("p_start", "p_end"), delta)
+        remove_outliers(cycledata, "q_pos", [], delta)
+        remove_outliers(cycledata, "r_pos", ("r_start", "r_end"), delta)
+        remove_outliers(cycledata, "s_pos", [], delta)
         remove_outliers(cycledata, "t_pos", ("t_start", "t_end"), delta)
 
     for ncycle, cycledata in enumerate(metadata):
 
         # ######################################
         # RR и ЧСС
-        rz = cycledata["r_pos"][heartbeat_channel]
-        if ncycle < num_cycles-1:
-            neighbour = metadata[ncycle + 1]["r_pos"][heartbeat_channel]
-        else:
-            neighbour = metadata[ncycle - 1]["r_pos"][heartbeat_channel]
-
-        if rz is not None and neighbour is not None and rz != neighbour:
-            rr = float(abs(rz - neighbour)) / fs
-            cycledata["RR"] = rr
-            cycledata["heartrate"] = 60.0 / rr
-        else:
+        rr = find_rr(metadata, ncycle, fs)
+        if rr is None:
+            cycledata["artifact"] = True
             cycledata["RR"] = None
             cycledata["heartrate"] = None
+        else:
+            cycledata["RR"] = rr
+            cycledata["heartrate"] = 60.0 / rr
 
         for chan, x in signal_channels(sig):
 
@@ -381,13 +431,20 @@ def estimate_qrslen(meta, fs, chan):
     return rb - lb
 
 
-def calculate_histogram(metadata, param_name, channel=None, nbins=10):
+def calculate_histogram(
+        metadata,
+        param_name,
+        channel=None,
+        nbins=10,
+        censoring=False
+):
     """
     Расчет гистограммы значений выбранного параметра в выбранном отведени
     :param metadata:
     :param param_name:
     :param channel:
     :param nbins:
+    :param censoring: отбрасывание самых больших и самых маленьких значений
     :return:
     """
 
@@ -400,6 +457,11 @@ def calculate_histogram(metadata, param_name, channel=None, nbins=10):
             x[param_name][channel] for x in metadata if x[param_name][channel] is not
             None
         ]
+
+    # цензурирование - отбрасывем хвосты
+    if censoring:
+        q = np.percentile(param_val, [1,99])
+        param_val = [x for x in param_val if q[0] < x < q[1]]
 
     hist, bine = np.histogram(param_val, bins=nbins)
 
@@ -435,8 +497,8 @@ def remove_outliers(metadata, key, dep_keys, delta):
 
     for i, v in enumerate(metadata[key]):
         if v is not None and abs(v - m) > delta:
-            print("{}[{}]: deviation {} samples".format(
-                key, i, int(abs(v - m))))
+            # print("{}[{}]: deviation {} samples".format(
+            #     key, i, int(abs(v - m))))
 
             metadata[key][i] = None
             for k in dep_keys:
