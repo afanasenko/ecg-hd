@@ -170,6 +170,9 @@ def incremental_classifier(sig, hdr, metadata, classgen_t=0.9,
 
     for i in range(num_cyc):
 
+        if metadata[i]["artifact"]:
+            continue
+
         l1, r1, c1 = get_qrs_bounds(metadata[i], fs)
         cormat = np.zeros(len(qrs_classes), float)
         for c, qrsc in enumerate(qrs_classes):
