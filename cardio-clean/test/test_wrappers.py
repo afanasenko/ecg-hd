@@ -122,9 +122,11 @@ def test_parameters():
 
         assert len(meta) == 3628
 
-        hrt = [x["heartrate"] for x in meta if x["heartrate"] is not None]
+        # Проверка на наличие ЧСС
+        no_rr = {c for c, x in enumerate(meta) if x["heartrate"] is None}
+        arti = {c for c, x in enumerate(meta) if x["artifact"]}
 
-        print("{} циклов с отметкой heartrate".format(len(hrt)))
+        assert arti == no_rr
 
         stdur = [x["st_duration"][0] for x in meta if x[
             "st_duration"][0] is not None]

@@ -41,7 +41,7 @@ def test_classify():
 
         num_art = len([x for x in meta if x["artifact"]])
 
-        assert num_art == 1
+        assert num_art > 1
 
         num_classified = len(
             [x for x in meta if x["qrs_class_id"] is not None]
