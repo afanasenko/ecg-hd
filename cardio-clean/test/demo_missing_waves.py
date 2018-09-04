@@ -12,7 +12,7 @@ from cardio_clean.qrsdetect import qrs_detection
 from cardio_clean.util import ecgread
 
 
-def plot_with_markup(sig, fs, metadata):
+def plot_with_markup(sig, fs, metadata, txt):
 
     numch = len(metadata[0]["r_pos"])
 
@@ -61,6 +61,7 @@ def plot_with_markup(sig, fs, metadata):
             if all((lb, rb)):
                 ax[chan].plot(np.arange(lb, rb)*tscale, s[lb:rb], "m")
 
+    f.title(txt)
     plt.show()
 
 
@@ -99,8 +100,8 @@ def show_waves(filename):
 
     for ncycle, qrs in enumerate(metadata):
 
-        #if qrs["heartrate"] is None and not is_artifact(qrs):
-        #    suspicious.append(ncycle)
+        if qrs["heartrate"] is None or is_artifact(qrs):
+            suspicious.append(ncycle)
 
         #if any(qrs["qt_duration"]) and max(qrs["qt_duration"]) < 0.2:
         #    suspicious.append(ncycle)
@@ -124,12 +125,18 @@ def show_waves(filename):
         i1 = max(0, sus-2)
         i2 = min(len(metadata), sus+3)
 
-        plot_with_markup(sig, fs, metadata[i1:i2])
+        tag = "unknown"
+        if is_artifact(metadata[sus]):
+            tag = "artifact"
+        elif is_pvc(metadata[sus]):
+            tag = "PVC"
+
+        plot_with_markup(sig, fs, metadata[i1:i2], tag)
 
 
 if __name__ == "__main__":
     # 2025 RsR in ch.2
-    filename = "/Users/arseniy/SERDECH/data/ROXMINE/Rh2021"
+    filename = "/Users/arseniy/SERDECH/data/ROXMINE/Rh2025"
     #filename = "TestFromDcm.ecg"
 
     if len(sys.argv) > 1:

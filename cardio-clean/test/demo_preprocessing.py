@@ -9,6 +9,7 @@ from cardio_clean.sigbind import build_comb_filter, mean_spectrum, \
     mains_filter, \
     fix_baseline
 from cardio_clean.qrsdetect import *
+from cardio_clean.util import ecgread
 
 
 def build_args():
