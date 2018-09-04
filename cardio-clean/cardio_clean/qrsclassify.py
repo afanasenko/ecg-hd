@@ -1,6 +1,7 @@
 # coding: utf-8
 
 import numpy as np
+from metadata import is_artifact, set_artifact, reset_artifact
 
 
 def correlate(sig1, sig2):
@@ -120,9 +121,9 @@ def finalize_classes(qrs_classes, metadata):
 
             # помечаем ущербные классы как артефакты
             if len(qcl["samples"]) <= artifact_threshold:
-                metadata[s]["artifact"] = True
+                set_artifact(metadata[s])
             else:
-                metadata[s]["artifact"] = False
+                reset_artifact(metadata[s])
                 known_complexes.add(s)
 
         classdesc.append({
@@ -177,7 +178,7 @@ def incremental_classifier(sig, hdr, metadata, classgen_t=0.9,
 
     for i in range(num_cyc):
 
-        if metadata[i]["artifact"]:
+        if is_artifact(metadata[i]):
             continue
 
         l1, r1, c1 = get_qrs_bounds(metadata[i], fs)

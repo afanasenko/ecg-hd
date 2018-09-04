@@ -12,7 +12,7 @@ from cardio_clean.qrsdetect import qrs_detection
 from cardio_clean.util import ecgread
 
 
-def plot_with_markup(sig, fs, metadata):
+def plot_with_markup(sig, fs, metadata, txt):
 
     numch = len(metadata[0]["r_pos"])
 
@@ -61,6 +61,7 @@ def plot_with_markup(sig, fs, metadata):
             if all((lb, rb)):
                 ax[chan].plot(np.arange(lb, rb)*tscale, s[lb:rb], "m")
 
+    f.title(txt)
     plt.show()
 
 
@@ -99,36 +100,44 @@ def show_waves(filename):
 
     for ncycle, qrs in enumerate(metadata):
 
-        if any(qrs["qt_duration"]) and max(qrs["qt_duration"]) < 0.2:
+        if qrs["heartrate"] is None or is_artifact(qrs):
+            suspicious.append(ncycle)
+
+        #if any(qrs["qt_duration"]) and max(qrs["qt_duration"]) < 0.2:
+        #    suspicious.append(ncycle)
+
+        if "E" in qrs["flags"]:
             suspicious.append(ncycle)
 
     missing_hrt = [i for i,x in enumerate(metadata) if x["heartrate"] is None]
     print("Heartrate missing in beats\n{}".format(missing_hrt))
 
-    for sus in suspicious:
+    for i, sus in enumerate(suspicious):
+
+        print("Show next ({}/{})?".format(i+1, len(suspicious)))
+        if sys.stdin.read(1).strip() == "n":
+            break
 
         print("display cycle {}, QT = {}".format(
             sus,
             metadata[sus]["qt_duration"]
         ))
-        i1 = sus
-        i2 = min(len(metadata), sus+2)
+        i1 = max(0, sus-2)
+        i2 = min(len(metadata), sus+3)
 
-        plot_with_markup(sig, fs, metadata[i1:i2])
-        # plot_with_markup(sig, fs, [metadata[sus]])
+        tag = "unknown"
+        if is_artifact(metadata[sus]):
+            tag = "artifact"
+        elif is_pvc(metadata[sus]):
+            tag = "PVC"
 
-        print("Show next?")
-        if sys.stdin.read(1).strip() == "n":
-            break
+        plot_with_markup(sig, fs, metadata[i1:i2], tag)
+
 
 if __name__ == "__main__":
-
-    # Rh2022 = qr, noise
-    # Rh2021 - Rs, extracyc
-    # Rh2024 - p(q)RsT
-    # Rh2025 = rs
-    filename = "/Users/arseniy/SERDECH/data/ROXMINE/Rh2024"
-    # filename = "TestFromDcm.ecg"
+    # 2025 RsR in ch.2
+    filename = "/Users/arseniy/SERDECH/data/ROXMINE/Rh2025"
+    #filename = "TestFromDcm.ecg"
 
     if len(sys.argv) > 1:
         filename = sys.argv[0]

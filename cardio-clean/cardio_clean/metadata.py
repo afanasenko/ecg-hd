@@ -1,6 +1,7 @@
 # coding: utf-8
 
 from util import signal_channels
+from scipy.stats import linregress
 
 """
 Метаданные подразделяются на первичные и вторичные.
@@ -55,9 +56,10 @@ def metadata_new(num_channels):
         "qrs_start": None,  # [секунд от начала записи] float
         "qrs_end": None,  # [секунд от начала записи] float
         "qrs_center": None,  # [секунд от начала записи] float
-        "qrs_class_id": None, # код класса string
-        "artifact": False,  # bool
+        "qrs_class_id": None,  # код класса string
         "qrsType": None,  # string
+        "flags": "",  # string флаги ''(обычный)|'A'(артефакт)|'E'(
+        # экстрасистола)|
         "complex_type": "U",
 
         # отдельные зубцы
@@ -122,11 +124,53 @@ def level_from_pos(d, chan, pos_key, val_key, sig, bias, gain):
         d[val_key][chan] = (sig[pos] - bias) / gain
 
 
+def is_pvc(cycledata):
+    """
+    Проверка признака экстрасистолы в данном комплексе
+    :param cycledata:
+    :return: bool
+    """
+    return "E" in cycledata["flags"]
+
+
+def is_artifact(cycledata):
+    """
+    Проверка признака артефакта в данном комплексе
+    :param cycledata:
+    :return: bool
+    """
+    return "A" in cycledata["flags"]
+
+
+def set_artifact(cycledata):
+    """
+    Установка признака артефакта в данном комплексе
+    :param cycledata:
+    :return: bool
+    """
+    if "A" not in cycledata["flags"]:
+        cycledata["flags"] += "A"
+
+
+def reset_artifact(cycledata):
+    """
+    Сброс признака артефакта в данном комплексе
+    :param cycledata:
+    :return: bool
+    """
+    cycledata["flags"].replace("A", "")
+
+
 def safe_r_pos(cycledata):
     heartbeat_channel=1
 
     # RR и ЧСС
     rz = cycledata["r_pos"][heartbeat_channel]
+    if rz is None:
+        realr = [x for x in cycledata["r_pos"] if x is not None]
+        if len(realr) > 1:
+            rz = np.median(realr)
+
     if rz is None:
         qz = cycledata["q_pos"][heartbeat_channel]
         sz = cycledata["s_pos"][heartbeat_channel]
@@ -141,7 +185,7 @@ def find_rr(metadata, pos, fs):
     num_cycles = len(metadata)
 
     # Не считаем RR для артефактов
-    if cycledata["artifact"]:
+    if is_artifact(cycledata):
         return
 
     # RR и ЧСС
@@ -156,7 +200,7 @@ def find_rr(metadata, pos, fs):
         cand = pos + 1
 
         while cand < num_cycles:
-            if metadata[cand]["artifact"]:
+            if is_artifact(metadata[cand]):
                 continue
             vice = safe_r_pos(metadata[cand])
             if vice is not None:
@@ -166,7 +210,7 @@ def find_rr(metadata, pos, fs):
         cand = pos - 1
 
         while cand > 0:
-            if metadata[cand]["artifact"]:
+            if is_artifact(metadata[cand]):
                 continue
             vice = safe_r_pos(metadata[cand])
             if vice is not None:
@@ -220,7 +264,7 @@ def metadata_postprocessing(metadata, sig, header, **kwargs):
         # RR и ЧСС
         rr = find_rr(metadata, ncycle, fs)
         if rr is None:
-            cycledata["artifact"] = True
+            set_artifact(cycledata)
             cycledata["RR"] = None
             cycledata["heartrate"] = None
         else:
@@ -325,6 +369,8 @@ def metadata_postprocessing(metadata, sig, header, **kwargs):
                 cycledata["complex_type"] = define_complex(
                     cycledata, fs, classification_channel
                 )
+
+    detect_pvc(metadata)
 
 
 def is_sinus_cycle(meta):
@@ -503,3 +549,55 @@ def remove_outliers(metadata, key, dep_keys, delta):
             metadata[key][i] = None
             for k in dep_keys:
                 metadata[k][i] = None
+
+
+def detect_pvc(metadata, look=5, max_rr_s=1.5):
+    """
+    Поиск экстрасистол
+    :param metadata:
+    :param look: окрестность для построения модели
+    :param max_rr_s: максимально допустимый RR-интервал
+    :return: None. Изменяется поле flags в метаданных
+    """
+
+    # значащие RR-интервалы
+    rr = []
+    for i, qrs in enumerate(metadata):
+        if not is_artifact(qrs):
+            rri = qrs["RR"]
+            if rri < max_rr_s:
+                rr.append((i, qrs["qrs_center"], qrs["RR"]))
+
+    # предварительно заполенный буфер RR-интервалов
+    pack = rr[:look]
+
+    for i, elem in enumerate(rr):
+
+        if i >= len(rr)-1:
+            break
+
+        if i > look:
+            pack.append(elem)
+
+        if len(pack) > 2*look+1:
+            pack.pop(0)
+
+        slope, intercept, r_value, p_value, std_err1 = linregress(
+            [x[1] for x in pack],
+            [x[2] for x in pack]
+        )
+
+        # объединяем последний RR со следующим для проверки ЭС
+        pack2 = pack[:]
+        last = pack2.pop(-1)
+        tst = rr[i+1]
+        pack2.append((last[0], last[1], last[2] + tst[2]))
+
+        slope, intercept, r_value, p_value, std_err2 = linregress(
+            [x[1] for x in pack2],
+            [x[2] for x in pack2]
+        )
+
+        if (std_err1 - std_err2) / std_err1 > 0.1:
+            #print(tst[1], ["{:.2}".format(x[2]) for x in pack])
+            metadata[tst[0]]["flags"] = "E"

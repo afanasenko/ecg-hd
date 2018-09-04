@@ -3,6 +3,7 @@
 import os
 import datetime
 from cardio_clean.cardioproc_api import *
+from cardio_clean.metadata import is_artifact
 
 
 def test_classify():
@@ -39,9 +40,11 @@ def test_classify():
 
         assert len(classes) == 1
 
-        num_art = len([x for x in meta if x["artifact"]])
+        artifacts = [i for i,x in enumerate(meta) if is_artifact(x)]
+        print(artifacts)
+        num_art = len(artifacts)
 
-        assert num_art > 1
+        assert num_art == 1
 
         num_classified = len(
             [x for x in meta if x["qrs_class_id"] is not None]
