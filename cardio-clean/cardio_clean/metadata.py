@@ -509,16 +509,24 @@ def remove_outliers(metadata, key, dep_keys, delta):
                 metadata[k][i] = None
 
 
-def detect_pvc(metadata):
+def detect_pvc(metadata, look=5, max_rr_s=1.5):
+    """
+    Поиск экстрасистол
+    :param metadata:
+    :param look: окрестность для построения модели
+    :param max_rr_s: максимально допустимый RR-интервал
+    :return: None. Изменяется поле flags в метаданных
+    """
 
+    # значащие RR-интервалы
     rr = []
     for i, qrs in enumerate(metadata):
         if not qrs["artifact"]:
             rri = qrs["RR"]
-            if rri < 1.5:
+            if rri < max_rr_s:
                 rr.append((i, qrs["qrs_center"], qrs["RR"]))
 
-    look = 5
+    # предварительно заполенный буфер RR-интервалов
     pack = rr[:look]
 
     for i, elem in enumerate(rr):
@@ -526,7 +534,9 @@ def detect_pvc(metadata):
         if i >= len(rr)-1:
             break
 
-        pack.append(elem)
+        if i > look:
+            pack.append(elem)
+
         if len(pack) > 2*look+1:
             pack.pop(0)
 
@@ -535,7 +545,7 @@ def detect_pvc(metadata):
             [x[2] for x in pack]
         )
 
-        # проверяем с заменой величины последнего RR на двойной
+        # объединяем последний RR со следующим для проверки ЭС
         pack2 = pack[:]
         last = pack2.pop(-1)
         tst = rr[i+1]
