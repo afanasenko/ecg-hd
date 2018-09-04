@@ -124,6 +124,15 @@ def level_from_pos(d, chan, pos_key, val_key, sig, bias, gain):
         d[val_key][chan] = (sig[pos] - bias) / gain
 
 
+def is_pvc(cycledata):
+    """
+    Проверка признака экстрасистолы в данном комплексе
+    :param cycledata:
+    :return: bool
+    """
+    return "E" in cycledata["flags"]
+
+
 def is_artifact(cycledata):
     """
     Проверка признака артефакта в данном комплексе
@@ -157,6 +166,11 @@ def safe_r_pos(cycledata):
 
     # RR и ЧСС
     rz = cycledata["r_pos"][heartbeat_channel]
+    if rz is None:
+        realr = [x for x in cycledata["r_pos"] if x is not None]
+        if len(realr) > 1:
+            rz = np.median(realr)
+
     if rz is None:
         qz = cycledata["q_pos"][heartbeat_channel]
         sz = cycledata["s_pos"][heartbeat_channel]
