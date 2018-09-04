@@ -1,6 +1,7 @@
 # coding: utf-8
 
 from util import signal_channels
+from scipy.stats import linregress
 
 """
 Метаданные подразделяются на первичные и вторичные.
@@ -55,9 +56,10 @@ def metadata_new(num_channels):
         "qrs_start": None,  # [секунд от начала записи] float
         "qrs_end": None,  # [секунд от начала записи] float
         "qrs_center": None,  # [секунд от начала записи] float
-        "qrs_class_id": None, # код класса string
+        "qrs_class_id": None,  # код класса string
         "artifact": False,  # bool
         "qrsType": None,  # string
+        "flags": "",  # string флаги ''|'E'(экстрасистола)
         "complex_type": "U",
 
         # отдельные зубцы
@@ -326,6 +328,8 @@ def metadata_postprocessing(metadata, sig, header, **kwargs):
                     cycledata, fs, classification_channel
                 )
 
+    detect_pvc(metadata)
+
 
 def is_sinus_cycle(meta):
     """
@@ -503,3 +507,45 @@ def remove_outliers(metadata, key, dep_keys, delta):
             metadata[key][i] = None
             for k in dep_keys:
                 metadata[k][i] = None
+
+
+def detect_pvc(metadata):
+
+    rr = []
+    for i, qrs in enumerate(metadata):
+        if not qrs["artifact"]:
+            rri = qrs["RR"]
+            if rri < 1.5:
+                rr.append((i, qrs["qrs_center"], qrs["RR"]))
+
+    look = 5
+    pack = rr[:look]
+
+    for i, elem in enumerate(rr):
+
+        if i >= len(rr)-1:
+            break
+
+        pack.append(elem)
+        if len(pack) > 2*look+1:
+            pack.pop(0)
+
+        slope, intercept, r_value, p_value, std_err1 = linregress(
+            [x[1] for x in pack],
+            [x[2] for x in pack]
+        )
+
+        # проверяем с заменой величины последнего RR на двойной
+        pack2 = pack[:]
+        last = pack2.pop(-1)
+        tst = rr[i+1]
+        pack2.append((last[0], last[1], last[2] + tst[2]))
+
+        slope, intercept, r_value, p_value, std_err2 = linregress(
+            [x[1] for x in pack2],
+            [x[2] for x in pack2]
+        )
+
+        if std_err2 < std_err1:
+            #print(tst[1], ["{:.2}".format(x[2]) for x in pack])
+            metadata[tst[0]]["flags"] = "E"
