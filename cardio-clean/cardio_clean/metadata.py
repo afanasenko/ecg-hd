@@ -57,9 +57,9 @@ def metadata_new(num_channels):
         "qrs_end": None,  # [секунд от начала записи] float
         "qrs_center": None,  # [секунд от начала записи] float
         "qrs_class_id": None,  # код класса string
-        "artifact": False,  # bool
         "qrsType": None,  # string
-        "flags": "",  # string флаги ''|'E'(экстрасистола)
+        "flags": "",  # string флаги ''(обычный)|'A'(артефакт)|'E'(
+        # экстрасистола)|
         "complex_type": "U",
 
         # отдельные зубцы
@@ -124,6 +124,34 @@ def level_from_pos(d, chan, pos_key, val_key, sig, bias, gain):
         d[val_key][chan] = (sig[pos] - bias) / gain
 
 
+def is_artifact(cycledata):
+    """
+    Проверка признака артефакта в данном комплексе
+    :param cycledata:
+    :return: bool
+    """
+    return "A" in cycledata["flags"]
+
+
+def set_artifact(cycledata):
+    """
+    Установка признака артефакта в данном комплексе
+    :param cycledata:
+    :return: bool
+    """
+    if "A" not in cycledata["flags"]:
+        cycledata["flags"] += "A"
+
+
+def reset_artifact(cycledata):
+    """
+    Сброс признака артефакта в данном комплексе
+    :param cycledata:
+    :return: bool
+    """
+    cycledata["flags"].replace("A", "")
+
+
 def safe_r_pos(cycledata):
     heartbeat_channel=1
 
@@ -143,7 +171,7 @@ def find_rr(metadata, pos, fs):
     num_cycles = len(metadata)
 
     # Не считаем RR для артефактов
-    if cycledata["artifact"]:
+    if is_artifact(cycledata):
         return
 
     # RR и ЧСС
@@ -158,7 +186,7 @@ def find_rr(metadata, pos, fs):
         cand = pos + 1
 
         while cand < num_cycles:
-            if metadata[cand]["artifact"]:
+            if is_artifact(metadata[cand]):
                 continue
             vice = safe_r_pos(metadata[cand])
             if vice is not None:
@@ -168,7 +196,7 @@ def find_rr(metadata, pos, fs):
         cand = pos - 1
 
         while cand > 0:
-            if metadata[cand]["artifact"]:
+            if is_artifact(metadata[cand]):
                 continue
             vice = safe_r_pos(metadata[cand])
             if vice is not None:
@@ -222,7 +250,7 @@ def metadata_postprocessing(metadata, sig, header, **kwargs):
         # RR и ЧСС
         rr = find_rr(metadata, ncycle, fs)
         if rr is None:
-            cycledata["artifact"] = True
+            set_artifact(cycledata)
             cycledata["RR"] = None
             cycledata["heartrate"] = None
         else:
@@ -521,7 +549,7 @@ def detect_pvc(metadata, look=5, max_rr_s=1.5):
     # значащие RR-интервалы
     rr = []
     for i, qrs in enumerate(metadata):
-        if not qrs["artifact"]:
+        if not is_artifact(qrs):
             rri = qrs["RR"]
             if rri < max_rr_s:
                 rr.append((i, qrs["qrs_center"], qrs["RR"]))

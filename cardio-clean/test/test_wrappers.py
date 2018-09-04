@@ -3,6 +3,7 @@
 import os
 import json
 from cardio_clean.cardioproc_api import *
+from cardio_clean.metadata import is_artifact
 
 
 def test_readwrite():
@@ -122,9 +123,9 @@ def test_parameters():
 
         assert len(meta) == 3628
 
-        # Проверка на наличие ЧСС
+        # Проверка на наличие ЧСС для всех компелксов кроме артефактов
         no_rr = {c for c, x in enumerate(meta) if x["heartrate"] is None}
-        arti = {c for c, x in enumerate(meta) if x["artifact"]}
+        arti = {c for c, x in enumerate(meta) if is_artifact(x)}
 
         assert arti == no_rr
 

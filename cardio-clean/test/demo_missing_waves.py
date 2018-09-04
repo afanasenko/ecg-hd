@@ -99,36 +99,38 @@ def show_waves(filename):
 
     for ncycle, qrs in enumerate(metadata):
 
-        if any(qrs["qt_duration"]) and max(qrs["qt_duration"]) < 0.2:
+        #if qrs["heartrate"] is None and not is_artifact(qrs):
+        #    suspicious.append(ncycle)
+
+        #if any(qrs["qt_duration"]) and max(qrs["qt_duration"]) < 0.2:
+        #    suspicious.append(ncycle)
+
+        if "E" in qrs["flags"]:
             suspicious.append(ncycle)
 
     missing_hrt = [i for i,x in enumerate(metadata) if x["heartrate"] is None]
     print("Heartrate missing in beats\n{}".format(missing_hrt))
 
-    for sus in suspicious:
+    for i, sus in enumerate(suspicious):
+
+        print("Show next ({}/{})?".format(i+1, len(suspicious)))
+        if sys.stdin.read(1).strip() == "n":
+            break
 
         print("display cycle {}, QT = {}".format(
             sus,
             metadata[sus]["qt_duration"]
         ))
-        i1 = sus
-        i2 = min(len(metadata), sus+2)
+        i1 = max(0, sus-2)
+        i2 = min(len(metadata), sus+3)
 
         plot_with_markup(sig, fs, metadata[i1:i2])
-        # plot_with_markup(sig, fs, [metadata[sus]])
 
-        print("Show next?")
-        if sys.stdin.read(1).strip() == "n":
-            break
 
 if __name__ == "__main__":
-
-    # Rh2022 = qr, noise
-    # Rh2021 - Rs, extracyc
-    # Rh2024 - p(q)RsT
-    # Rh2025 = rs
-    filename = "/Users/arseniy/SERDECH/data/ROXMINE/Rh2024"
-    # filename = "TestFromDcm.ecg"
+    # 2025 RsR in ch.2
+    filename = "/Users/arseniy/SERDECH/data/ROXMINE/Rh2021"
+    #filename = "TestFromDcm.ecg"
 
     if len(sys.argv) > 1:
         filename = sys.argv[0]

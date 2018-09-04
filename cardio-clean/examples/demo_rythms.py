@@ -64,7 +64,7 @@ def show_qt(filename, chan, lim):
 
     for ncycle, qrs in enumerate(metadata):
 
-        #if qrs["artifact"]:
+        #if is_artifact(qrs):
         #    continue
 
         if qrs["qt_duration"] is not None:

@@ -118,7 +118,7 @@ def define_ishemia_episodes(sig, header, metadata):
 
         for i, meta in enumerate(metadata):
 
-            if meta["artifact"]:
+            if is_artifact(meta):
                 continue
 
             c = check_criteria(
