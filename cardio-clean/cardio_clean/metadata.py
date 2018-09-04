@@ -546,6 +546,6 @@ def detect_pvc(metadata):
             [x[2] for x in pack2]
         )
 
-        if std_err2 < std_err1:
+        if (std_err1 - std_err2) / std_err1 > 0.1:
             #print(tst[1], ["{:.2}".format(x[2]) for x in pack])
             metadata[tst[0]]["flags"] = "E"
