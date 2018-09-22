@@ -17,7 +17,8 @@ rythm_signatures = [
     "v_fib",  # трепетание желудочков
     "v_parox",  # пароксизмальная желудочковая тахикардия
     "av_parox",  # пароксизмальная наджелудочковая AB тахикардия
-    "a_parox"  # пароксизмальная наджелудочковая предсердная тахикардия
+    "a_parox",  # пароксизмальная наджелудочковая предсердная тахикардия
+    "pvc", # экстрасистолия
 ]
 
 # Цифровые коды ритмов
@@ -45,6 +46,19 @@ def is_migration(metadata_block, pilot=1):
             return True
 
     return False
+
+
+def define_pvc(metadata, rythms):
+
+    for i, qrs in enumerate(metadata):
+        if is_pvc(qrs):
+            rythms.append({
+                "id": rythm_codes["pvc"],
+                "desc": "pvc",
+                "start": qrs["qrs_start"],
+                "end": qrs["qrs_end"],
+                "modified": False
+            })
 
 
 def define_rythm(metadata):
@@ -129,6 +143,8 @@ def define_rythm(metadata):
         else:
             last_r = r
             count = 1
+
+    define_pvc(metadata, rythms)
 
     return rythms
 
