@@ -17,7 +17,9 @@ rythm_signatures = [
     "v_fib",  # трепетание желудочков
     "v_parox",  # пароксизмальная желудочковая тахикардия
     "av_parox",  # пароксизмальная наджелудочковая AB тахикардия
-    "a_parox"  # пароксизмальная наджелудочковая предсердная тахикардия
+    "a_parox",  # пароксизмальная наджелудочковая предсердная тахикардия
+    "pvc", # экстрасистолия
+    "pause" # асистолия, то есть отсутствие комплекса
 ]
 
 # Цифровые коды ритмов
@@ -45,6 +47,41 @@ def is_migration(metadata_block, pilot=1):
             return True
 
     return False
+
+
+def define_pvc(metadata, rythms):
+
+    for i, qrs in enumerate(metadata):
+        if is_pvc(qrs) and not is_artifact(qrs):
+            rythms.append({
+                "id": rythm_codes["pvc"],
+                "desc": "pvc",
+                "start": qrs["qrs_start"],
+                "end": qrs["qrs_end"],
+                "modified": False
+            })
+
+
+def define_pauses(metadata, rythms):
+    total_cycles = len(metadata)
+    for i, qrs in enumerate(metadata):
+        if i:
+            rr = qrs["RR"]
+            if rr is None:
+                continue
+
+            prr = metadata[i-1]["RR"]
+            if prr is not None and rr > 1.5 * prr and i < total_cycles-1:
+
+                c_pause = (qrs["qrs_center"] + metadata[i+1]["qrs_center"]) / 2
+
+                rythms.append({
+                    "id": rythm_codes["pause"],
+                    "desc": "pause",
+                    "start": c_pause - 0.1,
+                    "end": c_pause + 0.1,
+                    "modified": False
+                })
 
 
 def define_rythm(metadata):
@@ -129,6 +166,9 @@ def define_rythm(metadata):
         else:
             last_r = r
             count = 1
+
+    define_pvc(metadata, rythms)
+    define_pauses(metadata, rythms)
 
     return rythms
 
