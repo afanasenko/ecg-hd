@@ -54,8 +54,9 @@ def test_classify():
             [x["qrs_class_id"] for x in meta]
         )
 
-        print(num_classified)
-        print(classids)
+        print("ClassIDs: {}, Number of classified complexes: {}".format(
+            classids, num_classified))
+
 
     with open(filename_out, "rb") as fi:
         ry = blobapi_classify_rythms(
@@ -64,6 +65,10 @@ def test_classify():
         )
 
         assert len(ry) > 1
+
+        pauses = [x for x in ry if x["desc"] == "pause"]
+        print("Asystolia episodes:")
+        print(pauses)
 
     with open(filename_out, "rb") as fi:
         ish = blobapi_find_ishemia(
