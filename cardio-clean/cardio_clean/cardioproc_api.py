@@ -1,5 +1,6 @@
 #coding: utf-8
 
+from config import config
 from util import *
 from sigbind import fix_baseline, mains_filter
 from qrsdetect import qrs_detection
@@ -248,7 +249,13 @@ def blobapi_histogram_qt(metadata, channel=1):
     ]
     Элементы списка уже упорядочены по положению интервала
     """
-    return calculate_histogram(metadata, "qt_duration", channel)
+    return calculate_histogram(
+        metadata,
+        "qt_duration",
+        channel,
+        bins=config.QT["histogram_bins"],
+        censoring=config.QT["3sigma"]
+    )
 
 
 def blobapi_histogram_qtc(metadata, channel=1):
