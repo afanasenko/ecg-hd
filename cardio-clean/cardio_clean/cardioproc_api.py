@@ -265,4 +265,11 @@ def blobapi_histogram_qtc(metadata, channel=1):
     :param channel: интересующий номер отведения
     :return: см. описание для blobapi_histogram_qt
     """
-    return calculate_histogram(metadata, "qtc_duration", channel)
+
+    return calculate_histogram(
+        metadata,
+        "qtc_duration",
+        channel,
+        bins=config.QT["histogram_bins"],
+        censoring=config.QT["3sigma"]
+    )
