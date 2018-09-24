@@ -4,6 +4,7 @@ import numpy as np
 from random import random, randint
 
 from metadata import *
+from config import config
 
 
 ishemic_types = [
@@ -18,14 +19,14 @@ ishemic_types = [
 def check_criteria(sig, chan, meta, gain, fs):
 
     # перевод порогов из милливольт в значения сигнала
-    k1_thresh = 0.1 * gain
-    k2_thresh = 0.1 * gain
-    k2_dur = 0.08 * fs
-    k3_thresh = 0.0014 * gain
-    e1_thresh = -0.1 * gain
-    e1_dur = 0.08 * fs
-    e2_thresh = -0.2 * gain
-    e2_dur = 0.08 * fs
+    k1_thresh = config.STT["kodama_depr_t"] * gain
+    k2_thresh = config.STT["kodama_elev_t"] * gain
+    k2_dur = config.STT["kodama_elev_dur"] * fs
+    k3_thresh = config.STT["kodama_relation"] * gain
+    e1_thresh = -config.STT["ellestad_depr_t1"] * gain
+    e1_dur = config.STT["ellestad_duration"] * fs
+    e2_thresh = -config.STT["ellestad_depr_t2"] * gain
+    e2_dur = config.STT["ellestad_duration"] * fs
 
     stbeg = meta["st_start"][chan]
     stend = meta["st_end"][chan]
@@ -59,7 +60,7 @@ def check_criteria(sig, chan, meta, gain, fs):
         if abs(stlev) / meta["heartrate"] > k3_thresh:
             return "K3"
 
-    # Ellestad-1
+    # Ellestad-1 косонисходящая депрессия
     if jlev is not None and meta["st_slope"] is not None:
         if jlev < e1_thresh and meta["st_slope"] <= 0:
             if jlev is not None and iso is not None:
@@ -72,7 +73,7 @@ def check_criteria(sig, chan, meta, gain, fs):
 
                     if depr - stbeg > e1_dur:
                         return "E1"
-    # Ellestad-2
+    # Ellestad-2 косовосходящая депрессия
     if stlev is not None and meta["st_slope"] is not None and stbeg is not \
             None and stend is not None:
         if stlev < e2_thresh and meta["st_slope"] > 0:
@@ -111,7 +112,7 @@ def define_ishemia_episodes(sig, header, metadata):
     numch = len(metadata[0]["r_pos"])
     last_codes = [None]*numch
     last_seq = [None]*numch
-    min_len = 5
+    min_len = config.STT["min_episode"]
     k1_duration = 60.0 * header["fs"]
 
     for ch in range(numch):
@@ -163,6 +164,11 @@ def define_ishemia_episodes(sig, header, metadata):
 
 
 def mock_ishemia_episodes(metadata):
+    """
+    Псевдослучайная имитация ишемических жпизодов, для проверки интерфейса
+    :param metadata:
+    :return:
+    """
 
     ishemia = []
     numch = len(metadata[0]["r_pos"])

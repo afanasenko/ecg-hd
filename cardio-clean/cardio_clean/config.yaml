@@ -14,11 +14,16 @@
     heartrate_channel: 1
   QT:                   # Анализ QT
     histogram_bins: 10  # Число интервалов для построения гистограммы распределения
-    window: 8           # Интервал усреднения
     3sigma: False       # Цензурирование гистограммы по правилу трех сигм
   STT:                  # Анализ ST-T
     kodama_elev_t: 0.1  # Пороговое значение элевации Kodama
     kodama_depr_t: 0.1  # Пороговое значение депрессии Kodama
-    ellestad_elev_t: 0.2  # Пороговое значение элевации Ellestad
-    ellestad_depr_t: 0.1  # Пороговое значение депрессии Ellestad
+    kodama_elev_dur: 0.08  # Длительность элевации Kodama
+    kodama_relation: 1.4  # Порог отношения смещения st к ЧСС Kodama
+                             # [мВ/уд/мин]
+    ellestad_depr_t1: 0.2  # Пороговое значение косонисходящей
+                           # депрессии Ellestad
+    ellestad_depr_t2: 0.1  # Пороговое значение косовосходящей
+                           # депрессии Ellestad
+    ellestad_duration: 0.08 # длительность депрессии Ellestad
     min_episode: 5
