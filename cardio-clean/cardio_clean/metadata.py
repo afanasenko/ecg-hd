@@ -2,6 +2,7 @@
 
 from util import signal_channels
 from scipy.stats import linregress
+from config import config
 
 """
 Метаданные подразделяются на первичные и вторичные.
@@ -164,7 +165,6 @@ def reset_artifact(cycledata):
 def safe_r_pos(cycledata):
     heartbeat_channel=1
 
-    # RR и ЧСС
     rz = cycledata["r_pos"][heartbeat_channel]
     if rz is None:
         realr = [x for x in cycledata["r_pos"] if x is not None]
@@ -480,18 +480,24 @@ def estimate_qrslen(meta, fs, chan):
 def calculate_histogram(
         metadata,
         param_name,
-        channel=None,
-        nbins=10,
-        censoring=False
+        channel,
+        bins,
+        censoring
 ):
     """
     Расчет гистограммы значений выбранного параметра в выбранном отведени
-    :param metadata:
-    :param param_name:
-    :param channel:
-    :param nbins:
+    :param metadata: блок метаданных
+    :param param_name: имя исследуемого параметра
+    :param channel: номер канала или None - считаем по всем каналам
+    :param bins: число интервалов в гистограмме
     :param censoring: отбрасывание самых больших и самых маленьких значений
-    :return:
+    :return: список элементов гистограммы в виде словарей
+            {
+                "bin_left",
+                "bin_right",
+                "count": v,
+                "percent"
+            }
     """
 
     if channel is None:
@@ -504,20 +510,20 @@ def calculate_histogram(
             None
         ]
 
-    # цензурирование - отбрасывем хвосты
+    # цензурирование - отбрасывем хвосты распределения по 1 проценту
     if censoring:
-        q = np.percentile(param_val, [1,99])
+        q = np.percentile(param_val, [1, 99])
         param_val = [x for x in param_val if q[0] < x < q[1]]
 
-    hist, bine = np.histogram(param_val, bins=nbins)
+    hist, bin_edges = np.histogram(param_val, bins=bins)
 
     hdata = []
 
     for i, v in enumerate(hist):
         hdata.append(
             {
-                "bin_left": bine[i],
-                "bin_right": bine[i+1],
+                "bin_left": bin_edges[i],
+                "bin_right": bin_edges[i+1],
                 "count": v,
                 "percent": 100.0 * v / np.sum(hist)
             }
