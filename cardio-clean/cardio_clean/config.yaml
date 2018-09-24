@@ -1,17 +1,4 @@
 ---
-  NORMA:
-    max_p_ms: 100 # максимальная длительность P-зубца
-    max_p_mv: 2.5 # максимальная высота P-зубца
-    min_qt_ms: 350
-    max_qt_ms: 440
-  SEGMENTATION:
-    min_qrs_ms: 20
-    min_st_ms: 80
-    j_offset_ms: 60
-    jplus_offset_ms: 80
-    relative_t_search: 0.6
-    relative_p_search: 0.4
-    heartrate_channel: 1
   QT:                   # Анализ QT
     histogram_bins: 10  # Число интервалов для построения гистограммы распределения
     3sigma: False       # Цензурирование гистограммы по правилу трех сигм
