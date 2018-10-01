@@ -6,6 +6,7 @@
     kodama_elev_t: 0.1  # Пороговое значение элевации Kodama
     kodama_depr_t: 0.1  # Пороговое значение депрессии Kodama
     kodama_elev_dur: 0.08  # Длительность элевации Kodama
+    k1_duration: 60.0     # Длительность эпизода депрессии Kodama-1
     kodama_relation: 1.4  # Порог отношения смещения st к ЧСС Kodama
                              # [мВ/уд/мин]
     ellestad_depr_t1: 0.2  # Пороговое значение косонисходящей
