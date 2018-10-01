@@ -142,11 +142,12 @@ def test_parameters():
 
         assert len(stdur) > 0
 
-        h = blobapi_histogram_qt(metadata=meta)
-        h = blobapi_histogram_qtc(metadata=meta)
+        h = blobapi_histogram_qt(metadata=meta, histogram_bins=11)
+        h = blobapi_histogram_qtc(metadata=meta, histogram_bins=11)
 
     with open(filename_in, "rb") as fi:
-        ish = blobapi_find_ishemia(inbuf=fi, metadata=meta)
+        ish = blobapi_find_ishemia(inbuf=fi, metadata=meta,
+                                   kodama_elev_dur=0.09)
 
     os.remove(filename_out)
 
