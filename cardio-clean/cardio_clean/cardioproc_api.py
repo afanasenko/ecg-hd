@@ -204,13 +204,15 @@ def blobapi_classify_rythms(
 
 def blobapi_find_ishemia(
             inbuf,
-            metadata
+            metadata,
+            **kwargs
     ):
     """
         Выделение эпизодов, содержащих признаки ишемии в ST-сегменте
         Предварительные условия: выполнена классификация (blobapi_classify_qrs)
     :param inbuf:
     :param metadata: метаданные с результатами сегментации
+    :param **kwargs: набор ключей см. в config.yaml, секция STT
     :return: список эпизодов ишемии
     [
      {
@@ -228,14 +230,15 @@ def blobapi_find_ishemia(
     """
 
     header, indata = read_buffer(inbuf)
-    return define_ishemia_episodes(indata, header, metadata)
+    return define_ishemia_episodes(indata, header, metadata, **kwargs)
 
 
-def blobapi_histogram_qt(metadata, channel=1):
+def blobapi_histogram_qt(metadata, channel=1, **kwargs):
     """
         Расчет гистограммы длин интервалов QT
     :param metadata: метаданные с результатами сегментации
     :param channel: интересующий номер отведения
+    :param **kwargs: набор ключей см. в config.yaml, секция QT
     :return: данные для построения гистограммы в виде списка интервальных
     значений
     [
@@ -249,27 +252,47 @@ def blobapi_histogram_qt(metadata, channel=1):
     ]
     Элементы списка уже упорядочены по положению интервала
     """
+
+    bins = kwargs.get(
+        "histogram_bins",
+        config.QT["histogram_bins"]
+    )
+    censoring = kwargs.get(
+        "3sigma",
+        config.QT["3sigma"]
+    )
+
     return calculate_histogram(
         metadata,
         "qt_duration",
         channel,
-        bins=config.QT["histogram_bins"],
-        censoring=config.QT["3sigma"]
+        bins=bins,
+        censoring=censoring
     )
 
 
-def blobapi_histogram_qtc(metadata, channel=1):
+def blobapi_histogram_qtc(metadata, channel=1, **kwargs):
     """
         Расчет гистограммы длин интервалов корригированного QT
     :param metadata: метаданные с результатами сегментации
     :param channel: интересующий номер отведения
+    :param **kwargs: набор ключей см. в config.yaml, секция QT
     :return: см. описание для blobapi_histogram_qt
     """
+
+    bins = kwargs.get(
+        "histogram_bins",
+        config.QT["histogram_bins"]
+    )
+    censoring = kwargs.get(
+        "3sigma",
+        config.QT["3sigma"]
+    )
 
     return calculate_histogram(
         metadata,
         "qtc_duration",
         channel,
-        bins=config.QT["histogram_bins"],
-        censoring=config.QT["3sigma"]
+        bins=bins,
+        censoring=censoring
     )
