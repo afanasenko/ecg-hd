@@ -16,73 +16,6 @@ ishemic_types = [
 ]
 
 
-def check_criteria(sig, chan, meta, gain, fs):
-
-    # перевод порогов из милливольт в значения сигнала
-    k1_thresh = config.STT["kodama_depr_t"] * gain
-    k2_thresh = config.STT["kodama_elev_t"] * gain
-    k2_dur = config.STT["kodama_elev_dur"] * fs
-    k3_thresh = config.STT["kodama_relation"] * gain
-    e1_thresh = -config.STT["ellestad_depr_t1"] * gain
-    e1_dur = config.STT["ellestad_duration"] * fs
-    e2_thresh = -config.STT["ellestad_depr_t2"] * gain
-    e2_dur = config.STT["ellestad_duration"] * fs
-
-    stbeg = meta["st_start"][chan]
-    stend = meta["st_end"][chan]
-    jplus = meta["st_plus"][chan]
-    jlev = meta["st_start_level"][chan]
-    stlev = meta["st_plus_level"][chan]
-    iso = meta["isolevel"][chan]
-
-    # Kodama-1: горизонтальная либо нисходящая депрессия
-    if stlev is not None and meta["st_slope"] is not None:
-        if stlev < -k1_thresh and meta["st_slope"] <= 0:
-            return "K1"
-
-    # Kodama-2: элевация не менее 80 мс от начала сегмента (J)
-    if jplus is not None and stbeg is not None and stend is not None:
-        if jlev is not None and iso is not None:
-
-            if jlev > k2_thresh:
-                elev = stbeg
-
-                while sig[elev, chan] - iso > k2_thresh:
-                    elev += 1
-                    if elev >= stend:
-                        break
-
-                if elev - stbeg > k2_dur:
-                    return "K2"
-
-    # Kodama-3: отношение смещения st к ЧСС больше порога (элевация или депр.)
-    if stlev is not None and meta["heartrate"] is not None:
-        if abs(stlev) / meta["heartrate"] > k3_thresh:
-            return "K3"
-
-    # Ellestad-1 косонисходящая депрессия
-    if jlev is not None and meta["st_slope"] is not None:
-        if jlev < e1_thresh and meta["st_slope"] <= 0:
-            if jlev is not None and iso is not None:
-                    depr = jlev
-
-                    while sig[depr, chan] - iso < e1_thresh:
-                        depr += 1
-                        if depr >= stend:
-                            break
-
-                    if depr - stbeg > e1_dur:
-                        return "E1"
-    # Ellestad-2 косовосходящая депрессия
-    if stlev is not None and meta["st_slope"] is not None and stbeg is not \
-            None and stend is not None:
-        if stlev < e2_thresh and meta["st_slope"] > 0:
-            if stend - stbeg > e2_dur:
-                return "E2"
-
-    return ""
-
-
 def define_ishemia(metadata, chan, ishemic_type, start_idx, end_idx):
 
     start_time = metadata[start_idx]["qrs_start"]
@@ -106,29 +39,126 @@ def define_ishemia(metadata, chan, ishemic_type, start_idx, end_idx):
         }
 
 
-def define_ishemia_episodes(sig, header, metadata):
+def define_ishemia_episodes(sig, header, metadata, **kwargs):
+    """
+        Поиск эпизодов ишемии по критериям Kodama и Ellestad в ST-сегментее
+    :param sig:
+    :param header:
+    :param metadata:
+    :param kwargs: См. секцию STT в config.yaml
+    :return:
+    """
 
     ishemia = []
     numch = len(metadata[0]["r_pos"])
     last_codes = [None]*numch
     last_seq = [None]*numch
-    min_len = config.STT["min_episode"]
-    k1_duration = 60.0 * header["fs"]
+    fs = header["fs"]
+
+    k2_dur = kwargs.get(
+        "kodama_elev_dur",
+        config.STT["kodama_elev_dur"]
+    ) * fs
+    e1_dur = kwargs.get(
+        "ellestad_duration",
+        config.STT["ellestad_duration"]
+    ) * fs
+    e2_dur = kwargs.get(
+        "ellestad_duration",
+        config.STT["ellestad_duration"]
+    ) * fs
+    min_len = kwargs.get(
+        "min_episode",
+        config.STT["min_episode"]
+    )
+    k1_duration = kwargs.get(
+        "k1_duration",
+        config.STT["k1_duration"]
+    ) * fs
 
     for ch in range(numch):
+        # перевод порогов из милливольт в значения сигнала
+        gain = header["adc_gain"][ch]
+        k1_thresh = kwargs.get(
+            "kodama_depr_t",
+            config.STT["kodama_depr_t"]
+        ) * gain
+        k2_thresh = kwargs.get(
+            "kodama_elev_t",
+            config.STT["kodama_elev_t"]
+        ) * gain
+        k3_thresh = kwargs.get(
+            "kodama_relation",
+            config.STT["kodama_relation"]
+        ) * gain
+        e1_thresh = -kwargs.get(
+            "ellestad_depr_t1",
+            config.STT["ellestad_depr_t1"]
+        ) * gain
+        e2_thresh = -kwargs.get(
+            "ellestad_depr_t2",
+            config.STT["ellestad_depr_t2"]
+        ) * gain
 
         for i, meta in enumerate(metadata):
 
             if is_artifact(meta):
                 continue
 
-            c = check_criteria(
-                sig,
-                ch,
-                meta,
-                header["adc_gain"][ch],
-                header["fs"]
-            )
+            c = ""
+
+            stbeg = meta["st_start"][ch]
+            stend = meta["st_end"][ch]
+            jplus = meta["st_plus"][ch]
+            jlev = meta["st_start_level"][ch]
+            stlev = meta["st_plus_level"][ch]
+            iso = meta["isolevel"][ch]
+
+            # Kodama-1: горизонтальная либо нисходящая депрессия
+            if stlev is not None and meta["st_slope"] is not None:
+                if stlev < -k1_thresh and meta["st_slope"] <= 0:
+                    c = "K1"
+
+            # Kodama-2: элевация не менее 80 мс от начала сегмента (J)
+            elif jplus is not None and stbeg is not None and stend is not None:
+                if jlev is not None and iso is not None:
+
+                    if jlev > k2_thresh:
+                        elev = stbeg
+
+                        while sig[elev, ch] - iso > k2_thresh:
+                            elev += 1
+                            if elev >= stend:
+                                break
+
+                        if elev - stbeg > k2_dur:
+                            c = "K2"
+
+            # Kodama-3: отношение смещения st к ЧСС больше порога (элевация или депр.)
+            elif stlev is not None and meta["heartrate"] is not None:
+                if abs(stlev) / meta["heartrate"] > k3_thresh:
+                    c = "K3"
+
+            # Ellestad-1 косонисходящая депрессия
+            elif jlev is not None and meta["st_slope"] is not None:
+                if jlev < e1_thresh and meta["st_slope"] <= 0:
+                    if jlev is not None and iso is not None:
+                        depr = jlev
+
+                        while sig[depr, ch] - iso < e1_thresh:
+                            depr += 1
+                            if depr >= stend:
+                                break
+
+                        if depr - stbeg > e1_dur:
+                            c = "E1"
+            # Ellestad-2 косовосходящая депрессия
+            elif stlev is not None and meta[
+                "st_slope"] is not None and stbeg is not \
+                    None and stend is not None:
+                if stlev < e2_thresh and meta["st_slope"] > 0:
+                    if stend - stbeg > e2_dur:
+                        c = "E2"
 
             itype = last_codes[ch]
 
