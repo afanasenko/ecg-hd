@@ -79,7 +79,7 @@ def define_ishemia_episodes(sig, header, metadata, **kwargs):
     for ch in range(numch):
         # перевод порогов из милливольт в значения сигнала
         gain = header["adc_gain"][ch]
-        k1_thresh = kwargs.get(
+        k1_thresh = -kwargs.get(
             "kodama_depr_t",
             config.STT["kodama_depr_t"]
         ) * gain
@@ -113,35 +113,35 @@ def define_ishemia_episodes(sig, header, metadata, **kwargs):
             jlev = meta["st_start_level"][ch]
             stlev = meta["st_plus_level"][ch]
             iso = meta["isolevel"][ch]
+            slope = meta["st_slope"][ch]
 
             # Kodama-1: горизонтальная либо нисходящая депрессия
-            if stlev is not None and meta["st_slope"] is not None:
-                if stlev < -k1_thresh and meta["st_slope"] <= 0:
+            if stlev is not None and slope is not None\
+                and stlev < k1_thresh and slope <= 0:
                     c = "K1"
 
             # Kodama-2: элевация не менее 80 мс от начала сегмента (J)
-            elif jplus is not None and stbeg is not None and stend is not None:
-                if jlev is not None and iso is not None:
+            elif jplus is not None and stbeg is not None and stend is not None\
+                and jlev is not None and iso is not None and jlev > k2_thresh:
 
-                    if jlev > k2_thresh:
-                        elev = stbeg
+                elev = stbeg
+                while sig[elev, ch] - iso > k2_thresh:
+                    elev += 1
+                    if elev >= stend:
+                        break
 
-                        while sig[elev, ch] - iso > k2_thresh:
-                            elev += 1
-                            if elev >= stend:
-                                break
-
-                        if elev - stbeg > k2_dur:
-                            c = "K2"
+                if elev - stbeg > k2_dur:
+                    c = "K2"
 
             # Kodama-3: отношение смещения st к ЧСС больше порога (элевация или депр.)
-            elif stlev is not None and meta["heartrate"] is not None:
-                if abs(stlev) / meta["heartrate"] > k3_thresh:
-                    c = "K3"
+            elif stlev is not None and meta["heartrate"] is not None\
+                and abs(stlev) / meta["heartrate"] > k3_thresh:
+
+                c = "K3"
 
             # Ellestad-1 косонисходящая депрессия
-            elif jlev is not None and meta["st_slope"] is not None:
-                if jlev < e1_thresh and meta["st_slope"] <= 0:
+            elif jlev is not None and slope is not None:
+                if jlev < e1_thresh and slope <= 0:
                     if jlev is not None and iso is not None:
                         depr = jlev
 
@@ -152,11 +152,11 @@ def define_ishemia_episodes(sig, header, metadata, **kwargs):
 
                         if depr - stbeg > e1_dur:
                             c = "E1"
+
             # Ellestad-2 косовосходящая депрессия
-            elif stlev is not None and meta[
-                "st_slope"] is not None and stbeg is not \
+            elif stlev is not None and slope is not None and stbeg is not \
                     None and stend is not None:
-                if stlev < e2_thresh and meta["st_slope"] > 0:
+                if stlev < e2_thresh and slope > 0:
                     if stend - stbeg > e2_dur:
                         c = "E2"
 

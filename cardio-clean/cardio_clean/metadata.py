@@ -339,6 +339,8 @@ def metadata_postprocessing(metadata, sig, header, **kwargs):
                         cycledata["st_duration"][chan]
                 else:
                     cycledata["st_duration"][chan] = None
+                    cycledata["st_offset"][chan] = None
+                    cycledata["st_slope"][chan] = None
 
             # ######################################
             # QT
