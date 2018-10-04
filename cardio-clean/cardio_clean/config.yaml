@@ -3,15 +3,15 @@
     histogram_bins: 10  # Число интервалов для построения гистограммы распределения
     3sigma: False       # Цензурирование гистограммы по правилу трех сигм
   STT:                  # Анализ ST-T
-    kodama_elev_t: 0.1  # Пороговое значение элевации Kodama
-    kodama_depr_t: 0.1  # Пороговое значение депрессии Kodama
-    kodama_elev_dur: 0.08  # Длительность элевации Kodama
-    k1_duration: 60.0     # Длительность эпизода депрессии Kodama-1
+    kodama_elev_t: 0.1  # Пороговое значение элевации Kodama (мВ)
+    kodama_depr_t: 0.1  # Пороговое значение депрессии Kodama (мВ)
+    kodama_elev_dur: 0.08  # Длительность элевации Kodama (сек)
+    k1_duration: 0.06     # Длительность эпизода депрессии Kodama-1 (сек)
     kodama_relation: 1.4  # Порог отношения смещения st к ЧСС Kodama
                              # [мВ/уд/мин]
     ellestad_depr_t1: 0.2  # Пороговое значение косонисходящей
-                           # депрессии Ellestad
+                           # депрессии Ellestad (мВ)
     ellestad_depr_t2: 0.1  # Пороговое значение косовосходящей
-                           # депрессии Ellestad
-    ellestad_duration: 0.08 # длительность депрессии Ellestad
-    min_episode: 5
+                           # депрессии Ellestad (мВ)
+    ellestad_duration: 0.08 # длительность депрессии Ellestad (сек)
+    min_episode: 5          # минимальное число циклов для создания эпизода
