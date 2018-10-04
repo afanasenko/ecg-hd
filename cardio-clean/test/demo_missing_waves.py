@@ -61,11 +61,11 @@ def plot_with_markup(sig, fs, metadata, txt):
             if all((lb, rb)):
                 ax[chan].plot(np.arange(lb, rb)*tscale, s[lb:rb], "m")
 
-    f.title(txt)
+    f.suptitle(txt)
     plt.show()
 
 
-def show_waves(filename):
+def show_waves(filename, chan):
 
     sig, header = ecgread(filename)
     fs = header["fs"]
@@ -97,17 +97,23 @@ def show_waves(filename):
     )
 
     suspicious = []
+    suspicious.append(128)
+    suspicious.append(131)
 
     for ncycle, qrs in enumerate(metadata):
 
-        if qrs["heartrate"] is None or is_artifact(qrs):
-            suspicious.append(ncycle)
+        #if qrs["heartrate"] is None or is_artifact(qrs):
+        #    suspicious.append(ncycle)
+
+        #if qrs["st_start"][chan] >= qrs["st_end"][chan]:
+        #    suspicious.append(ncycle)
 
         #if any(qrs["qt_duration"]) and max(qrs["qt_duration"]) < 0.2:
         #    suspicious.append(ncycle)
 
         if "E" in qrs["flags"]:
             suspicious.append(ncycle)
+            print(qrs["heartrate"])
 
     missing_hrt = [i for i,x in enumerate(metadata) if x["heartrate"] is None]
     print("Heartrate missing in beats\n{}".format(missing_hrt))
@@ -125,23 +131,27 @@ def show_waves(filename):
         i1 = max(0, sus-2)
         i2 = min(len(metadata), sus+3)
 
-        tag = "unknown"
+        tag = "[{}] ".format(sus)
         if is_artifact(metadata[sus]):
-            tag = "artifact"
+            tag += "artifact"
         elif is_pvc(metadata[sus]):
-            tag = "PVC"
+            tag += "PVC"
+        else:
+            tag += "other"
 
         plot_with_markup(sig, fs, metadata[i1:i2], tag)
 
 
 if __name__ == "__main__":
     # 2025 RsR in ch.2
-    filename = "/Users/arseniy/SERDECH/data/ROXMINE/Rh2025"
+    # I60 ST elevation
+    filename = "/Users/arseniy/SERDECH/data/PHYSIONET/I59"
+    #filename = "/Users/arseniy/SERDECH/data/ROXMINE/Rh2025"
     #filename = "TestFromDcm.ecg"
 
     if len(sys.argv) > 1:
         filename = sys.argv[0]
 
-    show_waves(filename)
+    show_waves(filename, chan=1)
 
 

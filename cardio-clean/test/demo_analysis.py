@@ -230,7 +230,7 @@ def show_waves(filename, chan, lim, draw):
 
         # Цвета для раскрашивания зубцов на графике
         pt_keys = {"q_pos": "r","r_pos": "g", "s_pos": "b", "p_pos": "y", "t_pos":
-        "m"}
+        "m", "t_start": "m", "t_end": "m"}
 
         for ncycle, qrs in enumerate(metadata):
 
@@ -244,11 +244,11 @@ def show_waves(filename, chan, lim, draw):
                 if point is not None:
                     plt.scatter(point, s[point], c=pt_keys[k])
 
-            if qrs["qrs_center"] > 60:
+            if qrs["qrs_center"] > 120:
                 break
 
-            lb = qrs["r_start"][chan]
-            rb = qrs["r_end"][chan]
+            lb = qrs["t_start"][chan]
+            rb = qrs["t_end"][chan]
             if all((lb, rb)):
                 plt.plot(np.arange(lb, rb), s[lb:rb], "g")
 
@@ -273,8 +273,11 @@ def show_waves(filename, chan, lim, draw):
                 str(ncycle)
             )
 
-    #missing_hrt = [i for i,x in enumerate(metadata) if x["heartrate"] is None]
-    #print("Heartrate missing in beats\n{}".format(missing_hrt))
+    chss = [x["heartrate"] for x in metadata if x["heartrate"] is not None]
+    print("ЧСС: мин. {:.2f}, макс. {:.2f}".format(min(chss), max(chss)))
+
+    missing_hrt = [i for i,x in enumerate(metadata) if x["heartrate"] is None]
+    print("Heartrate missing in beats\n{}".format(missing_hrt))
 
     #plt.xlim((200,700))
 
@@ -282,7 +285,9 @@ def show_waves(filename, chan, lim, draw):
     #print(r)
 
     print("Ишемия...")
-    m = define_ishemia_episodes(sig[:lim, :], header, metadata)
+    m = define_ishemia_episodes(sig[:lim, :], header, metadata,
+                                kodama_elev_t=0.05,
+                                kodama_elev_dur=0.04)
     print(m)
     print("Число эпизодов: {}".format(len(m)))
 
@@ -291,18 +296,20 @@ def show_waves(filename, chan, lim, draw):
 
     print_summary(metadata)
 
-    f, ax = plt.subplots(1,2)
-    show_qt_hist(ax[0], metadata, "qt_duration")
-    show_qt_hist(ax[1], metadata, "qtc_duration")
+    if draw:
+        #f, ax = plt.subplots(1,2)
+        #show_qt_hist(ax[0], metadata, "qt_duration")
+        #show_qt_hist(ax[1], metadata, "qtc_duration")
 
-    plt.grid(True)
-    plt.show()
+        plt.grid(True)
+        plt.show()
 
 
 def show_qt_hist(ax, metadata, key):
     numch = len(metadata[0]["r_pos"])
     for chan in range(numch):
-        hdqt = calculate_histogram(metadata, key, channel=chan)
+        hdqt = calculate_histogram(metadata, key, channel=chan, bins=10,
+                                   censoring=False)
         x = [hdqt[0]["bin_left"]*1000]
         y = [0]
         for bin in hdqt:
@@ -316,7 +323,6 @@ def show_qt_hist(ax, metadata, key):
         ax.set_title("{}".format(sum(x["count"] for x in hdqt)))
 
 
-
 if __name__ == "__main__":
 
     # Rh2022 = qr, noise
@@ -325,9 +331,9 @@ if __name__ == "__main__":
     # Rh2025 = rs
     # Rh2010 - дрейф, шум, артефакты
 
-    # filename = "/Users/arseniy/SERDECH/data/PHYSIONET/I60"
-    filename = "TestFromDcm.ecg"
-    filename = "/Users/arseniy/SERDECH/data/ROXMINE/Rh2024"
+    filename = "/Users/arseniy/SERDECH/data/PHYSIONET/I59"
+    #filename = "TestFromDcm.ecg"
+    #filename = "/Users/arseniy/SERDECH/data/ROXMINE/Rh2024"
 
     #show_filter_responses()
     #show_decomposition(filename, 1, 50000)
