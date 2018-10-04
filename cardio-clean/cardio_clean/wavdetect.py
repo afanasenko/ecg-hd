@@ -388,6 +388,17 @@ def find_points(
             qrs["p_start"][chan] = pleft
             qrs["p_end"][chan] = pright
 
+            # уточнение уровня изолинии по интервалу PQ
+            if pright is not None:
+                pq_end = qrs["q_pos"][chan]
+                if pq_end is None:
+                    pq_end = qrs["r_start"][chan]
+                if pq_end is None:
+                    pq_end = qrs["r_pos"][chan]
+                if pq_end is not None and pq_end - pright > 1:
+                    iso = np.median(approx[r_scale][pright:pq_end])
+                    qrs["isolevel"][chan] = iso
+
             # поиск T-зубца
             # окно для поиска
             wlen = (next_r - cur_r) * t_window_fraction
