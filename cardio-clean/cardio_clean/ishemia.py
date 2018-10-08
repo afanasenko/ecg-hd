@@ -78,6 +78,7 @@ def define_ishemia_episodes(sig, header, metadata, **kwargs):
 
     for ch in range(numch):
         # перевод порогов из милливольт в значения сигнала
+        bias = header["baseline"][ch]
         gain = header["adc_gain"][ch]
         k1_thresh = -kwargs.get(
             "kodama_depr_t",
@@ -111,8 +112,14 @@ def define_ishemia_episodes(sig, header, metadata, **kwargs):
             stend = meta["st_end"][ch]
             jplus = meta["st_plus"][ch]
             jlev = meta["st_start_level"][ch]
+            if jlev is not None:
+                jlev *= gain
             stlev = meta["st_plus_level"][ch]
+            if stlev is not None:
+                stlev *= gain
             iso = meta["isolevel"][ch]
+            if iso is not None:
+                iso += bias
             slope = meta["st_slope"][ch]
 
             # Kodama-1: горизонтальная либо нисходящая депрессия
