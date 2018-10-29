@@ -2,6 +2,7 @@
 
 import numpy as np
 from random import randint
+from config import config
 
 from metadata import *
 
@@ -15,6 +16,7 @@ rythm_signatures = [
     "ventricular",  # желудочковый ритм: ЧСС<45, QRS>0,12 и не связан с P.
     "a_fib",  # фибрилляция предсердий
     "v_fib",  # трепетание желудочков
+    "atrial_flutter",  # трепетание предсердий
     "v_parox",  # пароксизмальная желудочковая тахикардия
     "av_parox",  # пароксизмальная наджелудочковая AB тахикардия
     "a_parox",  # пароксизмальная наджелудочковая предсердная тахикардия
@@ -27,14 +29,14 @@ rythm_names = {a:b for a,b in enumerate(rythm_signatures)}
 rythm_codes = {b:a for a,b in enumerate(rythm_signatures)}
 
 
-def is_migration(metadata_block, pilot=1):
+def is_migration(metadata_block, pilot_chan):
     pq = []
     pm = []
     for x in metadata_block:
         pqest = estimate_pq(x)
         if pqest is not None:
             pq.append(pqest)
-        p = x["p_height"][pilot]
+        p = x["p_height"][pilot_chan]
         if p is not None:
             pm.append(p)
 
@@ -84,10 +86,31 @@ def define_pauses(metadata, rythms):
                 })
 
 
-def define_rythm(metadata):
+def is_flutter(qrs):
+    pilot_chan = 1 if len(qrs["r_pos"]) > 1 else 0
+    return 2 <= qrs["f_waves"][pilot_chan] <= 15
+
+
+
+def define_rythm(metadata, **kwargs):
+    """
+
+    :param metadata:
+    :param kwargs: См. секцию STT в config.yaml
+    :return:
+    """
+
+    min_episode = kwargs.get(
+        "min_episode",
+        config.RHYTHM["min_episode"]
+    )
+
+    if not metadata:
+        return []
 
     # для оценки средних показателей используем окно +- wnd циклов
     wnd = 10
+    pilot_chan = 1 if len(metadata[0]["r_pos"]) > 1 else 0
 
     total_cycles = len(metadata)
     rythm_marks = np.zeros(total_cycles, int)
@@ -102,8 +125,13 @@ def define_rythm(metadata):
             bnd = [ncycle-wnd,ncycle+wnd]
 
         # обнаруживаем миграцию водителя
-        if is_migration(metadata[bnd[0]:bnd[1]]):
+        if is_migration(metadata[bnd[0]:bnd[1]], pilot_chan):
             rythm_marks[ncycle] = rythm_codes["pacemaker_migration"]
+            continue
+
+        # обнаруживаем трепетания во II-м отведении
+        if is_flutter(qrs):
+            rythm_marks[ncycle] = rythm_codes["atrial_flutter"]
             continue
 
         # ЧСС
@@ -142,7 +170,6 @@ def define_rythm(metadata):
             rythm_marks[ncycle] = rythm_codes["sin_other"]
 
     rythms = []
-    min_epi = wnd
     last_r = None
     count = 0
     for i, r in enumerate(rythm_marks):
@@ -150,7 +177,7 @@ def define_rythm(metadata):
             if r == last_r and i < total_cycles-1:
                 count += 1
             else:
-                if count >= min_epi:
+                if count >= min_episode:
 
                     start_time = metadata[i-count]["qrs_start"]
                     end_time = metadata[i-1]["qrs_end"]

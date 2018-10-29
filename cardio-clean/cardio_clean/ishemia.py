@@ -50,6 +50,10 @@ def define_ishemia_episodes(sig, header, metadata, **kwargs):
     """
 
     ishemia = []
+
+    if not metadata:
+        return ishemia
+
     numch = len(metadata[0]["r_pos"])
     last_codes = [None]*numch
     last_seq = [None]*numch
@@ -121,6 +125,10 @@ def define_ishemia_episodes(sig, header, metadata, **kwargs):
             if iso is not None:
                 iso += bias
             slope = meta["st_slope"][ch]
+
+            # критерии применимы только при положительном зубце T
+            #if meta["t_height"][ch] is None or meta["t_height"][ch] < 0:
+            #    continue
 
             # Kodama-1: горизонтальная либо нисходящая депрессия
             if stlev is not None and slope is not None\

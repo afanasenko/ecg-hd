@@ -1,6 +1,7 @@
 # coding: utf-8
 
 import time
+import os
 from matplotlib import pyplot as plt
 from scipy.signal import hann
 from scipy.fftpack import fft
@@ -75,21 +76,21 @@ def show_filter_responses(spectral=False):
             print(dt_theor, dt_exrep)
 
 
-def show_decomposition(filename, ch, lim):
+def show_decomposition(filename, chan, smp_from=0, smp_to=0):
 
     sig, hdr = ecgread(filename)
 
-    if lim:
-        lim = min(lim, sig.shape[0])
+    if smp_to:
+        smp_to = min(smp_to, sig.shape[0])
     else:
-        lim = sig.shape[0]
-    s = sig[:lim, ch]
+        smp_to = sig.shape[0]
+    s = sig[smp_from:smp_to, chan]
 
     app, ders = ddwt(s, num_scales=5)
     multiplot(ders)
 
 
-def print_summary(metadata, ch=1):
+def print_summary(metadata, chan):
     classes = {}
     qrs_types = {}
     st_intervals = []
@@ -104,25 +105,25 @@ def print_summary(metadata, ch=1):
         classletter = qrs["complex_type"]
         classes[classletter] = classes.get(classletter, 0) + 1
 
-        if qrs["p_pos"][ch] is not None:
+        if qrs["p_pos"][chan] is not None:
             wcount["p"] += 1
-        if qrs["q_pos"][ch] is not None:
+        if qrs["q_pos"][chan] is not None:
             wcount["q"] += 1
-        if qrs["r_pos"][ch] is not None:
+        if qrs["r_pos"][chan] is not None:
             wcount["r"] += 1
-        if qrs["s_pos"][ch] is not None:
+        if qrs["s_pos"][chan] is not None:
             wcount["s"] += 1
-        if qrs["t_pos"][ch] is not None:
+        if qrs["t_pos"][chan] is not None:
             wcount["t"] += 1
 
-        if qrs["st_duration"][ch] is not None:
-            st_intervals.append(qrs["st_duration"][ch])
+        if qrs["st_duration"][chan] is not None:
+            st_intervals.append(qrs["st_duration"][chan])
 
         if qrs["RR"] is not None:
             rr_intervals.append(qrs["RR"])
 
-        if qrs["qt_duration"][ch] is not None:
-            qt_intervals.append(qrs["qt_duration"][ch])
+        if qrs["qt_duration"][chan] is not None:
+            qt_intervals.append(qrs["qt_duration"][chan])
 
     print("Комплексы: {}".format(len(metadata)))
     print("Зубцы: {}".format(wcount))
@@ -190,6 +191,8 @@ def show_qrs(filename, chan, lim):
 
 def show_waves(filename, chan, lim, draw):
     sig, header = ecgread(filename)
+
+    print(sig.shape)
 
     fs = header["fs"]
     if fs != 250:
@@ -273,28 +276,37 @@ def show_waves(filename, chan, lim, draw):
                 str(ncycle)
             )
 
+    print("Общая длительность {} c".format(len(s)/fs))
+
     chss = [x["heartrate"] for x in metadata if x["heartrate"] is not None]
-    print("ЧСС: мин. {:.2f}, макс. {:.2f}".format(min(chss), max(chss)))
+    if chss:
+        print("ЧСС: мин. {:.2f}, макс. {:.2f}".format(min(chss), max(chss)))
 
     missing_hrt = [i for i,x in enumerate(metadata) if x["heartrate"] is None]
-    print("Heartrate missing in beats\n{}".format(missing_hrt))
+    if missing_hrt:
+        print("Heartrate missing in beats\n{}".format(missing_hrt))
 
     #plt.xlim((200,700))
 
-    #r = define_rythm(metadata)
-    #print(r)
+    ry = define_rythm(metadata)
+    rtm = {}
+    for r in ry:
+        desc = r["desc"]
+        rtm[desc] = rtm.get(desc,0) + 1
+
+    print("Ритмы:")
+    print(rtm)
 
     print("Ишемия...")
-    m = define_ishemia_episodes(sig[:lim, :], header, metadata,
-                                kodama_elev_t=0.05,
-                                kodama_elev_dur=0.04)
-    print(m)
-    print("Число эпизодов: {}".format(len(m)))
+    m = define_ishemia_episodes(sig[:lim, :], header, metadata)
+    if m:
+        print(m)
+        print("Число эпизодов: {}".format(len(m)))
 
     #for x in r:
     #    print("ритм {}: {} с".format(x["desc"], x["end"] - x["start"]))
 
-    print_summary(metadata)
+    print_summary(metadata, chan)
 
     if draw:
         #f, ax = plt.subplots(1,2)
@@ -323,26 +335,38 @@ def show_qt_hist(ax, metadata, key):
         ax.set_title("{}".format(sum(x["count"] for x in hdqt)))
 
 
-if __name__ == "__main__":
-
+def main():
     # Rh2022 = qr, noise
     # Rh2021 - Rs, extracyc
     # Rh2024 - p(q)RsT
     # Rh2025 = rs
     # Rh2010 - дрейф, шум, артефакты
 
-    filename = "/Users/arseniy/SERDECH/data/PHYSIONET/I59"
+    filename = "/Users/arseniy/SERDECH/data/PHYSIONET/203"
+    #filename = "testI59.ecg"
     #filename = "TestFromDcm.ecg"
     #filename = "/Users/arseniy/SERDECH/data/ROXMINE/Rh2024"
 
+    if not os.path.isfile(filename + ".hea"):
+        print("Файл не найден")
+        return
+
     #show_filter_responses()
-    #show_decomposition(filename, 1, 50000)
+    #show_decomposition(
+    #    filename,
+    #    chan=1,
+    #    smp_to=50000
+    #)
+
     #show_qrs(filename, 1, 20000)
 
     show_waves(
         filename,
-        chan=1,
-        lim=0,
-        draw=False
+        chan=0,
+        lim=50000,
+        draw=True
     )
 
+
+if __name__ == "__main__":
+    main()

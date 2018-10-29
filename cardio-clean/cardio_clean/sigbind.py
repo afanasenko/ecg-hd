@@ -44,6 +44,15 @@ def mean_spectrum(x, aperture=1024, log_output=True):
 
 
 def build_comb_filter(fs, n, att, base_freq=50.0, q=5.0):
+    """
+    Построение АЧХ гребенчатого режекторного фильтра
+    :param fs: частота дискретизации
+    :param n: число точек в спектре
+    :param att: ослабление гармоник 0 - 1
+    :param base_freq: частота первой гармоники
+    :param q: ширина полосы задержания
+    :return: f_grid, response
+    """
 
     att = min(1.0, max(att, 0.0))
     response = np.ones(n)
