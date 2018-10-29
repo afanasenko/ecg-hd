@@ -80,6 +80,7 @@ def metadata_new(num_channels):
         "t_end": [None]*num_channels,  # int array
         "t_pos": [None]*num_channels,  # int array
         "t_height": [None]*num_channels,  # float array
+        "f_waves": [0]*num_channels,  # float array
 
         # параметры ритма
         "RR": None,  # [миллисекунды] float
@@ -163,7 +164,7 @@ def reset_artifact(cycledata):
 
 
 def safe_r_pos(cycledata):
-    heartbeat_channel=1
+    heartbeat_channel = 1 if len(cycledata["r_pos"]) > 1 else 0
 
     rz = cycledata["r_pos"][heartbeat_channel]
     if rz is None:
@@ -382,7 +383,7 @@ def is_sinus_cycle(meta):
     :return: True / False
     """
 
-    std2 = 1
+    std2 = 1 if len(meta["r_pos"]) > 1 else 0
 
     # R-зубцы присутствуют во всех отведениях
     if all(meta["r_pos"]):

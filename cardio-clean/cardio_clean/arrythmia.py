@@ -15,6 +15,7 @@ rythm_signatures = [
     "ventricular",  # желудочковый ритм: ЧСС<45, QRS>0,12 и не связан с P.
     "a_fib",  # фибрилляция предсердий
     "v_fib",  # трепетание желудочков
+    "atrial_flutter",  # трепетание предсердий
     "v_parox",  # пароксизмальная желудочковая тахикардия
     "av_parox",  # пароксизмальная наджелудочковая AB тахикардия
     "a_parox",  # пароксизмальная наджелудочковая предсердная тахикардия
@@ -27,14 +28,14 @@ rythm_names = {a:b for a,b in enumerate(rythm_signatures)}
 rythm_codes = {b:a for a,b in enumerate(rythm_signatures)}
 
 
-def is_migration(metadata_block, pilot=1):
+def is_migration(metadata_block, pilot_chan):
     pq = []
     pm = []
     for x in metadata_block:
         pqest = estimate_pq(x)
         if pqest is not None:
             pq.append(pqest)
-        p = x["p_height"][pilot]
+        p = x["p_height"][pilot_chan]
         if p is not None:
             pm.append(p)
 
@@ -84,10 +85,20 @@ def define_pauses(metadata, rythms):
                 })
 
 
+def is_flutter(qrs):
+    pilot_chan = 1 if len(qrs["r_pos"]) > 1 else 0
+    return 2 <= qrs["f_waves"][pilot_chan] <= 5
+
+
+
 def define_rythm(metadata):
+
+    if not metadata:
+        return []
 
     # для оценки средних показателей используем окно +- wnd циклов
     wnd = 10
+    pilot_chan = 1 if len(metadata[0]["r_pos"]) > 1 else 0
 
     total_cycles = len(metadata)
     rythm_marks = np.zeros(total_cycles, int)
@@ -102,9 +113,13 @@ def define_rythm(metadata):
             bnd = [ncycle-wnd,ncycle+wnd]
 
         # обнаруживаем миграцию водителя
-        if is_migration(metadata[bnd[0]:bnd[1]]):
+        if is_migration(metadata[bnd[0]:bnd[1]], pilot_chan):
             rythm_marks[ncycle] = rythm_codes["pacemaker_migration"]
             continue
+
+        # обнаруживаем трепетания во II-м отведении
+        if is_flutter(qrs):
+            rythm_marks[ncycle] = rythm_codes["atrial_flutter"]
 
         # ЧСС
         hr = np.array(

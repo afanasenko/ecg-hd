@@ -323,6 +323,12 @@ def find_points(
             moda.sort()
             modas.append(moda)
 
+        # для обнаружения трепетаний
+        if chan == 1:
+            fibpos = argrelmin(approx[r_scale])[0]
+        else:
+            fibpos = []
+
         # границы QRS здесь не определяем, надеемся на metadata
 
         # очень приближенная оценка шума
@@ -339,6 +345,7 @@ def find_points(
             cur_r = int(qrs["qrs_center"] * fs)
 
             # оценка изолинии
+            #iso = np.median(approx[r_scale][prev_r:next_r])
             iso = np.percentile(approx[r_scale][prev_r:next_r], 15)
             qrs["isolevel"][chan] = iso
 
@@ -422,3 +429,23 @@ def find_points(
             qrs["t_pos"][chan] = tcenter
             qrs["t_start"][chan] = tleft
             qrs["t_end"][chan] = tright
+
+            # поиск F-волн в промежутках между qrs
+            if ncycle:
+                fleft = int(metadata[ncycle-1]["qrs_end"]*fs)
+                fright = int(qrs["qrs_start"]*fs)
+                numf = 0
+
+                for f in fibpos:
+                    if fleft <= f <= fright:
+                        if approx[r_scale][f] - iso < -noise:
+                            numf += 1
+                    elif f > fright:
+                        break
+                qrs["f_waves"][chan] = numf
+
+
+def detect_f_waves(x):
+
+    pass
+

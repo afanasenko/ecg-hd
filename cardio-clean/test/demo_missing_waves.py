@@ -145,8 +145,8 @@ def show_waves(filename, chan):
 if __name__ == "__main__":
     # 2025 RsR in ch.2
     # I60 ST elevation
-    filename = "/Users/arseniy/SERDECH/data/PHYSIONET/I59"
-    #filename = "/Users/arseniy/SERDECH/data/ROXMINE/Rh2025"
+    #filename = "/Users/arseniy/SERDECH/data/PHYSIONET/I59"
+    filename = "/Users/arseniy/SERDECH/data/ROXMINE/Rh2021"
     #filename = "TestFromDcm.ecg"
 
     if len(sys.argv) > 1:
