@@ -2,6 +2,7 @@
 
 import numpy as np
 from random import randint
+from config import config
 
 from metadata import *
 
@@ -87,11 +88,22 @@ def define_pauses(metadata, rythms):
 
 def is_flutter(qrs):
     pilot_chan = 1 if len(qrs["r_pos"]) > 1 else 0
-    return 2 <= qrs["f_waves"][pilot_chan] <= 5
+    return 2 <= qrs["f_waves"][pilot_chan] <= 15
 
 
 
-def define_rythm(metadata):
+def define_rythm(metadata, **kwargs):
+    """
+
+    :param metadata:
+    :param kwargs: См. секцию STT в config.yaml
+    :return:
+    """
+
+    min_episode = kwargs.get(
+        "min_episode",
+        config.RHYTHM["min_episode"]
+    )
 
     if not metadata:
         return []
@@ -120,6 +132,7 @@ def define_rythm(metadata):
         # обнаруживаем трепетания во II-м отведении
         if is_flutter(qrs):
             rythm_marks[ncycle] = rythm_codes["atrial_flutter"]
+            continue
 
         # ЧСС
         hr = np.array(
@@ -157,7 +170,6 @@ def define_rythm(metadata):
             rythm_marks[ncycle] = rythm_codes["sin_other"]
 
     rythms = []
-    min_epi = wnd
     last_r = None
     count = 0
     for i, r in enumerate(rythm_marks):
@@ -165,7 +177,7 @@ def define_rythm(metadata):
             if r == last_r and i < total_cycles-1:
                 count += 1
             else:
-                if count >= min_epi:
+                if count >= min_episode:
 
                     start_time = metadata[i-count]["qrs_start"]
                     end_time = metadata[i-1]["qrs_end"]
