@@ -3,7 +3,7 @@
 from scipy.signal import convolve, argrelmax, argrelmin
 from metadata import *
 from util import signal_channels
-
+from matplotlib import pyplot as plt
 
 def modefind(x, lb=0, rb=0, bias=0.0):
 
@@ -324,8 +324,9 @@ def find_points(
             modas.append(moda)
 
         # для обнаружения трепетаний
+        fscale = 4
         if chan == 1:
-            fibpos = argrelmin(approx[r_scale])[0]
+            fibpos = argrelmin(detail[fscale], order=3)[0]
         else:
             fibpos = []
 
@@ -438,11 +439,18 @@ def find_points(
 
                 for f in fibpos:
                     if fleft <= f <= fright:
-                        if approx[r_scale][f] - iso < -noise:
+                        if detail[fscale][f] < - noise:
                             numf += 1
                     elif f > fright:
                         break
                 qrs["f_waves"][chan] = numf
+
+                #if numf > 1:
+                #   plt.plot(approx[1]-iso)
+                #   plt.plot(detail[fscale] + 1)
+                #   plt.xlim((fleft-fs,fright+fs))
+                #   plt.plot([fleft, fright], [-2*noise, -2*noise])
+                #   plt.show()
 
 
 def detect_f_waves(x):
