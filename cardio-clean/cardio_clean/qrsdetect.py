@@ -1,7 +1,9 @@
 # coding: utf-8
 
-from scipy.signal import lfilter, lfilter_zi, lfiltic, freqz, butter
+from scipy.signal import lfilter, freqz
 from metadata import *
+from config import config
+
 from matplotlib import pyplot as plt
 import numpy as np
 
@@ -67,7 +69,7 @@ def qrs_preprocessing(sig, fs):
     return result / max(result)
 
 
-def qrs_detection(sig, fs, minqrs_ms=20):
+def qrs_detection(sig, fs, **kwargs):
     """
         Обнаружение QRS-комплексов по алгоритму Пана - Томпкинса
     :param sig: ЭКС (одноканальный или многоканальный)
@@ -86,6 +88,11 @@ def qrs_detection(sig, fs, minqrs_ms=20):
 
     inside = False
     qrs_start = 0
+
+    minqrs_ms = kwargs.get(
+        "minqrs_ms",
+        config.WAVES["qrs_duration_min"]
+    )
 
     minqrs_smp = ms_to_samples(minqrs_ms, fs)
 
