@@ -130,12 +130,15 @@ def fix_baseline(sig, fs, bias_window_ms):
     h = h / sum(h)
 
     result = np.zeros(sig.shape)
+    sig_len = sig.shape[0]
+    ofs = len(h)-1
 
     for chan, x in signal_channels(sig):
         bias = np.mean(x)
         # огибающая (фон) вычисляется путем свертки со сглаживающей
         # апертурой и затем вычитается из входного сигнала
-        bks = convolve(x - bias, h, mode="same")
+
+        bks = convolve(x - bias, h, mode="full")[ofs:ofs+sig_len]
         result[:,chan] = x - bks
 
     return result

@@ -90,7 +90,8 @@ def ddwt(x, num_scales):
         detail.append(hif)
         approx.append(ap)
         if s < num_scales-1:
-            ap = convolve(ap, h, mode="full")[dly:dly+signal_len]
+            dly_lo = len(h)-1
+            ap = convolve(ap, h, mode="full")[dly_lo:dly_lo+signal_len]
             # вместо прореживания сигналов (Маллат) расширяем характеристики
             # фильтров
             h = fexpand(h)
@@ -320,7 +321,7 @@ def find_points(
                 if y < 0:
                     moda.append((i, y))
 
-            moda.sort()
+            moda.sort(key=lambda x: x[0])
             modas.append(moda)
 
         # для обнаружения трепетаний
@@ -331,6 +332,9 @@ def find_points(
             fibpos = []
 
         # границы QRS здесь не определяем, надеемся на metadata
+
+        #plt.plot(x)
+        #plt.show(block=False)
 
         # очень приближенная оценка шума
         noise = np.std(detail[1]) * 0.7
