@@ -307,10 +307,12 @@ def metadata_postprocessing(metadata, sig, header, **kwargs):
             rc = cycledata["r_pos"][chan]
             if rc is not None:
                 j_point = rc + ms_to_samples(j_offset_ms, fs)
-                # J не может быть раньше конца R
-                r_end = cycledata["r_end"][chan]
-                if r_end is not None:
-                    j_point = max(j_point, r_end)
+                # J не может быть раньше конца S или R
+                rs_end = cycledata["s_pos"][chan]
+                if rs_end is None:
+                    rs_end = cycledata["r_end"][chan]
+                if rs_end is not None:
+                    j_point = max(j_point, rs_end)
                 if j_point > len(x) - 1:
                     j_point = None
                     jplus_point = None
