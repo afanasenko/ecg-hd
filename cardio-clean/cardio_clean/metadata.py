@@ -74,13 +74,18 @@ def metadata_new(num_channels):
         "r_end": [None]*num_channels,  # int array
         "r_pos": [None]*num_channels,  # int array
         "r_height": [None]*num_channels,  # float array
+        "r2_pos": [None] * num_channels,  # int array
+        "r2_height": [None] * num_channels,  # float array
         "s_pos": [None]*num_channels,  # int array
         "s_height": [None]*num_channels,  # float array
+        "s2_pos": [None] * num_channels,  # int array
+        "s2_height": [None] * num_channels,  # float array
         "t_start": [None]*num_channels,  # int array
         "t_end": [None]*num_channels,  # int array
         "t_pos": [None]*num_channels,  # int array
         "t_height": [None]*num_channels,  # float array
         "f_waves": [0]*num_channels,  # float array
+        "qrs_shape": [""]*num_channels,  # string array
 
         # параметры ритма
         "RR": None,  # [миллисекунды] float
@@ -124,6 +129,28 @@ def level_from_pos(d, chan, pos_key, val_key, sig, bias, gain):
         d[val_key][chan] = None
     else:
         d[val_key][chan] = (sig[pos] - bias) / gain
+
+
+def erase_qrs(meta, chan):
+    """
+    Удаляет из метаданных данного комплекса все зубцы, относящиеся к qrs
+    :param meta:
+    :return:
+    """
+
+    meta["q_pos"][chan] = None
+    meta["q_height"][chan] = None
+    meta["r_start"][chan] = None
+    meta["r_end"][chan] = None
+    meta["r_pos"][chan] = None
+    meta["r_height"][chan] = None
+    meta["r2_pos"][chan] = None
+    meta["r2_height"][chan] = None
+    meta["s_pos"][chan] = None
+    meta["s_height"][chan] = None
+    meta["s2_pos"][chan] = None
+    meta["s2_height"][chan] = None
+    meta["qrs_shape"][chan] = ""
 
 
 def is_pvc(cycledata):
