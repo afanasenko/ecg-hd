@@ -1,6 +1,6 @@
 # coding: utf-8
 
-from scipy.signal import convolve, argrelmax, argrelmin
+from scipy.signal import convolve, argrelmax, argrelmin, find_peaks
 from metadata import *
 from util import signal_channels
 from matplotlib import pyplot as plt
@@ -371,17 +371,14 @@ def find_extrema(band, start_idx, end_idx, thresh):
 
     moda = []
     # ищем положительные максимумы
-    pos = start_idx + argrelmax(band[start_idx:end_idx+1])[0]
+    #pos = start_idx + argrelmax(band[start_idx:end_idx+1])[0]
+    pos = start_idx + find_peaks(band[start_idx:end_idx+1], height=thresh)[0]
     for i in pos:
-        y = band[i]
-        if y > thresh:
-            moda.append((i, y))
+        moda.append((i, band[i]))
     # ищем отрицательные минимумы
-    neg = start_idx + argrelmin(band[start_idx:end_idx+1])[0]
+    neg = start_idx + find_peaks(-band[start_idx:end_idx+1], height=thresh)[0]
     for i in neg:
-        y = band[i]
-        if y < -thresh:
-            moda.append((i, y))
+        moda.append((i, band[i]))
 
     moda.sort()
     return moda
@@ -495,12 +492,7 @@ def find_points(
                 int((tight_bounds[1] + next_qrs)/2)
             ]
 
-            # все пики производной в широком окне
-            modes = find_extrema(
-                detail[r_scale], loose_bounds[0], loose_bounds[1], noise/2
-            )
-
-            #if ncycle==19 and chan==0:
+            #if ncycle==1396 and chan==0:
             #    fig, axarr = plt.subplots(2, 1, sharex="col")
             #    xval = np.arange(tight_bounds[0], tight_bounds[1])
             #    axarr[0].plot(xval, x[tight_bounds[0]:tight_bounds[1]])
@@ -511,6 +503,12 @@ def find_points(
             #    print("Look at the plots")
             #    plt.show(block=False)
             #print(ncycle, chan)
+
+            # все пики производной в широком окне
+            modes = find_extrema(
+                detail[r_scale], loose_bounds[0], loose_bounds[1], noise/2
+            )
+
 
             qrssearch(modes, tight_bounds, approx[r_scale],
                       qrs, chan, iso, qrs_duration_max)
