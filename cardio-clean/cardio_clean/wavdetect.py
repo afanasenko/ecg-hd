@@ -214,13 +214,12 @@ def qrssearch(modes, tight_bounds, approx, params, chan, isolevel,
     q_pos = -1
     r1_pos = -1
     s1_pos = -1
-    r2_pos = -1
+    r2_pos = e[r_idx][0]
     s2_pos = -1
 
     num_peaks_right = len(e) - r_idx - 1
     # если 0 - значит нет правого S
     if num_peaks_right >= 1:
-        r2_pos = e[r_idx][0]
         if e[r_idx+1][2] < 0:
             s2_pos = e[r_idx+1][0]
         else:
@@ -501,7 +500,7 @@ def find_points(
                 detail[r_scale], loose_bounds[0], loose_bounds[1], noise/2
             )
 
-            #if ncycle==18 and chan==1:
+            #if ncycle==19 and chan==0:
             #    fig, axarr = plt.subplots(2, 1, sharex="col")
             #    xval = np.arange(tight_bounds[0], tight_bounds[1])
             #    axarr[0].plot(xval, x[tight_bounds[0]:tight_bounds[1]])
