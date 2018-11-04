@@ -90,8 +90,9 @@ def ddwt(x, num_scales):
         detail.append(hif)
         approx.append(ap)
         if s < num_scales-1:
+            ap = convolve(ap, h, mode="full")[dly:dly+signal_len]
             dly_lo = len(h)-1
-            ap = convolve(ap, h, mode="full")[dly_lo:dly_lo+signal_len]
+            ap[:dly_lo] = ap[dly_lo] # хак
             # вместо прореживания сигналов (Маллат) расширяем характеристики
             # фильтров
             h = fexpand(h)
@@ -100,57 +101,209 @@ def ddwt(x, num_scales):
     return approx, detail
 
 
-def qrssearch(modes, approx, derivative, params, chan, isolevel):
+def detect_all_extrema(modes, sig, smp_from, smp_to, marker):
+
+    ex = []
+    idx = -1
+
+    for i, m in enumerate(modes[:-1]):
+
+        x = m[0]
+        y = m[1]
+        xn = modes[i + 1][0]
+        yn = modes[i + 1][1]
+
+
+
+        if y*yn < 0:
+            if y > yn:
+                # find local max
+                mpos = x + np.argmax(sig[x:xn])
+                mval = sig[mpos]
+                mpol = 1
+            else:
+                # find local min
+                mpos = x + np.argmin(sig[x:xn])
+                mval = sig[mpos]
+                mpol = -1
+
+            if i == marker:
+                idx = len(ex)
+
+            if smp_from <= mpos <= smp_to:
+                ex.append((mpos, mval, mpol))
+
+    return ex, idx
+
+
+def detect_r_pair(modes, smp_from, smp_to, bipol=False):
+
+    maxd = 0      # максимальный перепад
+    maxdpos = -1  # номер моды, дающей максимальный перепад
+    i = 0
+    for x, y in modes[:-1]:
+
+        if smp_from <= x <= smp_to:
+            diff = y - modes[i+1][1]
+
+            if bipol:
+                diff = abs(diff)
+
+            if diff > maxd:
+                maxd = diff
+                maxdpos = i
+        i += 1
+
+    return maxdpos, maxdpos+1
+
+
+def qrssearch(modes, tight_bounds, approx, params, chan, isolevel,
+              max_qrs_len):
     """
 
-    :param modes:
-    :param derivative:
+    :param modes: массив с модами производной
+    :param tight_bounds: узкие границы для поиска центрального зубца
+    :param approx: (сглаженный) входной сигнал
+    :param detail:
     :param params: (inout) словарь с параметрами текущего qrs
-    :return: символический код
+    :param chan: номер канала
+    :param isolevel: уровень изолинии для нахождения начала и конца R-зубца
+    :param max_qrs_len: максимальное число отсчетов в QRS
+    :return: none
     """
 
-    signcode = ""
+    # убираем все предыдущие значения для QRS
+    # FIXME: хотя qrssearch не должен выполняться на уже размеченных сигналах
+    erase_qrs(params, chan)
 
     if len(modes) < 2:
-        return signcode
+        return
 
-    # кодируем найденные фронты знаками +/-
-    signcode = "".join(["+" if x[1] > 0 else "-" for x in modes])
+    # Фронты самого крутого положительного зубца (ищем самую мощную пару +-)
+    r0, r1 = detect_r_pair(modes, smp_from=tight_bounds[0],
+                           smp_to=tight_bounds[1], bipol=False)
 
-    if signcode == "-+":
-        params["qrsType"] = "qs"
+    # флаг показывает, есть ли у нас R-зубец
+    have_r = r0 >= 0
 
-    # Фронты самого мощного (R или  qs) зубца
-    maxpair = (0,0)
-    lb = modes[0][0]
-    rb = modes[-1][0]
-    for i, posval in enumerate(modes):
-        if i and posval[1]*modes[i - 1][1] < 0:
-            diff = abs(posval[1]) + abs(modes[i - 1][1])
-            if diff > maxpair[1]:
-                maxpair = (i-1, diff)
+    if not have_r:
+        # не найдено ни одного положительного зубца, ищем отрицательный
+        r0, r1 = detect_r_pair(modes, smp_from=tight_bounds[0],
+                           smp_to=tight_bounds[1], bipol=True)
+        qs_from = modes[r0][0]
+        qs_to = modes[r1][0]
+        mpos = qs_from + np.argmin(approx[qs_from:qs_to])
+        params["q_pos"][chan] = mpos
+        params["r_pos"][chan] = None
+        params["s_pos"][chan] = mpos
+        params["qrs_shape"][chan] = "qs"
+        return
 
-    i0 = maxpair[0]
+    # r0 - номер первой моды, соответствующей R-зубцу
+    r_from = modes[r0][0]
+    r_to = modes[r1][0]
+    r_pos = r_from + np.argmax(approx[r_from:r_to])
 
-    rpos = zcfind(
-        derivative,
-        lb=modes[i0][0],
-        rb=modes[i0 + 1][0]
-    )
-    params["r_pos"][chan] = rpos
+    # уточненные границы комплекса
+    qrs_from = r_pos - max_qrs_len/2
+    qrs_to = r_pos + max_qrs_len/2
 
+    e, r_idx = detect_all_extrema(modes, approx, qrs_from, qrs_to, r0)
+
+    q_pos = -1
+    r1_pos = -1
+    s1_pos = -1
+    r2_pos = -1
+    s2_pos = -1
+
+    num_peaks_right = len(e) - r_idx - 1
+    # если 0 - значит нет правого S
+    if num_peaks_right >= 1:
+        r2_pos = e[r_idx][0]
+        if e[r_idx+1][2] < 0:
+            s2_pos = e[r_idx+1][0]
+        else:
+            assert 0
+
+    if num_peaks_right >= 3:
+        r1_pos = e[r_idx][0]
+
+        if e[r_idx+1][2] < 0:
+            s1_pos = e[r_idx+1][0]
+        else:
+            assert 0
+
+        if e[r_idx + 2][2] > 0:
+            r2_pos = e[r_idx + 2][0]
+        else:
+            assert 0
+
+        if e[r_idx + 3][2] < 0:
+            s2_pos = e[r_idx + 3][0]
+        else:
+            assert 0
+
+    num_peaks_left = r_idx
+    # если 0 - значит нет Q
+    if num_peaks_left >= 1:
+        r1_pos = e[r_idx][0]
+        if e[r_idx - 1][2] < 0:
+            q_pos = e[r_idx - 1][0]
+        else:
+            assert 0
+
+    if num_peaks_left >= 3 and num_peaks_right < 3:
+        r2_pos = e[r_idx][0]
+
+        if e[r_idx - 1][2] < 0:
+            s1_pos = e[r_idx - 1][0]
+        else:
+            assert 0
+
+        if e[r_idx - 2][2] > 0:
+            r1_pos = e[r_idx - 2][0]
+        else:
+            assert 0
+
+        if e[r_idx - 3][2] < 0:
+            q_pos = e[r_idx - 3][0]
+        else:
+            assert 0
+
+    if q_pos >= 0:
+        params["q_pos"][chan] = q_pos
+
+    if r1_pos >= 0 and r2_pos >= 0:
+        params["r_pos"][chan] = min(r1_pos, r2_pos)
+        params["r2_pos"][chan] = max(r1_pos, r2_pos)
+    elif r1_pos >= 0:
+        params["r_pos"][chan] = r1_pos
+    elif r2_pos >= 0:
+        params["r_pos"][chan] = r2_pos
+    else:
+        assert 0
+
+    if s1_pos >= 0 and s2_pos >= 0:
+        params["s_pos"][chan] = max(s1_pos, s2_pos)
+        params["s2_pos"][chan] = min(s1_pos, s2_pos)
+    elif s1_pos >= 0:
+        params["s_pos"][chan] = s1_pos
+    elif s2_pos >= 0:
+        params["s_pos"][chan] = s2_pos
+
+    rpos = params["r_pos"][chan]
     if rpos is not None:
         r_thresh = 0.1 * abs(approx[rpos] - isolevel)
         x = rpos
         while abs(approx[x] - isolevel) > r_thresh:
-            if x <= lb:
+            if x <= qrs_from:
                 break
             x -= 1
 
         params["r_start"][chan] = x
         x = rpos
         while abs(approx[x] - isolevel) > r_thresh:
-            if x >= rb:
+            if x >= qrs_to:
                 break
             x += 1
 
@@ -158,48 +311,6 @@ def qrssearch(modes, approx, derivative, params, chan, isolevel):
     else:
         params["r_start"][chan] = None
         params["r_end"][chan] = None
-
-
-    q_search_rb = modes[i0][0]
-    if params["r_start"][chan] is not None:
-        q_search_rb = min(q_search_rb, params["r_start"][chan])
-
-    if i0 > 0:
-        params["q_pos"][chan] = zcfind(
-            derivative,
-            lb=modes[i0-1][0],
-            rb=q_search_rb
-        )
-
-    i0 = maxpair[0]+1
-
-    s_search_lb = modes[i0][0]
-    if params["r_end"][chan] is not None:
-        s_search_lb = min(s_search_lb, params["r_end"][chan])
-
-    if i0+1 < len(modes):
-        params["s_pos"][chan] = zcfind(
-            derivative,
-            lb=s_search_lb,
-            rb=modes[i0+1][0]
-        )
-
-    # Определение типа qrs-комплекса по II-му стандартному отведению
-    if chan == 1:
-        if params["qrsType"] is None:
-            if params["r_pos"][chan] is not None:
-                if params["q_pos"][chan] is not None:
-                    if params["s_pos"][chan] is not None:
-                        params["qrsType"] = "qRs"
-                    else:
-                        params["qrsType"] = "qR"
-                else:
-                    if params["s_pos"][chan] is not None:
-                        params["qrsType"] = "Rs"
-                    else:
-                        params["qrsType"] = "R"
-
-    return signcode
 
 
 def ptsearch(modes, approx, bias, limits):
@@ -281,7 +392,7 @@ def find_points(
         fs,
         metadata,
         bias,
-        debug=False):
+        **kwargs):
     """
         Поиск характерных точек
     :param sig: входной сигнал (многоканальный)
@@ -289,9 +400,17 @@ def find_points(
     :param metadata: первичная сегментация, содержащая qrs_start, qrs_end,
     qrs_center
     :param bias: уровень изолинии
-    :param debug: отладочный флаг
     :return: None (результатом являются измененные значения в metadata)
     """
+
+    debug = kwargs.get(
+        "debug",
+        False
+    )
+    qrs_duration_max = int(fs*kwargs.get(
+        "qrs_duration_max",
+        config.WAVES["qrs_duration_max"]
+    ))
 
     r_scale = 2
     p_scale = 4
@@ -300,6 +419,7 @@ def find_points(
     p_window_fraction = 1.0 - t_window_fraction
 
     num_scales = max(r_scale, p_scale, t_scale)
+    num_cycles = len(metadata)
 
     for chan, x in signal_channels(sig):
 
@@ -346,26 +466,54 @@ def find_points(
             prev_r = int(metadata[ncycle - 1]["qrs_center"] * fs) \
                 if ncycle else 0
             next_r = int(metadata[ncycle + 1]["qrs_center"] * fs) \
-                if ncycle < len(metadata) - 1 else len(x)
+                if ncycle < num_cycles - 1 else len(x)
             cur_r = int(qrs["qrs_center"] * fs)
 
             # оценка изолинии
-            #iso = np.median(approx[r_scale][prev_r:next_r])
             iso = np.percentile(approx[r_scale][prev_r:next_r], 15)
             qrs["isolevel"][chan] = iso
 
             # Поиск зубцов Q, R, S
-            # окно для поиска
-            addsmp = 3
-            lbound = max(0, int(qrs["qrs_start"] * fs) - addsmp)
-            rbound = min(sig.shape[0]-1, int(qrs["qrs_end"] * fs) + addsmp)
+            # узкое окно для поиска только R
+            this_qrs = [int(qrs["qrs_start"] * fs), int(qrs["qrs_end"] * fs)]
 
-            modas_subset = find_extrema(
-                detail[r_scale], lbound, rbound, noise/2
+            tight_bounds = [
+                max(0, this_qrs[0]),
+                min(len(x) - 1, this_qrs[1])
+            ]
+
+            # более широкое окно для поиска остальных зубцов
+            prev_qrs =\
+                int(metadata[ncycle - 1]["qrs_end"] * fs) if ncycle else 0
+
+            next_qrs =\
+                int(metadata[ncycle + 1]["qrs_start"] * fs) \
+                    if ncycle < num_cycles - 1 else len(x)
+
+            loose_bounds = [
+                int((tight_bounds[0] + prev_qrs)/2),
+                int((tight_bounds[1] + next_qrs)/2)
+            ]
+
+            # все пики производной в широком окне
+            modes = find_extrema(
+                detail[r_scale], loose_bounds[0], loose_bounds[1], noise/2
             )
 
-            qrssearch(modas_subset, approx[r_scale], detail[r_scale], qrs,
-                      chan, iso)
+            #if ncycle==18 and chan==1:
+            #    fig, axarr = plt.subplots(2, 1, sharex="col")
+            #    xval = np.arange(tight_bounds[0], tight_bounds[1])
+            #    axarr[0].plot(xval, x[tight_bounds[0]:tight_bounds[1]])
+            #    axarr[0].grid()
+            #    axarr[1].plot(xval, detail[r_scale][tight_bounds[
+            #        0]:tight_bounds[1]])
+            #    axarr[1].grid()
+            #    print("Look at the plots")
+            #    plt.show(block=False)
+            #print(ncycle, chan)
+
+            qrssearch(modes, tight_bounds, approx[r_scale],
+                      qrs, chan, iso, qrs_duration_max)
 
             # поиск P-зубца
             # окно для поиска
