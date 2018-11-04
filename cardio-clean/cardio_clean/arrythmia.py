@@ -6,27 +6,45 @@ from config import config
 
 from metadata import *
 
-rythm_signatures = [
-    "sin_norm",  # синусовый ритм: зубец Р есть во всех отведениях, PII (+)
-    "sin_tachy", # синусовая тахикардия
-    "sin_brady", # синусовая брадикардия
-    "sin_other",  # другая синусовая аритмия
-    "pacemaker_migration",  # миграция водителя ритма
-    "atrial",  # предсердный ритм: отрицательные PII, PIII, неизменный QRS
-    "ventricular",  # желудочковый ритм: ЧСС<45, QRS>0,12 и не связан с P.
-    "a_fib",  # фибрилляция предсердий
-    "v_fib",  # трепетание желудочков
-    "atrial_flutter",  # трепетание предсердий
-    "v_parox",  # пароксизмальная желудочковая тахикардия
-    "av_parox",  # пароксизмальная наджелудочковая AB тахикардия
-    "a_parox",  # пароксизмальная наджелудочковая предсердная тахикардия
-    "pvc", # экстрасистолия
-    "pause" # асистолия, то есть отсутствие комплекса
+
+rhythm_signatures = [
+    ("sin_norm",  u"Нормальный синусовый ритм"),
+    ("sin_tachy", u"Cинусовая тахикардия"),
+    ("sin_brady", u"синусовая брадикардия"),
+    ("sin_other",  u"Синусовая аритмия"),
+    ("pacemaker_migration",  u"Миграция водителя ритма"),
+    ("atrial",  u"Предсердный ритм"),
+    ("ventricular",  u"Желудочковый ритм"),
+    ("v_parox",  u"Пароксизмальная желудочковая тахикардия"),
+    ("av_parox", u"Пароксизмальная AB тахикардия"),
+    ("a_parox", u"Пароксизмальная предсердная тахикардия"),
+    ("PVC", u"Экстрасистолия"),
+    ("pause", u"Асистолия"),
+    ("LBBB", u"Блокада ЛНПГ"),
+    ("RBBB", u"Блокада ПНПГ"),
+    ("WPW", u"Синдром WPW"),
+    ("AFL", u"Трепетание предсердий"),
+    ("VFL", u"Трепетание желудочков"),
+    ("AFB", u"Фибрилляция предсердий"),
+    ("VFB", u"Фибрилляция желудочков")
 ]
 
 # Цифровые коды ритмов
-rythm_names = {a:b for a,b in enumerate(rythm_signatures)}
-rythm_codes = {b:a for a,b in enumerate(rythm_signatures)}
+rhythm_names = {a:b[0] for a,b in enumerate(rhythm_signatures)}
+rhythm_codes = {b[0]:a for a,b in enumerate(rhythm_signatures)}
+
+
+def arrythmia_name(s):
+    """
+    Получение человекочитаемого названия для заданного ритма
+    :param s: краткое название ритма
+    :return: длинное название ритма на русском
+    """
+    try:
+        n = rhythm_signatures.index(s)
+        return rhythm_signatures[n][1]
+    except:
+        return u"Неизвестный ритм"
 
 
 def is_migration(metadata_block, pilot_chan):
@@ -56,8 +74,7 @@ def define_pvc(metadata, rythms):
     for i, qrs in enumerate(metadata):
         if is_pvc(qrs) and not is_artifact(qrs):
             rythms.append({
-                "id": rythm_codes["pvc"],
-                "desc": "pvc",
+                "desc": "PVC",
                 "start": qrs["qrs_start"],
                 "end": qrs["qrs_end"],
                 "modified": False
@@ -78,7 +95,6 @@ def define_pauses(metadata, rythms):
                 c_pause = (qrs["qrs_center"] + metadata[i+1]["qrs_center"]) / 2
 
                 rythms.append({
-                    "id": rythm_codes["pause"],
                     "desc": "pause",
                     "start": c_pause - 0.1,
                     "end": c_pause + 0.1,
@@ -96,7 +112,7 @@ def define_rythm(metadata, **kwargs):
     """
 
     :param metadata:
-    :param kwargs: См. секцию STT в config.yaml
+    :param kwargs: См. секцию RHYTHM в config.yaml
     :return:
     """
 
@@ -126,12 +142,12 @@ def define_rythm(metadata, **kwargs):
 
         # обнаруживаем миграцию водителя
         if is_migration(metadata[bnd[0]:bnd[1]], pilot_chan):
-            rythm_marks[ncycle] = rythm_codes["pacemaker_migration"]
+            rythm_marks[ncycle] = rhythm_codes["pacemaker_migration"]
             continue
 
         # обнаруживаем трепетания во II-м отведении
         if is_flutter(qrs):
-            rythm_marks[ncycle] = rythm_codes["atrial_flutter"]
+            rythm_marks[ncycle] = rhythm_codes["AFL"]
             continue
 
         # ЧСС
@@ -156,18 +172,18 @@ def define_rythm(metadata, **kwargs):
         if np.std(hr) < 0.1 * avg_hr:
             if 60.0 <= avg_hr <= 100.0:
                 if num_sup > wnd:
-                    rythm_marks[ncycle] = rythm_codes["atrial"]
+                    rythm_marks[ncycle] = rhythm_codes["atrial"]
                 else:
-                    rythm_marks[ncycle] = rythm_codes["sin_norm"]
+                    rythm_marks[ncycle] = rhythm_codes["sin_norm"]
             elif avg_hr < 60.0:
                 if avg_hr <= 45.0 and num_ven > wnd:
-                    rythm_marks[ncycle] = rythm_codes["ventricular"]
+                    rythm_marks[ncycle] = rhythm_codes["ventricular"]
                 else:
-                    rythm_marks[ncycle] = rythm_codes["sin_brady"]
+                    rythm_marks[ncycle] = rhythm_codes["sin_brady"]
             else:
-                rythm_marks[ncycle] = rythm_codes["sin_tachy"]
+                rythm_marks[ncycle] = rhythm_codes["sin_tachy"]
         else:
-            rythm_marks[ncycle] = rythm_codes["sin_other"]
+            rythm_marks[ncycle] = rhythm_codes["sin_other"]
 
     rythms = []
     last_r = None
@@ -182,8 +198,7 @@ def define_rythm(metadata, **kwargs):
                     start_time = metadata[i-count]["qrs_start"]
                     end_time = metadata[i-1]["qrs_end"]
                     rythms.append({
-                        "id": last_r,
-                        "desc": rythm_signatures[last_r],
+                        "desc": rhythm_signatures[last_r][0],
                         "start": start_time,
                         "end": end_time,
                         "modified": False
@@ -206,7 +221,7 @@ def mock_rythm_episodes(metadata):
 
     i = 0
     while i < len(metadata):
-        typeid = randint(0, len(rythm_codes)-1)
+        typeid = randint(0, len(rhythm_codes)-1)
         duration = randint(20, 100)
         ending = min(len(metadata)-1, i + duration)
 
@@ -214,8 +229,7 @@ def mock_rythm_episodes(metadata):
         end_time = metadata[ending]["qrs_end"]
 
         rythms.append({
-            "id": typeid,
-            "desc": rythm_signatures[typeid],
+            "desc": rhythm_signatures[typeid],
             "start": start_time,
             "end": end_time,
             "modified": False
