@@ -144,7 +144,7 @@ def print_summary(metadata, chan):
     st_intervals = []
     qt_intervals = []
     rr_intervals = []
-    wcount = {w: 0 for w in ("p", "q", "r", "s", "t")}
+    wcount = {w: 0 for w in ("p", "q", "r", "s", "t", "r'", "s'")}
 
     for ncycle, qrs in enumerate(metadata):
 
@@ -162,6 +162,10 @@ def print_summary(metadata, chan):
             wcount["r"] += 1
         if qrs["s_pos"][chan] is not None:
             wcount["s"] += 1
+        if qrs["r2_pos"][chan] is not None:
+            wcount["r'"] += 1
+        if qrs["s2_pos"][chan] is not None:
+            wcount["s'"] += 1
         if qrs["t_pos"][chan] is not None:
             wcount["t"] += 1
 
@@ -442,8 +446,8 @@ def main():
         filename,
         chan=1,#common_signal_names.index("V1"),
         smp_from=0,
-        smp_to=0,
-        draw=False
+        smp_to=20000,
+        draw=True
     )
 
 
