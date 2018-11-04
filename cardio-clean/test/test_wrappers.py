@@ -86,7 +86,7 @@ def test_qrs():
     with open(filename_in, "rb") as fi:
         meta = blobapi_detect_qrs(inbuf=fi)
 
-    assert len(meta) == 3628
+    assert len(meta) == 3627
 
     # Проверка на адекватность значения средней ЧСС
     avg_heartrate = np.median([x["heartrate"] for x in meta])
@@ -121,7 +121,7 @@ def test_parameters():
         with open(filename_metadump, "w") as fmeta:
             json.dump(meta, fmeta, indent=1, sort_keys=True)
 
-        assert len(meta) == 3628
+        assert len(meta) == 3627
 
         # Проверка на наличие ЧСС для всех компелксов кроме артефактов
         no_rr = {c for c, x in enumerate(meta) if x["heartrate"] is None}
