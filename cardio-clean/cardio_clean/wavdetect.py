@@ -422,25 +422,6 @@ def find_points(
 
         approx, detail = ddwt(x-bias[chan], num_scales=num_scales)
 
-        modas = []
-        for band in detail:
-            moda = []
-            # ищем положительные максимумы
-            pos = argrelmax(band)[0]
-            for i in pos:
-                y = band[i]
-                if y > 0:
-                    moda.append((i, y))
-            # ищем отрицательные минимумы
-            neg = argrelmin(band)[0]
-            for i in neg:
-                y = band[i]
-                if y < 0:
-                    moda.append((i, y))
-
-            moda.sort(key=lambda x: x[0])
-            modas.append(moda)
-
         # для обнаружения трепетаний
         fscale = 4
         if chan == 1:
@@ -449,9 +430,6 @@ def find_points(
             fibpos = []
 
         # границы QRS здесь не определяем, надеемся на metadata
-
-        #plt.plot(x)
-        #plt.show(block=False)
 
         # очень приближенная оценка шума
         noise = np.std(detail[1]) * 0.7
