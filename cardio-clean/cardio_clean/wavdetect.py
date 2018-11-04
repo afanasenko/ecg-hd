@@ -5,6 +5,7 @@ from metadata import *
 from util import signal_channels
 from matplotlib import pyplot as plt
 
+
 def modefind(x, lb=0, rb=0, bias=0.0):
 
     if rb:
