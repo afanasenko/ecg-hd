@@ -107,6 +107,73 @@ def is_flutter(qrs):
     return 2 <= qrs["f_waves"][pilot_chan] <= 15
 
 
+def is_rbbb(qrs):
+
+    channel_seq = config.SIGNAL["default_channel_sequence"]
+
+    # Нужны отведения V1 и V6, поэтому работает только на 12-канальном сигнале
+    numch = len(qrs["r_pos"])
+    if numch < 12:
+        return False
+
+    v1 = channel_seq.index("V1")
+    v6 = channel_seq.index("V6")
+
+    # признак - отриц. T в V1
+    tv1 = qrs["t_height"][v1]
+    if tv1 is not None and tv1 < 0:
+        return True
+
+    # признак - раздвоенный R-зубец
+    if qrs["r2_pos"][v1] is not None:
+        return True
+
+
+def is_lbbb(qrs):
+
+    channel_seq = config.SIGNAL["default_channel_sequence"]
+
+    # Нужны отведения V1 и V6, поэтому работает только на 12-канальном сигнале
+    numch = len(qrs["r_pos"])
+    if numch < 12:
+        return False
+
+    v1 = channel_seq.index("V1")
+    v6 = channel_seq.index("V6")
+
+    # признак - отриц. T в V6
+    tv6 = qrs["t_height"][v6]
+    if tv6 is not None and tv6 < 0:
+        return True
+
+
+def find_episodes(rythm_marks, min_episode, metadata):
+    rythms = []
+    last_r = None
+    count = 0
+    total_cycles = len(metadata)
+    for i, r in enumerate(rythm_marks):
+        if i:
+            if r == last_r and i < total_cycles-1:
+                count += 1
+            else:
+                if count >= min_episode and last_r >= 0:
+
+                    start_time = metadata[i-count]["qrs_start"]
+                    end_time = metadata[i-1]["qrs_end"]
+                    rythms.append({
+                        "desc": rhythm_signatures[last_r][0],
+                        "start": start_time,
+                        "end": end_time,
+                        "modified": False
+                    })
+                last_r = r
+                count = 1
+        else:
+            last_r = r
+            count = 1
+    return rythms
+
 
 def define_rythm(metadata, **kwargs):
     """
@@ -130,8 +197,16 @@ def define_rythm(metadata, **kwargs):
 
     total_cycles = len(metadata)
     rythm_marks = np.zeros(total_cycles, int)
+    # синдромы могут перекрываться с основными ритмами, поэтоу храним отдельно
+    # FIXME: хранить все вместе
+    syndrome_marks = np.zeros(total_cycles, int) - 1
 
     for ncycle, qrs in enumerate(metadata):
+
+        if is_lbbb(qrs):
+            syndrome_marks[ncycle] = rhythm_codes["LBBB"]
+        elif is_rbbb(qrs):
+            syndrome_marks[ncycle] = rhythm_codes["RBBB"]
 
         if ncycle < wnd:
             bnd = [0,2*wnd]
@@ -185,29 +260,8 @@ def define_rythm(metadata, **kwargs):
         else:
             rythm_marks[ncycle] = rhythm_codes["sin_other"]
 
-    rythms = []
-    last_r = None
-    count = 0
-    for i, r in enumerate(rythm_marks):
-        if i:
-            if r == last_r and i < total_cycles-1:
-                count += 1
-            else:
-                if count >= min_episode:
-
-                    start_time = metadata[i-count]["qrs_start"]
-                    end_time = metadata[i-1]["qrs_end"]
-                    rythms.append({
-                        "desc": rhythm_signatures[last_r][0],
-                        "start": start_time,
-                        "end": end_time,
-                        "modified": False
-                    })
-                last_r = r
-                count = 1
-        else:
-            last_r = r
-            count = 1
+    rythms = find_episodes(rythm_marks, min_episode, metadata)
+    rythms += find_episodes(syndrome_marks, min_episode, metadata)
 
     define_pvc(metadata, rythms)
     define_pauses(metadata, rythms)
