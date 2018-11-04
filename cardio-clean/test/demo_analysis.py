@@ -141,15 +141,12 @@ def show_raw(filename, smp_from=0, smp_to=0):
 def print_summary(metadata, chan):
     classes = {}
     classids = {}
-    qrs_types = {}
     st_intervals = []
     qt_intervals = []
     rr_intervals = []
     wcount = {w: 0 for w in ("p", "q", "r", "s", "t")}
 
     for ncycle, qrs in enumerate(metadata):
-        qrstype = qrs["qrsType"]
-        qrs_types[qrstype] = qrs_types.get(qrstype, 0) + 1
 
         classletter = qrs["complex_type"]
         classes[classletter] = classes.get(classletter, 0) + 1
@@ -180,8 +177,6 @@ def print_summary(metadata, chan):
     print("Комплексы: {}".format(len(metadata)))
     print("Зубцы: {}".format(wcount))
 
-    print("Конфигурации qrs:")
-    print(qrs_types)
     print("Типы комплексов:")
     print(classes)
     print("Автоклассы:")
@@ -413,12 +408,12 @@ def main():
     # Rh2025 = rs
     # Rh2010 - дрейф, шум, артефакты
 
-    filename = "/Users/arseniy/SERDECH/data/PHYSIONET/I16"
+    #filename = "/Users/arseniy/SERDECH/data/PHYSIONET/I16"
     #filename = "testI59.ecg"
-    #filename = "TestFromDcm.ecg"
+    filename = "TestFromDcm.ecg"
     #filename = "/Users/arseniy/SERDECH/data/ROXMINE/Rh2021"
 
-    if not os.path.isfile(filename + ".hea"):
+    if not filename.endswith(".ecg") and not os.path.isfile(filename + ".hea"):
         print("Файл не найден")
         return
 
@@ -445,10 +440,10 @@ def main():
 
     show_waves(
         filename,
-        chan=common_signal_names.index("V1"),
+        chan=1,#common_signal_names.index("V1"),
         smp_from=0,
-        smp_to=20000,
-        draw=True
+        smp_to=0,
+        draw=False
     )
 
 
