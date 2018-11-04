@@ -1,6 +1,6 @@
 # coding: utf-8
 
-from scipy.signal import convolve, argrelmax, argrelmin
+from scipy.signal import convolve, argrelmax, argrelmin, find_peaks
 from metadata import *
 from util import signal_channels
 from matplotlib import pyplot as plt
@@ -195,7 +195,7 @@ def qrssearch(modes, tight_bounds, approx, params, chan, isolevel,
         qs_to = modes[r1][0]
         mpos = qs_from + np.argmin(approx[qs_from:qs_to])
         params["q_pos"][chan] = mpos
-        params["r_pos"][chan] = None
+        params["r_pos"][chan] = None # тоже mpos ???
         params["s_pos"][chan] = mpos
         params["qrs_shape"][chan] = "qs"
         return
@@ -214,17 +214,17 @@ def qrssearch(modes, tight_bounds, approx, params, chan, isolevel,
     q_pos = -1
     r1_pos = -1
     s1_pos = -1
-    r2_pos = -1
+    r2_pos = e[r_idx][0]
     s2_pos = -1
 
     num_peaks_right = len(e) - r_idx - 1
     # если 0 - значит нет правого S
     if num_peaks_right >= 1:
-        r2_pos = e[r_idx][0]
         if e[r_idx+1][2] < 0:
             s2_pos = e[r_idx+1][0]
         else:
-            assert 0
+            assert 0  # после перехода на find_peaks не должно быть двойных
+            # однополярных пиков
 
     if num_peaks_right >= 3:
         r1_pos = e[r_idx][0]
@@ -232,17 +232,20 @@ def qrssearch(modes, tight_bounds, approx, params, chan, isolevel,
         if e[r_idx+1][2] < 0:
             s1_pos = e[r_idx+1][0]
         else:
-            assert 0
+            assert 0  # после перехода на find_peaks не должно быть двойных
+            # однополярных пиков
 
         if e[r_idx + 2][2] > 0:
             r2_pos = e[r_idx + 2][0]
         else:
-            assert 0
+            assert 0  # после перехода на find_peaks не должно быть двойных
+            # однополярных пиков
 
         if e[r_idx + 3][2] < 0:
             s2_pos = e[r_idx + 3][0]
         else:
-            assert 0
+            assert 0  # после перехода на find_peaks не должно быть двойных
+            # однополярных пиков
 
     num_peaks_left = r_idx
     # если 0 - значит нет Q
@@ -251,7 +254,8 @@ def qrssearch(modes, tight_bounds, approx, params, chan, isolevel,
         if e[r_idx - 1][2] < 0:
             q_pos = e[r_idx - 1][0]
         else:
-            assert 0
+            assert 0  # после перехода на find_peaks не должно быть двойных
+            # однополярных пиков
 
     if num_peaks_left >= 3 and num_peaks_right < 3:
         r2_pos = e[r_idx][0]
@@ -259,7 +263,8 @@ def qrssearch(modes, tight_bounds, approx, params, chan, isolevel,
         if e[r_idx - 1][2] < 0:
             s1_pos = e[r_idx - 1][0]
         else:
-            assert 0
+            assert 0  # после перехода на find_peaks не должно быть двойных
+            # однополярных пиков
 
         if e[r_idx - 2][2] > 0:
             r1_pos = e[r_idx - 2][0]
@@ -285,8 +290,21 @@ def qrssearch(modes, tight_bounds, approx, params, chan, isolevel,
         assert 0
 
     if s1_pos >= 0 and s2_pos >= 0:
-        params["s_pos"][chan] = max(s1_pos, s2_pos)
-        params["s2_pos"][chan] = min(s1_pos, s2_pos)
+
+        first_s = min(s1_pos, s2_pos)
+        second_s = max(s1_pos, s2_pos)
+
+        params["s_pos"][chan] = second_s
+        params["s2_pos"][chan] = first_s
+
+        # требует уточнения.- должен ли быть основной S всегда глубже
+        # удаляем r2 и s2
+        if approx[second_s] > approx[first_s]:
+            params["s_pos"][chan] = first_s
+            params["s2_pos"][chan] = None
+            params["r2_pos"][chan] = None
+
+
     elif s1_pos >= 0:
         params["s_pos"][chan] = s1_pos
     elif s2_pos >= 0:
@@ -372,17 +390,14 @@ def find_extrema(band, start_idx, end_idx, thresh):
 
     moda = []
     # ищем положительные максимумы
-    pos = start_idx + argrelmax(band[start_idx:end_idx+1])[0]
+    #pos = start_idx + argrelmax(band[start_idx:end_idx+1])[0]
+    pos = start_idx + find_peaks(band[start_idx:end_idx+1], height=thresh)[0]
     for i in pos:
-        y = band[i]
-        if y > thresh:
-            moda.append((i, y))
+        moda.append((i, band[i]))
     # ищем отрицательные минимумы
-    neg = start_idx + argrelmin(band[start_idx:end_idx+1])[0]
+    neg = start_idx + find_peaks(-band[start_idx:end_idx+1], height=thresh)[0]
     for i in neg:
-        y = band[i]
-        if y < -thresh:
-            moda.append((i, y))
+        moda.append((i, band[i]))
 
     moda.sort()
     return moda
@@ -426,25 +441,6 @@ def find_points(
 
         approx, detail = ddwt(x-bias[chan], num_scales=num_scales)
 
-        modas = []
-        for band in detail:
-            moda = []
-            # ищем положительные максимумы
-            pos = argrelmax(band)[0]
-            for i in pos:
-                y = band[i]
-                if y > 0:
-                    moda.append((i, y))
-            # ищем отрицательные минимумы
-            neg = argrelmin(band)[0]
-            for i in neg:
-                y = band[i]
-                if y < 0:
-                    moda.append((i, y))
-
-            moda.sort(key=lambda x: x[0])
-            modas.append(moda)
-
         # для обнаружения трепетаний
         fscale = 4
         if chan == 1:
@@ -453,9 +449,6 @@ def find_points(
             fibpos = []
 
         # границы QRS здесь не определяем, надеемся на metadata
-
-        #plt.plot(x)
-        #plt.show(block=False)
 
         # очень приближенная оценка шума
         noise = np.std(detail[1]) * 0.7
@@ -496,12 +489,7 @@ def find_points(
                 int((tight_bounds[1] + next_qrs)/2)
             ]
 
-            # все пики производной в широком окне
-            modes = find_extrema(
-                detail[r_scale], loose_bounds[0], loose_bounds[1], noise/2
-            )
-
-            #if ncycle==18 and chan==1:
+            #if ncycle==1396 and chan==0:
             #    fig, axarr = plt.subplots(2, 1, sharex="col")
             #    xval = np.arange(tight_bounds[0], tight_bounds[1])
             #    axarr[0].plot(xval, x[tight_bounds[0]:tight_bounds[1]])
@@ -512,6 +500,11 @@ def find_points(
             #    print("Look at the plots")
             #    plt.show(block=False)
             #print(ncycle, chan)
+
+            # все пики производной в широком окне
+            modes = find_extrema(
+                detail[r_scale], loose_bounds[0], loose_bounds[1], noise/2
+            )
 
             qrssearch(modes, tight_bounds, approx[r_scale],
                       qrs, chan, iso, qrs_duration_max)

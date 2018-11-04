@@ -90,11 +90,11 @@ def signal_channels(signal):
     :return:
     """
     if len(signal.shape) == 1:
-        yield 0, signal
+        yield 0, np.array(signal, np.float32)
     else:
         numch = signal.shape[1]
         for chan in range(numch):
-            yield chan, signal[:,chan]
+            yield chan, np.array(signal[:,chan], np.float32)
 
 
 def ecgread(filename):

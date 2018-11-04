@@ -17,11 +17,6 @@ from config import config
 Q, R, S : центр зубца (метки времени)
 P, Т: начало, центр, конец (метки времени)
 
-qrsType: вид комплекса. Обнаруживаемые разновидности qrs - R, qR, Rs, qs, qRs.
-
-
-Артефакты кодируются значением qrsType==None
-
 # ######################################
 
 Вторичные данные по зубцам
@@ -58,7 +53,6 @@ def metadata_new(num_channels):
         "qrs_end": None,  # [секунд от начала записи] float
         "qrs_center": None,  # [секунд от начала записи] float
         "qrs_class_id": None,  # код класса string
-        "qrsType": None,  # string
         "flags": "",  # string флаги ''(обычный)|'A'(артефакт)|'E'(
         # экстрасистола)|
         "complex_type": "U",

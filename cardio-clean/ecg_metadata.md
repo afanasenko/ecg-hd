@@ -48,7 +48,6 @@ qrs_metadata = blobapi_detect_qrs(inbuf, min_qrs_ms=20, postprocessing=True)
 | **complex_type** | тип комплекса | char | 'N'\|'S'\|'V'\|'U' | metadata_postprocessing |
 | qrs_class_id | № класса QRS | int | - | incremental_classifier |
 | **flags** | флаги "артефакт" или "экстрасистола" | string | ''\|'A'\|'E' | metadata_postprocessing, incremental_classifier |
-| qrsType | форма комплекса | string | строковый код | find_points |
 | p_start | начало P-зубца | int array | № отсчета | find_points |
 | p_end | конец P-зубца | int array | № отсчета | find_points |
 | p_pos | вершина P-зубца | int array | № отсчета | find_points |
