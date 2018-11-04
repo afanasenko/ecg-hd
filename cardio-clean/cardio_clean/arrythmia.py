@@ -104,7 +104,8 @@ def define_pauses(metadata, rythms):
 
 def is_flutter(qrs):
     pilot_chan = 1 if len(qrs["r_pos"]) > 1 else 0
-    return 2 <= qrs["f_waves"][pilot_chan] <= 15
+    #print(qrs["f_waves"][pilot_chan])
+    return 2 < qrs["f_waves"][pilot_chan] < 10
 
 
 def is_rbbb(qrs):
@@ -128,6 +129,8 @@ def is_rbbb(qrs):
     if qrs["r2_pos"][v1] is not None:
         return True
 
+    # нужна доп. проверка на ширину QRS
+
 
 def is_lbbb(qrs):
 
@@ -145,6 +148,8 @@ def is_lbbb(qrs):
     tv6 = qrs["t_height"][v6]
     if tv6 is not None and tv6 < 0:
         return True
+
+    # нужна доп. проверка на ширину QRS
 
 
 def find_episodes(rythm_marks, min_episode, metadata):
