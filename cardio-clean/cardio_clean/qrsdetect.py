@@ -1,11 +1,21 @@
 # coding: utf-8
 
-from scipy.signal import lfilter
+from scipy.signal import lfilter, freqz
 from metadata import *
+from config import config
+
+from matplotlib import pyplot as plt
+import numpy as np
 
 
 def dummy_shift(x, n):
     return np.concatenate((x[n:], np.ones(n)*x[-1]))
+
+
+def fgraph(b, a):
+    w, h = freqz(b, a)
+    plt.plot(w/np.pi, np.abs(h))
+    plt.show()
 
 
 def qrs_preprocessing(sig, fs):
@@ -15,7 +25,7 @@ def qrs_preprocessing(sig, fs):
     :param fs: частота дискретизации
     :return: характеристическая функция для дальнейшего детектирования
     """
-    #TODO: реализовать синтез фильтров для произвольной fs
+    #TODO: реализовать синтез полосового фильтра 5-15 для произвольной fs
     if fs != 250:
         print("WARNING! выделение QRS для частоты дискретизации 250 Гц")
 
@@ -23,7 +33,7 @@ def qrs_preprocessing(sig, fs):
 
     for chan, x in signal_channels(sig):
         # НЧ фильтр (1 - z ^ -6) ^ 2 / (1 - z ^ -1) ^ 2
-        b = np.array([1, 0, 0, 0, 0, 0, -2, 0, 0, 0, 0, 0, 1], float)
+        b = np.array([1, 0, 0, 0, 0, 0, -2, 0, 0, 0, 0, 0, 1], float) / 36
         a = np.array([1, -2, 1], float)
 
         lp = lfilter(b, a, x)
@@ -33,11 +43,14 @@ def qrs_preprocessing(sig, fs):
         b = np.array([
             -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 32, -32,
              0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
-        ], float)
+        ], float) / 38.9179
         a = np.array([1, -1], float)
 
         hp = lfilter(b, a, lp)
         hp = dummy_shift(hp, 16)
+
+        # FIXME: правильно инициализировать фильтры
+        hp[:19] = 0
 
         # еще один ВЧ фильтр (производная)
         h = np.array([-1, -2, 0, 2, 1], float) / 8
@@ -56,7 +69,7 @@ def qrs_preprocessing(sig, fs):
     return result / max(result)
 
 
-def qrs_detection(sig, fs, minqrs_ms=20):
+def qrs_detection(sig, fs, **kwargs):
     """
         Обнаружение QRS-комплексов по алгоритму Пана - Томпкинса
     :param sig: ЭКС (одноканальный или многоканальный)
@@ -75,6 +88,11 @@ def qrs_detection(sig, fs, minqrs_ms=20):
 
     inside = False
     qrs_start = 0
+
+    minqrs_ms = kwargs.get(
+        "minqrs_ms",
+        config.WAVES["qrs_duration_min"]
+    )
 
     minqrs_smp = ms_to_samples(minqrs_ms, fs)
 

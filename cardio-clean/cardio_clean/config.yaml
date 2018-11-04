@@ -1,4 +1,21 @@
 ---
+  SIGNAL:
+    default_channel_sequence:
+      - I
+      - II
+      - III
+      - AVR
+      - AVL
+      - AVF
+      - V1
+      - V2
+      - V3
+      - V4
+      - V5
+      - V6
+  WAVES:
+    qrs_duration_min: 0.02
+    qrs_duration_max: 0.2
   QT:                   # Анализ QT
     histogram_bins: 10  # Число интервалов для построения гистограммы распределения
     3sigma: False       # Цензурирование гистограммы по правилу трех сигм

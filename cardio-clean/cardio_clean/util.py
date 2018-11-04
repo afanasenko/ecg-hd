@@ -115,4 +115,9 @@ def ecgread(filename):
             "channels": data.shape[1]
         }
 
+        print(fields["sig_name"])
+
         return data, hdr
+
+common_signal_names = ['I', 'II', 'III', 'AVR', 'AVL', 'AVF', 'V1', 'V2',
+                       'V3', 'V4', 'V5', 'V6']

@@ -12,7 +12,7 @@ from cardio_clean.ishemia import mock_ishemia_episodes, define_ishemia_episodes
 
 from cardio_clean.sigbind import fix_baseline
 from cardio_clean.qrsdetect import qrs_detection
-from cardio_clean.util import ecgread
+from cardio_clean.util import ecgread, common_signal_names
 
 
 def dummy_shift(x, n):
@@ -90,8 +90,57 @@ def show_decomposition(filename, chan, smp_from=0, smp_to=0):
     multiplot(ders)
 
 
+def show_decomposition2(filename, chan, smp_from=0, smp_to=0):
+
+    sig, hdr = ecgread(filename)
+
+    if smp_to:
+        smp_to = min(smp_to, sig.shape[0])
+    else:
+        smp_to = sig.shape[0]
+
+    s = sig[smp_from:smp_to, chan]
+
+    app, ders = ddwt(s, num_scales=5)
+    # multiplot(ders)
+    fig, axarr = plt.subplots(5, 1, sharex="col")
+    for i in range(5):
+        axarr[i].plot(s)
+        if i>0:
+            axarr[i].plot(app[i])
+        axarr[i].grid()
+    print("Look at the plots")
+    plt.show()
+
+
+
+def show_raw(filename, smp_from=0, smp_to=0):
+
+    sig, header = ecgread(filename)
+    fs = header["fs"]
+
+    sig = fix_baseline(
+        sig,
+        fs=fs,
+        bias_window_ms=1500
+    )
+
+    if smp_to:
+        smp_to = min(smp_to, sig.shape[0])
+    else:
+        smp_to = sig.shape[0]
+
+    fig, axarr = plt.subplots(sig.shape[1], 1, sharex="col")
+    for i, s in signal_channels(sig):
+        axarr[i].plot(s[smp_from:smp_to])
+        axarr[i].grid()
+    print("Look at the plots")
+    plt.show()
+
+
 def print_summary(metadata, chan):
     classes = {}
+    classids = {}
     qrs_types = {}
     st_intervals = []
     qt_intervals = []
@@ -104,6 +153,9 @@ def print_summary(metadata, chan):
 
         classletter = qrs["complex_type"]
         classes[classletter] = classes.get(classletter, 0) + 1
+
+        classid = qrs["qrs_class_id"]
+        classids[classid] = classids.get(classid, 0) + 1
 
         if qrs["p_pos"][chan] is not None:
             wcount["p"] += 1
@@ -132,13 +184,15 @@ def print_summary(metadata, chan):
     print(qrs_types)
     print("Типы комплексов:")
     print(classes)
+    print("Автоклассы:")
+    print(classids)
 
     print("ST-интервалы: {}, в среднем {} мс".format(
         len(st_intervals), np.mean(st_intervals)
     ))
 
     print("QT-интервалы: {}, в среднем {} мс".format(
-        len(rr_intervals), 1000 * np.mean(qt_intervals)
+        len(qt_intervals), 1000 * np.mean(qt_intervals)
     ))
 
     print("RR-интервалы: {}, в среднем {} мс".format(
@@ -148,8 +202,14 @@ def print_summary(metadata, chan):
 
 def show_qrs(filename, chan, lim):
     sig, header = ecgread(filename)
-
     fs = header["fs"]
+
+    sig = fix_baseline(
+        sig,
+        fs=fs,
+        bias_window_ms=1500
+    )
+
     if fs != 250:
         print("Warning! fs={}".format(fs))
 
@@ -159,13 +219,16 @@ def show_qrs(filename, chan, lim):
         lim = sig.shape[0]
 
     metadata, pant = qrs_detection(
-        sig[:lim,:],
+        sig[:lim,:3],
         fs=header["fs"]
     )
 
     approx, ders = ddwt(sig[:lim, chan], num_scales=5)
 
-    fig, axarr = plt.subplots(len(ders), 1, sharex="col")
+    fig, axarr = plt.subplots(len(ders)+1, 1, sharex="col")
+
+    axarr[len(ders)].plot(pant)
+
     for i, s in enumerate(ders):
         axarr[i].plot(s,"b")
         axarr[i].plot(approx[i],"g")
@@ -177,19 +240,19 @@ def show_qrs(filename, chan, lim):
 
         axarr[i].grid()
 
-    ms_step = 1000
-    locs = np.arange(0, len(ders[0]), ms_to_samples(ms_step, fs))
-    labs = [time.strftime("%M:%S", time.gmtime(x * ms_step)) for x in locs]
-    axarr[-1].set_xticks(locs, labs)
-    ms_step = 100
-    locs = np.arange(0, len(ders[0]), ms_to_samples(ms_step, fs))
-    axarr[-1].set_xticks(locs, minor=True)
+    #ms_step = 1000
+    #locs = np.arange(0, len(ders[0]), ms_to_samples(ms_step, fs))
+    #labs = [time.strftime("%M:%S", time.gmtime(x * ms_step)) for x in locs]
+    #axarr[-1].set_xticks(locs, labs)
+    #ms_step = 100
+    #locs = np.arange(0, len(ders[0]), ms_to_samples(ms_step, fs))
+    #axarr[-1].set_xticks(locs, minor=True)
 
     print("Look at the plots")
     plt.show()
 
 
-def show_waves(filename, chan, lim, draw):
+def show_waves(filename, chan, smp_from=0, smp_to=0, draw=False):
     sig, header = ecgread(filename)
 
     print(sig.shape)
@@ -204,19 +267,19 @@ def show_waves(filename, chan, lim, draw):
         bias_window_ms=1500
     )
 
-    if lim:
-        lim = min(lim, sig.shape[0])
+    if smp_to:
+        smp_to = min(smp_to, sig.shape[0])
     else:
-        lim = sig.shape[0]
-    s = sig[:lim, chan]
+        smp_to = sig.shape[0]
+    s = sig[smp_from:smp_to, chan]
 
     metadata, foo = qrs_detection(
-        sig[:lim,:],
+        sig[smp_from:smp_to,:],
         fs=header["fs"]
     )
 
     find_points(
-        sig[:lim, :],
+        sig[smp_from:smp_to, :],
         fs=header["fs"],
         bias=header["baseline"],
         metadata=metadata
@@ -224,7 +287,7 @@ def show_waves(filename, chan, lim, draw):
 
     metadata_postprocessing(
         metadata,
-        sig[:lim, :],
+        sig[smp_from:smp_to, :],
         header
     )
 
@@ -232,8 +295,16 @@ def show_waves(filename, chan, lim, draw):
         plt.plot(s, "b")
 
         # Цвета для раскрашивания зубцов на графике
-        pt_keys = {"q_pos": "r","r_pos": "g", "s_pos": "b", "p_pos": "y", "t_pos":
-        "m", "t_start": "m", "t_end": "m"}
+        pt_keys = {
+            "q_pos": "g",
+            "r_pos": "r",
+            "r2_pos": "m",
+            "s_pos": "b",
+            "s2_pos": "c",
+            "p_pos": "y",
+            "t_pos": "k",
+            "t_start": "k",
+            "t_end": "k"}
 
         for ncycle, qrs in enumerate(metadata):
 
@@ -298,7 +369,7 @@ def show_waves(filename, chan, lim, draw):
     print(rtm)
 
     print("Ишемия...")
-    m = define_ishemia_episodes(sig[:lim, :], header, metadata)
+    m = define_ishemia_episodes(sig[smp_from:smp_to, :], header, metadata)
     if m:
         print(m)
         print("Число эпизодов: {}".format(len(m)))
@@ -342,28 +413,41 @@ def main():
     # Rh2025 = rs
     # Rh2010 - дрейф, шум, артефакты
 
-    filename = "/Users/arseniy/SERDECH/data/PHYSIONET/203"
+    filename = "/Users/arseniy/SERDECH/data/PHYSIONET/I16"
     #filename = "testI59.ecg"
     #filename = "TestFromDcm.ecg"
-    #filename = "/Users/arseniy/SERDECH/data/ROXMINE/Rh2024"
+    #filename = "/Users/arseniy/SERDECH/data/ROXMINE/Rh2021"
 
     if not os.path.isfile(filename + ".hea"):
         print("Файл не найден")
         return
 
     #show_filter_responses()
+
+    #show_raw(
+    #    filename,
+    #    smp_from=0,
+    #    smp_to=2000
+    #)
+
     #show_decomposition(
     #    filename,
     #    chan=1,
-    #    smp_to=50000
+    #    smp_from=0,
+    #    smp_to=20000
     #)
 
-    #show_qrs(filename, 1, 20000)
+    #show_qrs(
+    #    filename,
+    #    chan=6,
+    #    lim=20000
+    #)
 
     show_waves(
         filename,
-        chan=0,
-        lim=50000,
+        chan=common_signal_names.index("V1"),
+        smp_from=0,
+        smp_to=20000,
         draw=True
     )
 
