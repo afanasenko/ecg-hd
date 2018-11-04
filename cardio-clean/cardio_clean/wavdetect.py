@@ -195,7 +195,7 @@ def qrssearch(modes, tight_bounds, approx, params, chan, isolevel,
         qs_to = modes[r1][0]
         mpos = qs_from + np.argmin(approx[qs_from:qs_to])
         params["q_pos"][chan] = mpos
-        params["r_pos"][chan] = None
+        params["r_pos"][chan] = None # тоже mpos ???
         params["s_pos"][chan] = mpos
         params["qrs_shape"][chan] = "qs"
         return
@@ -223,7 +223,8 @@ def qrssearch(modes, tight_bounds, approx, params, chan, isolevel,
         if e[r_idx+1][2] < 0:
             s2_pos = e[r_idx+1][0]
         else:
-            assert 0
+            assert 0  # после перехода на find_peaks не должно быть двойных
+            # однополярных пиков
 
     if num_peaks_right >= 3:
         r1_pos = e[r_idx][0]
@@ -231,17 +232,20 @@ def qrssearch(modes, tight_bounds, approx, params, chan, isolevel,
         if e[r_idx+1][2] < 0:
             s1_pos = e[r_idx+1][0]
         else:
-            assert 0
+            assert 0  # после перехода на find_peaks не должно быть двойных
+            # однополярных пиков
 
         if e[r_idx + 2][2] > 0:
             r2_pos = e[r_idx + 2][0]
         else:
-            assert 0
+            assert 0  # после перехода на find_peaks не должно быть двойных
+            # однополярных пиков
 
         if e[r_idx + 3][2] < 0:
             s2_pos = e[r_idx + 3][0]
         else:
-            assert 0
+            assert 0  # после перехода на find_peaks не должно быть двойных
+            # однополярных пиков
 
     num_peaks_left = r_idx
     # если 0 - значит нет Q
@@ -250,7 +254,8 @@ def qrssearch(modes, tight_bounds, approx, params, chan, isolevel,
         if e[r_idx - 1][2] < 0:
             q_pos = e[r_idx - 1][0]
         else:
-            assert 0
+            assert 0  # после перехода на find_peaks не должно быть двойных
+            # однополярных пиков
 
     if num_peaks_left >= 3 and num_peaks_right < 3:
         r2_pos = e[r_idx][0]
@@ -258,7 +263,8 @@ def qrssearch(modes, tight_bounds, approx, params, chan, isolevel,
         if e[r_idx - 1][2] < 0:
             s1_pos = e[r_idx - 1][0]
         else:
-            assert 0
+            assert 0  # после перехода на find_peaks не должно быть двойных
+            # однополярных пиков
 
         if e[r_idx - 2][2] > 0:
             r1_pos = e[r_idx - 2][0]
@@ -284,8 +290,21 @@ def qrssearch(modes, tight_bounds, approx, params, chan, isolevel,
         assert 0
 
     if s1_pos >= 0 and s2_pos >= 0:
-        params["s_pos"][chan] = max(s1_pos, s2_pos)
-        params["s2_pos"][chan] = min(s1_pos, s2_pos)
+
+        first_s = min(s1_pos, s2_pos)
+        second_s = max(s1_pos, s2_pos)
+
+        params["s_pos"][chan] = second_s
+        params["s2_pos"][chan] = first_s
+
+        # требует уточнения.- должен ли быть основной S всегда глубже
+        # удаляем r2 и s2
+        if approx[second_s] > approx[first_s]:
+            params["s_pos"][chan] = first_s
+            params["s2_pos"][chan] = None
+            params["r2_pos"][chan] = None
+
+
     elif s1_pos >= 0:
         params["s_pos"][chan] = s1_pos
     elif s2_pos >= 0:
@@ -486,7 +505,6 @@ def find_points(
             modes = find_extrema(
                 detail[r_scale], loose_bounds[0], loose_bounds[1], noise/2
             )
-
 
             qrssearch(modes, tight_bounds, approx[r_scale],
                       qrs, chan, iso, qrs_duration_max)
