@@ -114,8 +114,6 @@ def detect_all_extrema(modes, sig, smp_from, smp_to, marker):
         xn = modes[i + 1][0]
         yn = modes[i + 1][1]
 
-
-
         if y*yn < 0:
             if y > yn:
                 # find local max
@@ -128,11 +126,20 @@ def detect_all_extrema(modes, sig, smp_from, smp_to, marker):
                 mval = sig[mpos]
                 mpol = -1
 
-            if i == marker:
+            if mpos == marker:
                 idx = len(ex)
 
             if smp_from <= mpos <= smp_to:
-                ex.append((mpos, mval, mpol))
+                # уберем двойные сразу
+                if len(ex) and mpol == ex[-1][2]:
+                    if mpol > 0:
+                        if mval > ex[-1][1]:
+                            ex[-1] = (mpos, mval, mpol)
+                    else:
+                        if mval < ex[-1][1]:
+                            ex[-1] = (mpos, mval, mpol)
+                else:
+                    ex.append((mpos, mval, mpol))
 
     return ex, idx
 
@@ -145,14 +152,15 @@ def detect_r_pair(modes, smp_from, smp_to, bipol=False):
     for x, y in modes[:-1]:
 
         if smp_from <= x <= smp_to:
-            diff = y - modes[i+1][1]
+            if y * modes[i+1][1] < 0:
+                diff = y - modes[i+1][1]
 
-            if bipol:
-                diff = abs(diff)
+                if bipol:
+                    diff = abs(diff)
 
-            if diff > maxd:
-                maxd = diff
-                maxdpos = i
+                if diff > maxd:
+                    maxd = diff
+                    maxdpos = i
         i += 1
 
     return maxdpos, maxdpos+1
@@ -204,12 +212,16 @@ def qrssearch(modes, tight_bounds, approx, params, chan, isolevel,
     r_from = modes[r0][0]
     r_to = modes[r1][0]
     r_pos = r_from + np.argmax(approx[r_from:r_to])
+    params["r_pos"][chan] = r_pos
 
     # уточненные границы комплекса
     qrs_from = r_pos - max_qrs_len/2
     qrs_to = r_pos + max_qrs_len/2
 
-    e, r_idx = detect_all_extrema(modes, approx, qrs_from, qrs_to, r0)
+    e, r_idx = detect_all_extrema(modes, approx, qrs_from, qrs_to, r_pos)
+
+    if r_idx < 0:  # ошибка в алгоритме, дальше ничего не выйдет все равно
+        return
 
     q_pos = -1
     r1_pos = -1
@@ -218,6 +230,7 @@ def qrssearch(modes, tight_bounds, approx, params, chan, isolevel,
     s2_pos = -1
 
     num_peaks_right = len(e) - r_idx - 1
+
     # если 0 - значит нет правого S
     if num_peaks_right >= 1:
         if e[r_idx+1][2] < 0:
@@ -390,7 +403,6 @@ def find_extrema(band, start_idx, end_idx, thresh):
 
     moda = []
     # ищем положительные максимумы
-    #pos = start_idx + argrelmax(band[start_idx:end_idx+1])[0]
     pos = start_idx + find_peaks(band[start_idx:end_idx+1], height=thresh)[0]
     for i in pos:
         moda.append((i, band[i]))
@@ -489,10 +501,11 @@ def find_points(
                 int((tight_bounds[1] + next_qrs)/2)
             ]
 
-            #if ncycle==1396 and chan==0:
+            #if ncycle==189 and chan==1:
             #    fig, axarr = plt.subplots(2, 1, sharex="col")
             #    xval = np.arange(tight_bounds[0], tight_bounds[1])
-            #    axarr[0].plot(xval, x[tight_bounds[0]:tight_bounds[1]])
+            #    axarr[0].plot(xval, approx[r_scale][tight_bounds[
+            # 0]:tight_bounds[1]])
             #    axarr[0].grid()
             #    axarr[1].plot(xval, detail[r_scale][tight_bounds[
             #        0]:tight_bounds[1]])
