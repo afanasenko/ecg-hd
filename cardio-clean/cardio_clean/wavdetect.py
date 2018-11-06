@@ -199,6 +199,10 @@ def qrssearch(modes, tight_bounds, approx, params, chan, isolevel,
         # не найдено ни одного положительного зубца, ищем отрицательный
         r0, r1 = detect_r_pair(modes, smp_from=tight_bounds[0],
                            smp_to=tight_bounds[1], bipol=True)
+
+        if r0 < 0:
+            return
+
         qs_from = modes[r0][0]
         qs_to = modes[r1][0]
         mpos = qs_from + np.argmin(approx[qs_from:qs_to])
@@ -501,7 +505,7 @@ def find_points(
                 int((tight_bounds[1] + next_qrs)/2)
             ]
 
-            #if ncycle==189 and chan==1:
+            #if ncycle==1708 and chan==1:
             #    fig, axarr = plt.subplots(2, 1, sharex="col")
             #    xval = np.arange(tight_bounds[0], tight_bounds[1])
             #    axarr[0].plot(xval, approx[r_scale][tight_bounds[
