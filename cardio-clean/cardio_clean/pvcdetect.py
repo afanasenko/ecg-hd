@@ -80,6 +80,5 @@ def detect_pvc_episodes(metadata, fs=250):
 
             i += 1
 
-    # анализ периодичности
-    print(".".join(emarks))
+    #print(".".join(emarks))
     return emarks
