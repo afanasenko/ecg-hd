@@ -81,7 +81,70 @@ def test_classify():
     os.remove(filename_out)
 
 
+def test_lowlevel():
+    filename_in = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "testFindPoint.ecg")
+
+    with open(filename_in, "rb") as f:
+        header, indata = read_buffer(f)
+
+    baseline_out = fix_baseline(indata, header["fs"], 1500)
+
+    mains_out = mains_filter(baseline_out,
+                             header["fs"],
+                             header["baseline"],
+                             mains=50,
+                             attenuation=0.05,
+                             aperture=512)
+
+    print('start qrs_setection')
+    metadata = qrs_detection(mains_out,
+                             fs=header["fs"],
+                             minqrs_ms=20)[0]
+
+    print('start find_points')
+    find_points(indata,
+                fs=header["fs"],
+                metadata=metadata,
+                bias=header["baseline"],
+                debug=False)
+
+    print('start metadata_postprocessing')
+    metadata_postprocessing(metadata,
+                            indata,
+                            header)
+
+    print('start define_rythm')
+    rithms = define_rythm(metadata)
+
+    # ishemia = define_ishemia_episodes(indata, header, metadata, **kwargs)
+    print('start incremental_classifier')
+    qrs_classes = incremental_classifier(mains_out,
+                                         header,
+                                         metadata,
+                                         classgen_t=0.998)
+
+    print('start define_ishemia_episodes')
+    ishemia = define_ishemia_episodes(indata,
+                                      header,
+                                      metadata,
+                                      kodama_elev_t=0.1,
+                                      kodama_depr_t=0.1,
+                                      ellestad_depr_t1=0.2,
+                                      ellestad_depr_t2=0.1,
+                                      min_episode=5)
+
+    print('start reshape classes average')
+    classes_count = len(qrs_classes)
+    for i in range(classes_count):
+        qrs_classes[i]["average"] = np.reshape(qrs_classes[i]["average"],
+                                               (1, np.product(qrs_classes[i][
+                                                                  "average"].shape)))[
+            0].tolist()
+
+
 if __name__ == "__main__":
     print(datetime.datetime.now())
-    test_classify()
+    test_lowlevel()
     print(datetime.datetime.now())

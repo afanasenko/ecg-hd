@@ -145,6 +145,7 @@ def print_summary(metadata, chan):
     qt_intervals = []
     rr_intervals = []
     wcount = {w: 0 for w in ("p", "q", "r", "s", "t", "r'", "s'")}
+    pvc_count = 0
 
     for ncycle, qrs in enumerate(metadata):
 
@@ -178,11 +179,15 @@ def print_summary(metadata, chan):
         if qrs["qt_duration"][chan] is not None:
             qt_intervals.append(qrs["qt_duration"][chan])
 
+        if is_pvc(qrs):
+            pvc_count += 1
+
     print("Комплексы: {}".format(len(metadata)))
     print("Зубцы: {}".format(wcount))
 
-    print("Типы комплексов:")
-    print(classes)
+    print("Типы комплексов: {}".format(classes))
+    print("Экстрасистолы: {}".format(pvc_count))
+
     print("Автоклассы:")
     print(classids)
 
@@ -412,10 +417,10 @@ def main():
     # Rh2025 = rs
     # Rh2010 - дрейф, шум, артефакты
 
-    #filename = "/Users/arseniy/SERDECH/data/PHYSIONET/I16"
+    #filename = "/Users/arseniy/SERDECH/data/PHYSIONET/I39"
     #filename = "testI59.ecg"
-    filename = "TestFromDcm.ecg"
-    #filename = "/Users/arseniy/SERDECH/data/ROXMINE/Rh2021"
+    #filename = "TestFromDcm.ecg"
+    filename = "/Users/arseniy/SERDECH/data/ROXMINE/Rh2021"
 
     if not filename.endswith(".ecg") and not os.path.isfile(filename + ".hea"):
         print("Файл не найден")
