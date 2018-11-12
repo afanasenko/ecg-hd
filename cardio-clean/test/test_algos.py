@@ -38,7 +38,8 @@ def test_pvc_epi():
         x["r_pos"][0] = p
         p += x["RR"]*fs
 
-    detect_pvc_episodes(test_data)
+    marks = detect_pvc_episodes(test_data, fs=fs)
+    assert len([x for x in marks if x != ""]) == 4
 
 
 if __name__ == "__main__":
