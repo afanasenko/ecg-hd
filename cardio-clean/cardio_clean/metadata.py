@@ -345,6 +345,10 @@ def metadata_postprocessing(metadata, sig, header, **kwargs):
             level_from_pos(cycledata, chan, "r_pos", "r_height", x, bias, gain)
             level_from_pos(cycledata, chan, "s_pos", "s_height", x, bias, gain)
             level_from_pos(cycledata, chan, "t_pos", "t_height", x, bias, gain)
+            level_from_pos(cycledata, chan, "r2_pos", "r2_height", x, bias,
+                           gain)
+            level_from_pos(cycledata, chan, "s2_pos", "s2_height", x, bias,
+                           gain)
             level_from_pos(cycledata, chan, "st_start",
                            "st_start_level", x, bias, gain)
             level_from_pos(cycledata, chan, "st_plus", "st_plus_level", x,
