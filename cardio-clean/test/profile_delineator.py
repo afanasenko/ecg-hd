@@ -5,22 +5,37 @@ import pstats
 
 from cardio_clean.wavdetect import find_points
 from cardio_clean.qrsdetect import qrs_detection
+from cardio_clean.metadata import metadata_postprocessing
+from cardio_clean.arrythmia import define_rythm
 from cardio_clean.util import ecgread
 
 pr = profile.Profile()
 
-sig, header = ecgread("/Users/arseniy/SERDECH/data/ROXMINE/Rh1011")
+sig, header = ecgread("/Users/arseniy/SERDECH/data/ROXMINE/Rh2021")
 fs = header["fs"]
 if fs != 250:
     print("Warning! fs={}".format(fs))
 
-metadata = qrs_detection(
-    sig,
-    fs=header["fs"],
-)[0]
+print('start qrs_detection')
+metadata = qrs_detection(sig,
+                         fs=header["fs"],
+                         minqrs_ms=20)[0]
 
+print('start find_points')
+find_points(sig,
+            fs=header["fs"],
+            metadata=metadata,
+            bias=header["baseline"],
+            debug=False)
+
+print('start metadata_postprocessing')
+metadata_postprocessing(metadata,
+                        sig,
+                        header)
+
+print('start define_rythm')
 pr.enable()
-find_points(sig[:, 0], header["fs"], metadata, header["baseline"])
+rithms = define_rythm(metadata)
 pr.disable()
 
 pr.dump_stats('profile.pstat')

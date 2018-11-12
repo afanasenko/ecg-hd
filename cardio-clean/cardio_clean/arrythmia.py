@@ -5,7 +5,7 @@ from random import randint
 from config import config
 
 from metadata import *
-
+from pvcdetect import detect_pvc_episodes
 
 rhythm_signatures = [
     ("sin_norm",  u"Нормальный синусовый ритм"),
@@ -99,6 +99,8 @@ def define_pvc(metadata, rythms):
             })
 
 
+
+
 def define_pauses(metadata, rythms):
     total_cycles = len(metadata)
     for i, qrs in enumerate(metadata):
@@ -180,12 +182,15 @@ def find_episodes(rythm_marks, min_episode, metadata):
             if r == last_r and i < total_cycles-1:
                 count += 1
             else:
-                if count >= min_episode and last_r >= 0:
+                if count >= min_episode and last_r >= 0 and last_r != "":
 
                     start_time = metadata[i-count]["qrs_start"]
                     end_time = metadata[i-1]["qrs_end"]
+
+                    desc = last_r if type(last_r) == str else rhythm_signatures[last_r][0]
+
                     rythms.append({
-                        "desc": rhythm_signatures[last_r][0],
+                        "desc": desc,
                         "start": start_time,
                         "end": end_time,
                         "modified": False
@@ -286,7 +291,11 @@ def define_rythm(metadata, **kwargs):
     rythms = find_episodes(rythm_marks, min_episode, metadata)
     rythms += find_episodes(syndrome_marks, min_episode, metadata)
 
-    define_pvc(metadata, rythms)
+    # сначала выделяем все ЭС
+    pvc_marks = detect_pvc_episodes(metadata)
+    # потом размечаем их как обычные эпизоды, но с мин. длительностью 1
+    rythms += find_episodes(pvc_marks, min_episode=1, metadata=metadata)
+    #define_pvc(metadata, rythms)
     define_pauses(metadata, rythms)
 
     return rythms
