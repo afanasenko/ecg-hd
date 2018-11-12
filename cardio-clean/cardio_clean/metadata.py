@@ -82,7 +82,7 @@ def metadata_new(num_channels):
         "qrs_shape": [""]*num_channels,  # string array
 
         # параметры ритма
-        "RR": None,  # [миллисекунды] float
+        "RR": None,  # [секунды] float
         "heartrate": None,  # [удары в минуту] float
 
         # оценка уровня изолинии
@@ -154,6 +154,16 @@ def is_pvc(cycledata):
     :return: bool
     """
     return "E" in cycledata["flags"]
+
+
+def set_pvc(cycledata):
+    """
+    Установка признака ЭС в данном комплексе
+    :param cycledata:
+    :return: bool
+    """
+    if "E" not in cycledata["flags"]:
+        cycledata["flags"] += "E"
 
 
 def is_artifact(cycledata):
@@ -263,13 +273,8 @@ def metadata_postprocessing(metadata, sig, header, **kwargs):
 
     numch = sig.shape[1] if sig.ndim == 2 else 1
 
-    # ритм оценивается всегда по второму отведению
-    heartbeat_channel = 1 if numch > 1 else 0
-
     # классификация тоже по второму отведению
     classification_channel = 1 if numch > 1 else 0
-
-    num_cycles = len(metadata)
 
     # Удаление выбросов
     for ncycle, cycledata in enumerate(metadata):
@@ -389,14 +394,14 @@ def metadata_postprocessing(metadata, sig, header, **kwargs):
             else:
                 cycledata["qtc_duration"][chan] = None
 
-            # ######################################
-            #
-            if chan == classification_channel:
-                cycledata["complex_type"] = define_complex(
-                    cycledata, fs, classification_channel
-                )
+        #TODO: раздвинуть границы QRS
+        qrsend = cycledata["st_start"][classification_channel]
+        if qrsend is not None:
+            cycledata["qrs_end"] = max(cycledata["qrs_end"], float(qrsend)/fs)
 
-    detect_pvc(metadata)
+        cycledata["complex_type"] = define_complex(
+            cycledata, fs, classification_channel
+        )
 
 
 def is_sinus_cycle(meta):
