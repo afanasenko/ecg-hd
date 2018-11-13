@@ -347,12 +347,13 @@ def metadata_postprocessing(metadata, sig, header, **kwargs):
 
         # ######################################
         # RR и ЧСС
-        rr = estimate_rr(metadata, ncycle) / fs
+        rr = estimate_rr(metadata, ncycle)
         if rr is None:
             set_artifact(cycledata)
             cycledata["RR"] = None
             cycledata["heartrate"] = None
         else:
+            rr /= fs
             cycledata["RR"] = rr
             cycledata["heartrate"] = 60.0 / rr
 
