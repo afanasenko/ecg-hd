@@ -122,10 +122,10 @@ def test_lowlevel():
                                          classgen_t=0.998)
 
     print('start define_rythm')
-    rithms = define_rythm(metadata)
+    rythms = define_rythm(metadata)
 
     print('start define_ishemia_episodes')
-    ishemia = define_ishemia_episodes(indata,
+    ishemia = define_ishemia_episodes(mains_out,
                                       header,
                                       metadata,
                                       kodama_elev_t=0.1,

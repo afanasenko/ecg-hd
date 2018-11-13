@@ -211,7 +211,13 @@ def safe_r_pos(cycledata):
     return rz
 
 
-def find_rr(metadata, pos, fs):
+def estimate_rr(metadata, pos):
+    """
+    Оценка RR-интервала
+    :param metadata:
+    :param pos:
+    :return: в отсчетах
+    """
 
     cycledata = metadata[pos]
     num_cycles = len(metadata)
@@ -250,7 +256,54 @@ def find_rr(metadata, pos, fs):
             cand -= 1
 
     if vice is not None and vice != rz:
-        return float(abs(rz - vice)) / fs
+        return float(abs(rz - vice))
+
+
+def estimate_pp(metadata, pos):
+    """
+
+    :param metadata:
+    :param pos:
+    :return: в отсчетах
+    """
+
+    cycledata = metadata[pos]
+    num_cycles = len(metadata)
+
+    # Не считаем RR для артефактов
+    if is_artifact(cycledata):
+        return
+
+    pz = safe_p_pos(cycledata)
+
+    if pz is None:
+        return
+
+    vice = None
+
+    if pos < num_cycles - 1:
+        cand = pos + 1
+
+        while cand < num_cycles:
+            if is_artifact(metadata[cand]):
+                continue
+            vice = safe_p_pos(metadata[cand])
+            if vice is not None:
+                break
+            cand += 1
+    else:
+        cand = pos - 1
+
+        while cand > 0:
+            if is_artifact(metadata[cand]):
+                continue
+            vice = safe_p_pos(metadata[cand])
+            if vice is not None:
+                break
+            cand -= 1
+
+    if vice is not None and vice != pz:
+        return float(abs(pz - vice))
 
 
 def metadata_postprocessing(metadata, sig, header, **kwargs):
@@ -262,7 +315,7 @@ def metadata_postprocessing(metadata, sig, header, **kwargs):
     :param metadata:
     :param sig:
     :param header: структура с полями fs, adc_gain, baseline
-    :param kwargs: константы j_offset, jplus_offset_ms, min_st_ms
+    :param kwargs: константы j_offset, jplus_offset_ms, min_st_ms, qrs_ventricular_min
     :return: None (результатом являются измененные значения в metadata)
     """
 
@@ -270,6 +323,11 @@ def metadata_postprocessing(metadata, sig, header, **kwargs):
 
     j_offset_ms = kwargs.get("j_offset", 60)
     jplus_offset_ms = kwargs.get("jplus_offset", 80)
+
+    ventricular_min_qrs = kwargs.get(
+        "qrs_ventricular_min",
+        config.WAVES["qrs_ventricular_min"]
+    ) * fs
 
     numch = sig.shape[1] if sig.ndim == 2 else 1
 
@@ -289,7 +347,7 @@ def metadata_postprocessing(metadata, sig, header, **kwargs):
 
         # ######################################
         # RR и ЧСС
-        rr = find_rr(metadata, ncycle, fs)
+        rr = estimate_rr(metadata, ncycle) / fs
         if rr is None:
             set_artifact(cycledata)
             cycledata["RR"] = None
@@ -398,13 +456,13 @@ def metadata_postprocessing(metadata, sig, header, **kwargs):
             else:
                 cycledata["qtc_duration"][chan] = None
 
-        #TODO: раздвинуть границы QRS
+        # уточняем правую границу QRS
         qrsend = cycledata["st_start"][classification_channel]
         if qrsend is not None:
             cycledata["qrs_end"] = max(cycledata["qrs_end"], float(qrsend)/fs)
 
         cycledata["complex_type"] = define_complex(
-            cycledata, fs, classification_channel
+            cycledata, fs, classification_channel, ventricular_min_qrs
         )
 
 
@@ -434,11 +492,12 @@ def is_sinus_cycle(meta):
         return False
 
 
-def define_complex(meta, fs, channel):
+def define_complex(meta, fs, channel, ventricular_min_qrs):
     """
 
     :param meta:
     :param channel:
+    :param ventricular_min_qrs: мин. длительность желуд. QRS в отсчетах
     :return: N - син. V - желуд. S - наджелуд. U - неизвестный
     """
 
@@ -449,7 +508,6 @@ def define_complex(meta, fs, channel):
 
     # наджелудочковые комплексы - обычные, с P-зубцом
     # желудочковые комплексы - широкие, похожие на период синусоиды
-    ventricular_min_qrs = ms_to_samples(120, fs)
 
     if qrslen > ventricular_min_qrs:
         return "V"
@@ -466,6 +524,11 @@ def define_complex(meta, fs, channel):
 
 
 def estimate_pq(meta):
+    """
+    Оценка PQ-интервала
+    :param meta:
+    :return: в отсчетах
+    """
     guess = []
     for i, p in enumerate(meta["p_pos"]):
         if p is None:
@@ -478,6 +541,13 @@ def estimate_pq(meta):
             if r_pos is not None:
                 guess.append(r_pos - p)
 
+    if guess:
+        return np.mean(guess)
+
+
+def safe_p_pos(meta):
+
+    guess = [p for p in meta["p_pos"] if p is not None]
     if guess:
         return np.mean(guess)
 
