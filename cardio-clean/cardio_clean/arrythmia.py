@@ -87,20 +87,6 @@ def is_migration(metadata_block, pilot_chan):
     return False
 
 
-def define_pvc(metadata, rythms):
-
-    for i, qrs in enumerate(metadata):
-        if is_pvc(qrs) and not is_artifact(qrs):
-            rythms.append({
-                "desc": "PVC",
-                "start": qrs["qrs_start"],
-                "end": qrs["qrs_end"],
-                "modified": False
-            })
-
-
-
-
 def define_pauses(metadata, rythms):
     total_cycles = len(metadata)
     for i, qrs in enumerate(metadata):
@@ -295,7 +281,6 @@ def define_rythm(metadata, **kwargs):
     pvc_marks = detect_pvc_episodes(metadata)
     # потом размечаем их как обычные эпизоды, но с мин. длительностью 1
     rythms += find_episodes(pvc_marks, min_episode=1, metadata=metadata)
-    #define_pvc(metadata, rythms)
     define_pauses(metadata, rythms)
 
     return rythms
