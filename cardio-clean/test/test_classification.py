@@ -122,7 +122,8 @@ def test_lowlevel():
                                          classgen_t=0.998)
 
     print('start define_rythm')
-    rythms = define_rythm(metadata)
+    rythms = define_rythm(metadata,
+                          fs=header["fs"])
 
     print('start define_ishemia_episodes')
     ishemia = define_ishemia_episodes(mains_out,
