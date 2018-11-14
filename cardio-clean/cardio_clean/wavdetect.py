@@ -296,6 +296,19 @@ def qrssearch(modes, tight_bounds, approx, params, chan, isolevel,
     if q_pos >= 0:
         params["q_pos"][chan] = q_pos
 
+    if r1_pos == r2_pos:
+        r2_pos = -1
+
+    if r1_pos >= 0 and r2_pos >= 0:
+        rm1 = approx[r1_pos] - isolevel
+        rm2 = approx[r2_pos] - isolevel
+        rm = max(rm1, rm2)
+        t = 0.16
+        if rm1 < t * rm:
+            r1_pos = -1
+        elif rm2 < t * rm:
+            r2_pos = -1
+
     if r1_pos >= 0 and r2_pos >= 0:
         params["r_pos"][chan] = min(r1_pos, r2_pos)
         params["r2_pos"][chan] = max(r1_pos, r2_pos)
@@ -305,6 +318,17 @@ def qrssearch(modes, tight_bounds, approx, params, chan, isolevel,
         params["r_pos"][chan] = r2_pos
     else:
         assert 0
+
+    if r2_pos < 0:
+        if s1_pos < r_pos:
+            s1_pos = -1
+        elif s2_pos < r_pos:
+            s2_pos = -1
+
+    rmpos = max(r1_pos, r2_pos)
+    if s1_pos > rmpos and s2_pos > rmpos:
+        s1_pos = min(s1_pos, s2_pos)
+        s2_pos = -1
 
     if s1_pos >= 0 and s2_pos >= 0:
 
@@ -320,7 +344,6 @@ def qrssearch(modes, tight_bounds, approx, params, chan, isolevel,
             params["s_pos"][chan] = first_s
             params["s2_pos"][chan] = None
             params["r2_pos"][chan] = None
-
 
     elif s1_pos >= 0:
         params["s_pos"][chan] = s1_pos
@@ -505,7 +528,7 @@ def find_points(
                 int((tight_bounds[1] + next_qrs)/2)
             ]
 
-            #if ncycle==1708 and chan==1:
+            #if ncycle==6 and chan==1:
             #    fig, axarr = plt.subplots(2, 1, sharex="col")
             #    xval = np.arange(tight_bounds[0], tight_bounds[1])
             #    axarr[0].plot(xval, approx[r_scale][tight_bounds[
