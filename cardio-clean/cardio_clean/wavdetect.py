@@ -470,20 +470,21 @@ def find_points(
     r_scale = 2
     p_scale = 4
     t_scale = 4
+    # для обнаружения трепетаний
+    f_scale = 4
     t_window_fraction = 0.6
     p_window_fraction = 1.0 - t_window_fraction
 
     num_scales = max(r_scale, p_scale, t_scale)
     num_cycles = len(metadata)
+    pilot_chan = 1 if sig.shape[1] > 1 else 0
 
     for chan, x in signal_channels(sig):
 
         approx, detail = ddwt(x-bias[chan], num_scales=num_scales)
 
-        # для обнаружения трепетаний
-        fscale = 4
-        if chan == 1:
-            fibpos = argrelmin(detail[fscale], order=3)[0]
+        if chan == pilot_chan:
+            fibpos = find_peaks(detail[f_scale], height=0)[0]
         else:
             fibpos = []
 
@@ -530,12 +531,17 @@ def find_points(
 
             #if ncycle==6 and chan==1:
             #    fig, axarr = plt.subplots(2, 1, sharex="col")
-            #    xval = np.arange(tight_bounds[0], tight_bounds[1])
-            #    axarr[0].plot(xval, approx[r_scale][tight_bounds[
-            # 0]:tight_bounds[1]])
+            #    fleft = int(metadata[ncycle-1]["qrs_end"]*fs)
+            #    fright = int(qrs["qrs_start"]*fs)
+            #    #x1 = tight_bounds[0]
+            #    #x2 = tight_bounds[1]
+            #    x1 = fleft
+            #    x2 = fright
+            #    xval = np.arange(x1, x2)
+            #    axarr[0].plot(xval, approx[r_scale][x1:x2])
             #    axarr[0].grid()
-            #    axarr[1].plot(xval, detail[r_scale][tight_bounds[
-            #        0]:tight_bounds[1]])
+            #    axarr[1].plot(xval, detail[r_scale][x1:x2])
+            #    axarr[1].plot(xval, detail[f_scale][x1:x2], "m")
             #    axarr[1].grid()
             #    print("Look at the plots")
             #    plt.show(block=False)
@@ -618,28 +624,10 @@ def find_points(
             qrs["t_end"][chan] = tright
 
             # поиск F-волн в промежутках между qrs
-            if ncycle:
+            if chan == pilot_chan and ncycle:
                 fleft = int(metadata[ncycle-1]["qrs_end"]*fs)
                 fright = int(qrs["qrs_start"]*fs)
-                numf = 0
-
-                for f in fibpos:
-                    if fleft <= f <= fright:
-                        if detail[fscale][f] < - noise:
-                            numf += 1
-                    elif f > fright:
-                        break
+                numf = len([fpk for fpk in fibpos if
+                                            fleft<fpk<fright])
                 qrs["f_waves"][chan] = numf
-
-                #if numf > 1:
-                #   plt.plot(approx[1]-iso)
-                #   plt.plot(detail[fscale] + 1)
-                #   plt.xlim((fleft-fs,fright+fs))
-                #   plt.plot([fleft, fright], [-2*noise, -2*noise])
-                #   plt.show()
-
-
-def detect_f_waves(x):
-
-    pass
-
+                
