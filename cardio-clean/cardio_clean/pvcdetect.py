@@ -1,13 +1,11 @@
 # coding: utf-8
 
 import numpy as np
-from random import randint
-from config import config
 
-from metadata import *
+from metadata import is_artifact, set_pvc
 
 
-def detect_pvc_episodes(metadata, fs=250):
+def detect_pvc_episodes(metadata, fs):
     """
     Поиск экстрасистол
     :param metadata:

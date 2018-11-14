@@ -98,13 +98,13 @@ def test_lowlevel():
                              attenuation=0.05,
                              aperture=512)
 
-    print('start qrs_setection')
+    print('start qrs_detection')
     metadata = qrs_detection(mains_out,
                              fs=header["fs"],
                              minqrs_ms=20)[0]
 
     print('start find_points')
-    find_points(indata,
+    find_points(mains_out,
                 fs=header["fs"],
                 metadata=metadata,
                 bias=header["baseline"],
@@ -112,21 +112,21 @@ def test_lowlevel():
 
     print('start metadata_postprocessing')
     metadata_postprocessing(metadata,
-                            indata,
+                            mains_out,
                             header)
 
-    print('start define_rythm')
-    rithms = define_rythm(metadata)
-
-    # ishemia = define_ishemia_episodes(indata, header, metadata, **kwargs)
     print('start incremental_classifier')
     qrs_classes = incremental_classifier(mains_out,
                                          header,
                                          metadata,
                                          classgen_t=0.998)
 
+    print('start define_rythm')
+    rythms = define_rythm(metadata,
+                          fs=header["fs"])
+
     print('start define_ishemia_episodes')
-    ishemia = define_ishemia_episodes(indata,
+    ishemia = define_ishemia_episodes(mains_out,
                                       header,
                                       metadata,
                                       kodama_elev_t=0.1,

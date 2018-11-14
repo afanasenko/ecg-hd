@@ -296,6 +296,19 @@ def qrssearch(modes, tight_bounds, approx, params, chan, isolevel,
     if q_pos >= 0:
         params["q_pos"][chan] = q_pos
 
+    if r1_pos == r2_pos:
+        r2_pos = -1
+
+    if r1_pos >= 0 and r2_pos >= 0:
+        rm1 = approx[r1_pos] - isolevel
+        rm2 = approx[r2_pos] - isolevel
+        rm = max(rm1, rm2)
+        t = 0.16
+        if rm1 < t * rm:
+            r1_pos = -1
+        elif rm2 < t * rm:
+            r2_pos = -1
+
     if r1_pos >= 0 and r2_pos >= 0:
         params["r_pos"][chan] = min(r1_pos, r2_pos)
         params["r2_pos"][chan] = max(r1_pos, r2_pos)
@@ -305,6 +318,17 @@ def qrssearch(modes, tight_bounds, approx, params, chan, isolevel,
         params["r_pos"][chan] = r2_pos
     else:
         assert 0
+
+    if r2_pos < 0:
+        if s1_pos < r_pos:
+            s1_pos = -1
+        elif s2_pos < r_pos:
+            s2_pos = -1
+
+    rmpos = max(r1_pos, r2_pos)
+    if s1_pos > rmpos and s2_pos > rmpos:
+        s1_pos = min(s1_pos, s2_pos)
+        s2_pos = -1
 
     if s1_pos >= 0 and s2_pos >= 0:
 
@@ -320,7 +344,6 @@ def qrssearch(modes, tight_bounds, approx, params, chan, isolevel,
             params["s_pos"][chan] = first_s
             params["s2_pos"][chan] = None
             params["r2_pos"][chan] = None
-
 
     elif s1_pos >= 0:
         params["s_pos"][chan] = s1_pos
@@ -447,20 +470,21 @@ def find_points(
     r_scale = 2
     p_scale = 4
     t_scale = 4
+    # для обнаружения трепетаний
+    f_scale = 4
     t_window_fraction = 0.6
     p_window_fraction = 1.0 - t_window_fraction
 
     num_scales = max(r_scale, p_scale, t_scale)
     num_cycles = len(metadata)
+    pilot_chan = 1 if sig.shape[1] > 1 else 0
 
     for chan, x in signal_channels(sig):
 
         approx, detail = ddwt(x-bias[chan], num_scales=num_scales)
 
-        # для обнаружения трепетаний
-        fscale = 4
-        if chan == 1:
-            fibpos = argrelmin(detail[fscale], order=3)[0]
+        if chan == pilot_chan:
+            fibpos = find_peaks(detail[f_scale], height=0)[0]
         else:
             fibpos = []
 
@@ -505,14 +529,19 @@ def find_points(
                 int((tight_bounds[1] + next_qrs)/2)
             ]
 
-            #if ncycle==1708 and chan==1:
+            #if ncycle==6 and chan==1:
             #    fig, axarr = plt.subplots(2, 1, sharex="col")
-            #    xval = np.arange(tight_bounds[0], tight_bounds[1])
-            #    axarr[0].plot(xval, approx[r_scale][tight_bounds[
-            # 0]:tight_bounds[1]])
+            #    fleft = int(metadata[ncycle-1]["qrs_end"]*fs)
+            #    fright = int(qrs["qrs_start"]*fs)
+            #    #x1 = tight_bounds[0]
+            #    #x2 = tight_bounds[1]
+            #    x1 = fleft
+            #    x2 = fright
+            #    xval = np.arange(x1, x2)
+            #    axarr[0].plot(xval, approx[r_scale][x1:x2])
             #    axarr[0].grid()
-            #    axarr[1].plot(xval, detail[r_scale][tight_bounds[
-            #        0]:tight_bounds[1]])
+            #    axarr[1].plot(xval, detail[r_scale][x1:x2])
+            #    axarr[1].plot(xval, detail[f_scale][x1:x2], "m")
             #    axarr[1].grid()
             #    print("Look at the plots")
             #    plt.show(block=False)
@@ -595,28 +624,10 @@ def find_points(
             qrs["t_end"][chan] = tright
 
             # поиск F-волн в промежутках между qrs
-            if ncycle:
+            if chan == pilot_chan and ncycle:
                 fleft = int(metadata[ncycle-1]["qrs_end"]*fs)
                 fright = int(qrs["qrs_start"]*fs)
-                numf = 0
-
-                for f in fibpos:
-                    if fleft <= f <= fright:
-                        if detail[fscale][f] < - noise:
-                            numf += 1
-                    elif f > fright:
-                        break
+                numf = len([fpk for fpk in fibpos if
+                                            fleft<fpk<fright])
                 qrs["f_waves"][chan] = numf
-
-                #if numf > 1:
-                #   plt.plot(approx[1]-iso)
-                #   plt.plot(detail[fscale] + 1)
-                #   plt.xlim((fleft-fs,fright+fs))
-                #   plt.plot([fleft, fright], [-2*noise, -2*noise])
-                #   plt.show()
-
-
-def detect_f_waves(x):
-
-    pass
-
+                

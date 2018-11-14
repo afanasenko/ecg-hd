@@ -4,48 +4,11 @@ import numpy as np
 from random import randint
 from config import config
 
-from metadata import *
+#from metadata import *
+from rhythms import *
 from pvcdetect import detect_pvc_episodes
+from blockades import *
 
-rhythm_signatures = [
-    ("sin_norm",  u"Нормальный синусовый ритм"),
-    ("sin_tachy", u"Cинусовая тахикардия"),
-    ("sin_brady", u"синусовая брадикардия"),
-    ("sin_other",  u"Синусовая аритмия"),
-    ("pacemaker_migration",  u"Миграция водителя ритма"),
-    ("atrial",  u"Предсердный ритм"),
-    ("ventricular",  u"Желудочковый ритм"),
-    ("v_parox",  u"Пароксизмальная желудочковая тахикардия"),
-    ("av_parox", u"Пароксизмальная AB тахикардия"),
-    ("a_parox", u"Пароксизмальная предсердная тахикардия"),
-    ("PVC", u"Экстрасистолия"),
-    ("pause", u"Асистолия"),
-    ("LBBB", u"Блокада ЛНПГ"),
-    ("RBBB", u"Блокада ПНПГ"),
-    ("WPW", u"Синдром WPW"),
-    ("AFL", u"Трепетание предсердий"),   # 200-400 bpm
-    ("VFL", u"Трепетание желудочков"),   # 200-300 bpm
-    ("AFB", u"Фибрилляция предсердий"),  # 350-700 bpm
-    ("VFB", u"Фибрилляция желудочков"),   # 200-500 bpm
-    ("PVC_SSE", u"Единичная наджелудочковая ранняя экстрасистолия"),
-    ("PVC_SSI", u"Единичная наджелудочковая вставочная экстрасистолия"),
-    ("PVC_SVE", u"Единичная желудочковая ранняя экстрасистолия"),
-    ("PVC_SVI", u"Единичная желудочковая вставочная экстрасистолия"),
-    ("PVC_CSE", u"Парная наджелудочковая ранняя экстрасистолия"),
-    ("PVC_CSI", u"Парная наджелудочковая вставочная экстрасистолия"),
-    ("PVC_CVE", u"Парная желудочковая ранняя экстрасистолия"),
-    ("PVC_CVI", u"Парная желудочковая вставочная экстрасистолия"),
-    ("PVC_GSE", u"Групповая наджелудочковая ранняя экстрасистолия"),
-    ("PVC_GSI", u"Групповая наджелудочковая вставочная экстрасистолия"),
-    ("PVC_GVE", u"Групповая желудочковая ранняя экстрасистолия"),
-    ("PVC_GVI", u"Групповая желудочковая вставочная экстрасистолия"),
-    ("SAB_I", u"СА-блокада 1 степени"),
-    ("SAB_II", u"СА-блокада 2 степени"),
-    ("SAB_III", u"СА-блокада 3 степени"),
-    ("AVB_I", u"АВ-блокада 1 степени"),
-    ("AVB_II", u"АВ-блокада 2 степени"),
-    ("AVB_III", u"АВ-блокада 3 степени")
-]
 
 # Цифровые коды ритмов
 rhythm_names = {a:b[0] for a,b in enumerate(rhythm_signatures)}
@@ -65,155 +28,22 @@ def arrythmia_name(s):
         return u"Неизвестный ритм"
 
 
-def is_migration(metadata_block, pilot_chan):
-    pq = []
-    pm = []
-    for x in metadata_block:
-        pqest = estimate_pq(x)
-        if pqest is not None:
-            pq.append(pqest)
-        p = x["p_height"][pilot_chan]
-        if p is not None:
-            pm.append(p)
-
-    if len(pq) > 0.5*len(metadata_block):
-        if np.std(pq) > 0.5 * np.mean(pq):
-            return True
-
-    if len(pm) > 0.5*len(metadata_block):
-        if np.std(pm) > 0.5 * np.mean(pm):
-            return True
-
-    return False
-
-
-def define_pvc(metadata, rythms):
-
-    for i, qrs in enumerate(metadata):
-        if is_pvc(qrs) and not is_artifact(qrs):
-            rythms.append({
-                "desc": "PVC",
-                "start": qrs["qrs_start"],
-                "end": qrs["qrs_end"],
-                "modified": False
-            })
-
-
-
-
-def define_pauses(metadata, rythms):
-    total_cycles = len(metadata)
-    for i, qrs in enumerate(metadata):
-        if i:
-            rr = qrs["RR"]
-            if rr is None:
-                continue
-
-            prr = metadata[i-1]["RR"]
-            if prr is not None and rr > 1.5 * prr and i < total_cycles-1:
-
-                c_pause = (qrs["qrs_center"] + metadata[i+1]["qrs_center"]) / 2
-
-                rythms.append({
-                    "desc": "pause",
-                    "start": c_pause - 0.1,
-                    "end": c_pause + 0.1,
-                    "modified": False
-                })
-
-
-def is_flutter(qrs):
-    pilot_chan = 1 if len(qrs["r_pos"]) > 1 else 0
-    #print(qrs["f_waves"][pilot_chan])
-    return 2 < qrs["f_waves"][pilot_chan] < 10
-
-
-def is_rbbb(qrs):
-
-    channel_seq = config.SIGNAL["default_channel_sequence"]
-
-    # Нужны отведения V1 и V6, поэтому работает только на 12-канальном сигнале
-    numch = len(qrs["r_pos"])
-    if numch < 12:
-        return False
-
-    v1 = channel_seq.index("V1")
-    v6 = channel_seq.index("V6")
-
-    # признак - отриц. T в V1
-    tv1 = qrs["t_height"][v1]
-    if tv1 is not None and tv1 < 0:
-        return True
-
-    # признак - раздвоенный R-зубец
-    if qrs["r2_pos"][v1] is not None:
-        return True
-
-    # нужна доп. проверка на ширину QRS
-
-
-def is_lbbb(qrs):
-
-    channel_seq = config.SIGNAL["default_channel_sequence"]
-
-    # Нужны отведения V1 и V6, поэтому работает только на 12-канальном сигнале
-    numch = len(qrs["r_pos"])
-    if numch < 12:
-        return False
-
-    v1 = channel_seq.index("V1")
-    v6 = channel_seq.index("V6")
-
-    # признак - отриц. T в V6
-    tv6 = qrs["t_height"][v6]
-    if tv6 is not None and tv6 < 0:
-        return True
-
-    # нужна доп. проверка на ширину QRS
-
-
-def find_episodes(rythm_marks, min_episode, metadata):
-    rythms = []
-    last_r = None
-    count = 0
-    total_cycles = len(metadata)
-    for i, r in enumerate(rythm_marks):
-        if i:
-            if r == last_r and i < total_cycles-1:
-                count += 1
-            else:
-                if count >= min_episode and last_r >= 0 and last_r != "":
-
-                    start_time = metadata[i-count]["qrs_start"]
-                    end_time = metadata[i-1]["qrs_end"]
-
-                    desc = last_r if type(last_r) == str else rhythm_signatures[last_r][0]
-
-                    rythms.append({
-                        "desc": desc,
-                        "start": start_time,
-                        "end": end_time,
-                        "modified": False
-                    })
-                last_r = r
-                count = 1
-        else:
-            last_r = r
-            count = 1
-    return rythms
-
-
 def define_rythm(metadata, **kwargs):
     """
 
     :param metadata:
-    :param kwargs: См. секцию RHYTHM в config.yaml
+    :param kwargs: min_episode, fs
     :return:
     """
 
     min_episode = kwargs.get(
         "min_episode",
         config.RHYTHM["min_episode"]
+    )
+
+    fs = kwargs.get(
+        "fs",
+        config.SIGNAL["default_fs"]
     )
 
     if not metadata:
@@ -267,36 +97,47 @@ def define_rythm(metadata, **kwargs):
             "complex_type"] != "U"]
         )
 
+        dominant = "N"
         num_sin = len([1 for x in ct if x == "N"])
         num_sup = len([1 for x in ct if x == "S"])
         num_ven = len([1 for x in ct if x == "V"])
+        if num_sup > wnd:
+            dominant = "S"
+        elif num_ven > wnd:
+            dominant = "V"
 
         # постоянный RR-интервал
+        r_mark = "sin_norm"
         if np.std(hr) < 0.1 * avg_hr:
             if 60.0 <= avg_hr <= 100.0:
-                if num_sup > wnd:
-                    rythm_marks[ncycle] = rhythm_codes["atrial"]
-                else:
-                    rythm_marks[ncycle] = rhythm_codes["sin_norm"]
+                if dominant == "S":
+                    r_mark = "atrial"
+                elif dominant == "V":
+                    # для желудочкового ритма это уже тахикардия
+                    r_mark = "VT"
+
             elif avg_hr < 60.0:
-                if avg_hr <= 45.0 and num_ven > wnd:
-                    rythm_marks[ncycle] = rhythm_codes["ventricular"]
+                if dominant == "V":
+                    r_mark = "ventricular"
                 else:
-                    rythm_marks[ncycle] = rhythm_codes["sin_brady"]
+                    r_mark = "sin_brady"
             else:
-                rythm_marks[ncycle] = rhythm_codes["sin_tachy"]
+                r_mark = "sin_tachy"
         else:
-            rythm_marks[ncycle] = rhythm_codes["sin_other"]
+            r_mark = "sin_other"
+
+        rythm_marks[ncycle] = rhythm_codes[r_mark]
 
     rythms = find_episodes(rythm_marks, min_episode, metadata)
     rythms += find_episodes(syndrome_marks, min_episode, metadata)
 
     # сначала выделяем все ЭС
-    pvc_marks = detect_pvc_episodes(metadata)
+    pvc_marks = detect_pvc_episodes(metadata, fs)
     # потом размечаем их как обычные эпизоды, но с мин. длительностью 1
     rythms += find_episodes(pvc_marks, min_episode=1, metadata=metadata)
-    #define_pvc(metadata, rythms)
-    define_pauses(metadata, rythms)
+    # в последнюю очередь ищем паузы
+    rythms += define_sablock(metadata)
+    rythms += define_avblock(metadata, fs, min_episode)
 
     return rythms
 

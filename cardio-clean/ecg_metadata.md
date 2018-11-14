@@ -60,10 +60,15 @@ qrs_metadata = blobapi_detect_qrs(inbuf, min_qrs_ms=20, postprocessing=True)
 | r_height | высота R-зубца над/под изолинией | float array | мВ | metadata_postprocessing |
 | s_pos | вершина S-зубца | int array | № отсчета | find_points |
 | s_height | высота S-зубца над/под изолинией | float array | мВ | metadata_postprocessing |
+| r2_pos | вершина R'-зубца | int array | № отсчета | find_points |
+| r2_height | высота R'-зубца над/под изолинией | float array | мВ | metadata_postprocessing |
+| s2_pos | вершина S'-зубца | int array | № отсчета | find_points |
+| s2_height | высота S'-зубца над/под изолинией | float array | мВ | metadata_postprocessing |
 | t_start | начало T-зубца | int array | № отсчета | find_points |
 | t_end | конец T-зубца | int array | № отсчета | find_points |
 | t_pos | вершина T-зубца | int array | № отсчета | find_points |
 | t_height | высота T-зубца над/под изолинией | float array | мВ | metadata_postprocessing |
+| qrs_shape | форма qrs | string array | - | find_points |
 | **параметры ритма** |
 | RR | RR-интервал | float | [с] | metadata_postprocessing |
 | heartrate | ЧСС = 60000/RR| float | уд/мин | metadata_postprocessing |
