@@ -458,10 +458,6 @@ def find_points(
     :return: None (результатом являются измененные значения в metadata)
     """
 
-    debug = kwargs.get(
-        "debug",
-        False
-    )
     qrs_duration_max = int(fs*kwargs.get(
         "qrs_duration_max",
         config.WAVES["qrs_duration_max"]
@@ -483,17 +479,16 @@ def find_points(
 
         approx, detail = ddwt(x-bias[chan], num_scales=num_scales)
 
-        if chan == pilot_chan:
-            fibpos = find_peaks(detail[f_scale], height=0)[0]
-        else:
-            fibpos = []
-
         # границы QRS здесь не определяем, надеемся на metadata
 
         # очень приближенная оценка шума
         noise = np.std(detail[1]) * 0.7
-        if debug:
-            print(noise)
+        #print(noise)
+
+        if chan == pilot_chan:
+            fibpos = find_peaks(detail[f_scale], height=noise/2)[0]
+        else:
+            fibpos = []
 
         for ncycle, qrs in enumerate(metadata):
 
@@ -630,4 +625,4 @@ def find_points(
                 numf = len([fpk for fpk in fibpos if
                                             fleft<fpk<fright])
                 qrs["f_waves"][chan] = numf
-                
+
