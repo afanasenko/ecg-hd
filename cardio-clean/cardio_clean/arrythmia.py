@@ -58,6 +58,7 @@ def define_rythm(metadata, **kwargs):
     # синдромы могут перекрываться с основными ритмами, поэтоу храним отдельно
     # FIXME: хранить все вместе
     syndrome_marks = np.zeros(total_cycles, int) - 1
+    flutter_marks = np.zeros(total_cycles, int) - 1
 
     for ncycle, qrs in enumerate(metadata):
 
@@ -80,8 +81,8 @@ def define_rythm(metadata, **kwargs):
 
         # обнаруживаем трепетания во II-м отведении
         if is_flutter(qrs):
-            rythm_marks[ncycle] = rhythm_codes["AFL"]
-            continue
+            flutter_marks[ncycle] = rhythm_codes["AFL"]
+            #print(ncycle, qrs["f_waves"][1])
 
         # ЧСС
         hr = np.array(
@@ -130,6 +131,7 @@ def define_rythm(metadata, **kwargs):
 
     rythms = find_episodes(rythm_marks, min_episode, metadata)
     rythms += find_episodes(syndrome_marks, min_episode, metadata)
+    rythms += find_episodes(flutter_marks, min_episode, metadata)
 
     # сначала выделяем все ЭС
     pvc_marks = detect_pvc_episodes(metadata, fs)
