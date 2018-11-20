@@ -238,27 +238,24 @@ def estimate_rr(metadata, pos):
         return
 
     vice = None
-
+    cand = pos
     if pos < num_cycles - 1:
-        cand = pos + 1
 
-        while cand < num_cycles:
-            if is_artifact(metadata[cand]):
-                continue
-            vice = safe_r_pos(metadata[cand])
-            if vice is not None:
-                break
+        while cand < num_cycles - 1:
             cand += 1
-    else:
-        cand = pos - 1
-
-        while cand > 0:
             if is_artifact(metadata[cand]):
                 continue
             vice = safe_r_pos(metadata[cand])
             if vice is not None:
                 break
+    else:
+        while cand > 1:
             cand -= 1
+            if is_artifact(metadata[cand]):
+                continue
+            vice = safe_r_pos(metadata[cand])
+            if vice is not None:
+                break
 
     if vice is not None and vice != rz:
         return float(abs(rz - vice))
@@ -285,27 +282,23 @@ def estimate_pp(metadata, pos):
         return
 
     vice = None
-
+    cand = pos
     if pos < num_cycles - 1:
-        cand = pos + 1
-
-        while cand < num_cycles:
-            if is_artifact(metadata[cand]):
-                continue
-            vice = safe_p_pos(metadata[cand])
-            if vice is not None:
-                break
+        while cand < num_cycles-1:
             cand += 1
-    else:
-        cand = pos - 1
-
-        while cand > 0:
             if is_artifact(metadata[cand]):
                 continue
             vice = safe_p_pos(metadata[cand])
             if vice is not None:
                 break
+    else:
+        while cand > 1:
             cand -= 1
+            if is_artifact(metadata[cand]):
+                continue
+            vice = safe_p_pos(metadata[cand])
+            if vice is not None:
+                break
 
     if vice is not None and vice != pz:
         return float(abs(pz - vice))
