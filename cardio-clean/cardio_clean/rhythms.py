@@ -77,6 +77,7 @@ def is_migration(metadata_block, pilot_chan):
 
 def is_flutter(qrs):
     pilot_chan = 1 if len(qrs["r_pos"]) > 1 else 0
+    # 0.3 - пороговое значение корреляции для обнаружения периодичности
     return qrs["flutter"][pilot_chan] > 0.3
 
 

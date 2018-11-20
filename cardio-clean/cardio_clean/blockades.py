@@ -135,13 +135,12 @@ def define_avblock(metadata, fs, min_episode, **kwargs):
 
     for ncycle, qrs in enumerate(metadata):
 
-        if ncycle < wnd:
-            if pqbuf:
-                pqbuf.pop(0)
-            if ppbuf:
-                ppbuf.pop(0)
-            if rrbuf:
-                rrbuf.pop(0)
+        if len(pqbuf) > wnd:
+            pqbuf.pop(0)
+        if len(ppbuf) > wnd:
+            ppbuf.pop(0)
+        if len(rrbuf) > wnd:
+            rrbuf.pop(0)
 
         #
         pqi = estimate_pq(qrs)
