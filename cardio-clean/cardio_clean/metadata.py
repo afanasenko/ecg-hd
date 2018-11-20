@@ -50,6 +50,7 @@ def metadata_new(num_channels):
         "t_height": [None]*num_channels,  # float array
         "f_waves": [0]*num_channels,  # float array
         "qrs_shape": [""]*num_channels,  # string array
+        "flutter": [0]*num_channels, # float array
 
         # параметры ритма
         "RR": None,  # [секунды] float
@@ -179,6 +180,40 @@ def safe_r_pos(cycledata):
         if qz is not None and sz is not None:
             rz = (qz + sz)/2
     return rz
+
+
+def get_cycle_start(cycledata, chan, fs):
+    x = int(cycledata["qrs_start"] * fs)
+    y = cycledata["p_start"][chan]
+    if y is not None:
+        return min(x, y)
+
+    y = cycledata["p_pos"][chan]
+    if y is not None:
+        return min(x, y)
+
+    y = cycledata["q_pos"][chan]
+    if y is not None:
+        return min(x, y)
+
+    return x
+
+
+def get_cycle_end(cycledata, chan, fs):
+    x = int(cycledata["qrs_end"] * fs)
+    y = cycledata["t_end"][chan]
+    if y is not None:
+        return max(x, y)
+
+    y = cycledata["t_pos"][chan]
+    if y is not None:
+        return max(x, y)
+
+    y = cycledata["st_start"][chan]
+    if y is not None:
+        return max(x, y)
+
+    return x
 
 
 def estimate_rr(metadata, pos):
@@ -478,10 +513,12 @@ def define_complex(meta, fs, channel, ventricular_min_qrs):
     qrslen = estimate_qrslen(meta, fs, channel)
 
     # наджелудочковые комплексы - обычные, с P-зубцом
-    # желудочковые комплексы - широкие, похожие на период синусоиды
+    # желудочковые комплексы - широкие, корявые, с отриц. T-зубцом
 
     if qrslen > ventricular_min_qrs:
-        return "V"
+        th = meta["t_height"][channel]
+        if th is None or th < 0:
+            return "V"
 
     if meta["p_pos"][channel] is not None:
         # qrs_start, qrs_end не могут быть None при штатном порядке вызова
