@@ -185,6 +185,6 @@ def define_avblock(metadata, fs, min_episode, **kwargs):
             # блокада 1-й и 3-й степени не сопровождается выпадением комплексов
             avb_marks[ncycle] = "AVB_" + "I" * avb_level
 
-        # ищем эпизоды блокады 1-й степени
-        rythms += find_episodes(avb_marks, min_episode, metadata)
-        return rythms
+    # ищем эпизоды блокады 1-й степени
+    rythms += find_episodes(avb_marks, min_episode, metadata)
+    return rythms

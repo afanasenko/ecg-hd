@@ -77,8 +77,7 @@ def is_migration(metadata_block, pilot_chan):
 
 def is_flutter(qrs):
     pilot_chan = 1 if len(qrs["r_pos"]) > 1 else 0
-    #print(qrs["f_waves"][pilot_chan])
-    return 2 < qrs["f_waves"][pilot_chan] < 10
+    return qrs["flutter"][pilot_chan] > 0.3
 
 
 def find_episodes(rythm_marks, min_episode, metadata):
