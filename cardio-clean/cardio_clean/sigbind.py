@@ -2,7 +2,7 @@
 #coding: utf-8
 
 
-from scipy.signal import convolve, hann
+from scipy.signal import convolve, hann, argrelmax
 import numpy as np
 from scipy.fftpack import fft, ifft
 from util import signal_channels
@@ -10,7 +10,6 @@ from util import signal_channels
 """
     Расчет усредненного амплитудного спектра
 """
-
 
 def mean_spectrum(x, aperture=1024, log_output=True):
 
@@ -142,3 +141,25 @@ def fix_baseline(sig, fs, bias_window_ms):
         result[:,chan] = x - bks
 
     return result
+
+
+def detect_periodic(s):
+    """
+    Детектор периодичности на основе измерения амплитуды первого бокового
+    всплеска АКФ
+    :param s:
+    :return:
+    """
+    acf = np.correlate(s, s, mode="same")
+    acf = acf / max(acf)
+    mid = int(1 + np.floor(len(acf) / 2))
+    acf = acf[mid:]
+    mx = argrelmax(acf, 0, 10)[0]
+
+    if len(mx) < 1:
+        return acf, 0
+
+    pk = [acf[i] for i in mx]
+    pk.sort(reverse=True)
+
+    return acf, pk[0]
