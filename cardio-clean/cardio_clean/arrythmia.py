@@ -4,7 +4,6 @@ import numpy as np
 from random import randint
 from config import config
 
-#from metadata import *
 from rhythms import *
 from pvcdetect import detect_pvc_episodes
 from blockades import *
