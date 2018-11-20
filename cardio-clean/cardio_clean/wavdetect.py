@@ -4,6 +4,7 @@ from scipy.signal import convolve, argrelmax, argrelmin, find_peaks
 from metadata import *
 from util import signal_channels
 from matplotlib import pyplot as plt
+from sigbind import detect_periodic
 
 
 def modefind(x, lb=0, rb=0, bias=0.0):
@@ -19,7 +20,7 @@ def modefind(x, lb=0, rb=0, bias=0.0):
         if val > pk[1]:
             pk = (i, val)
 
-    return pk[0]
+    return pk
 
 
 def zcfind(x, lb=0, rb=0):
@@ -372,11 +373,12 @@ def qrssearch(modes, tight_bounds, approx, params, chan, isolevel,
         params["r_end"][chan] = None
 
 
-def ptsearch(modes, approx, bias, limits):
+def ptsearch(modes, approx, bias, limits, height):
     """
     Поиск зубцов P и T
     :param modes: список экстремумов производной
     :param approx: опорный сигнал для поиска пиков
+    :param height: минимальное отклонение от изолинии
     :return: wave_left, wave_center, wave_right
     """
 
@@ -393,9 +395,13 @@ def ptsearch(modes, approx, bias, limits):
 
     i0 = maxpair[0]
 
-    wave_center = modefind(
+    wave_center, ampl = modefind(
         approx, lb=modes[i0][0], rb=modes[i0 + 1][0], bias=bias
     )
+
+    if ampl < height:
+        return None, None, None
+
 
     # строим касательную в наиболее крутой точке переднего фронта
 
@@ -524,7 +530,7 @@ def find_points(
                 int((tight_bounds[1] + next_qrs)/2)
             ]
 
-            #if ncycle==6 and chan==1:
+            #if ncycle==79 and chan==1:
             #    fig, axarr = plt.subplots(2, 1, sharex="col")
             #    fleft = int(metadata[ncycle-1]["qrs_end"]*fs)
             #    fright = int(qrs["qrs_start"]*fs)
@@ -535,8 +541,11 @@ def find_points(
             #    xval = np.arange(x1, x2)
             #    axarr[0].plot(xval, approx[r_scale][x1:x2])
             #    axarr[0].grid()
-            #    axarr[1].plot(xval, detail[r_scale][x1:x2])
-            #    axarr[1].plot(xval, detail[f_scale][x1:x2], "m")
+            #    acf, v = detect_periodic(detail[f_scale][x1:x2])
+            #    xv = x1 + np.arange(0, len(acf))
+            #    axarr[1].plot(xv, acf)
+            #    #axarr[1].plot(xval, approx[f_scale][x1:x2])
+            #    #axarr[1].plot(xval, detail[f_scale][x1:x2], "m")
             #    axarr[1].grid()
             #    print("Look at the plots")
             #    plt.show(block=False)
@@ -576,7 +585,8 @@ def find_points(
                 modas_subset[:-1],
                 approx[r_scale+1],
                 bias=iso,
-                limits=pwindow
+                limits=pwindow,
+                height=noise
             )
 
             qrs["p_pos"][chan] = pcenter
@@ -611,7 +621,8 @@ def find_points(
                 modas_subset[1:],
                 approx[r_scale+1],
                 bias=iso,
-                limits=twindow
+                limits=twindow,
+                height=noise
             )
 
             qrs["t_pos"][chan] = tcenter
@@ -620,9 +631,28 @@ def find_points(
 
             # поиск F-волн в промежутках между qrs
             if chan == pilot_chan and ncycle:
-                fleft = int(metadata[ncycle-1]["qrs_end"]*fs)
-                fright = int(qrs["qrs_start"]*fs)
-                numf = len([fpk for fpk in fibpos if
-                                            fleft<fpk<fright])
+                #fleft = int(metadata[ncycle-1]["qrs_end"]*fs)
+                #fright = int(qrs["qrs_start"]*fs)
+
+                fleft = get_cycle_end(metadata[ncycle-1], chan, fs)
+                fright = get_cycle_start(qrs, chan, fs)
+
+
+                fpeaks = [fpk for fpk in fibpos if
+                                            fleft<fpk<fright]
+                numf = len(fpeaks)
                 qrs["f_waves"][chan] = numf
+
+                # Берем промежуток между QRS (с возможным захватом P и T)
+                # и обнаруживаем в нем периодичность
+                rest_range = [
+                    int(metadata[ncycle-1]["qrs_end"]*fs),
+                    int(qrs["qrs_start"]*fs)
+                    ]
+                pk = detect_periodic(detail[f_scale][
+                                     rest_range[0]:rest_range[1]])[1]
+
+                qrs["flutter"][chan] = pk > 0.3
+
+                #print(ncycle, numf, pk > 0.3)
 
