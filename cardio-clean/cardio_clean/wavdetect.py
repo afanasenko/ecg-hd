@@ -652,7 +652,5 @@ def find_points(
                 pk = detect_periodic(detail[f_scale][
                                      rest_range[0]:rest_range[1]])[1]
 
-                qrs["flutter"][chan] = pk > 0.3
-
-                #print(ncycle, numf, pk > 0.3)
+                qrs["flutter"][chan] = pk
 
