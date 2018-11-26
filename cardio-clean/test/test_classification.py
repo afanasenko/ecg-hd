@@ -81,6 +81,17 @@ def test_classify():
     os.remove(filename_out)
 
 
+def check_orphan_classes(qrs_classes, metadata):
+
+    c = {i for i in range(len(qrs_classes))}
+    x = {x["qrs_class_id"] for x in metadata}
+
+    orph = c - x
+    if orph:
+        print("Orphan class IDs: {}".format(orph))
+        assert False
+
+
 def test_lowlevel():
     filename_in = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
@@ -121,6 +132,8 @@ def test_lowlevel():
                                          metadata,
                                          classgen_t=0.998)
 
+    check_orphan_classes(qrs_classes, metadata)
+
     print('start define_rythm')
     rythms = define_rythm(metadata,
                           fs=header["fs"])
@@ -142,6 +155,7 @@ def test_lowlevel():
                                                (1, np.product(qrs_classes[i][
                                                                   "average"].shape)))[
             0].tolist()
+
 
 
 if __name__ == "__main__":
