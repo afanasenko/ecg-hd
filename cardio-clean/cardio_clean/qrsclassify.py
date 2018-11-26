@@ -126,12 +126,13 @@ def finalize_classes(qrs_classes, metadata):
                 reset_artifact(metadata[s])
                 known_complexes.add(s)
 
-        classdesc.append({
-            "id": i,
-            "average": qcl["accumulator"] / len(qcl["samples"]),
-            "count": len(qcl["samples"]),
-            "type": dominant_val(complex_types)
-        })
+        if len(qcl["samples"]) > artifact_threshold:
+            classdesc.append({
+                "id": i,
+                "average": qcl["accumulator"] / len(qcl["samples"]),
+                "count": len(qcl["samples"]),
+                "type": dominant_val(complex_types)
+            })
 
     for i, qrs in enumerate(metadata):
         if i not in known_complexes:
