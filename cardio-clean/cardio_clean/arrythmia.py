@@ -124,7 +124,10 @@ def define_rythm(metadata, **kwargs):
             else:
                 r_mark = "sin_tachy"
         else:
-            r_mark = "sin_other"
+            if 200 < avg_hr < 300 and dominant == "V":
+                r_mark = "VFL"
+            else:
+                r_mark = "sin_other"
 
         rythm_marks[ncycle] = rhythm_codes[r_mark]
 
