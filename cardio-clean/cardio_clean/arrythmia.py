@@ -24,7 +24,7 @@ def arrythmia_name(s):
         n = rhythm_signatures.index(s)
         return rhythm_signatures[n][1]
     except:
-        return u"Неизвестный ритм"
+        return u"Неизвестный ритм " + unicode(s)
 
 
 def define_rythm(metadata, **kwargs):
