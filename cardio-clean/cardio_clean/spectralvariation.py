@@ -66,9 +66,30 @@ def plot_rhythm_resamp(metadata, dx):
     plt.show()
 
 
-def rhythm_spectrum(metadata, bands=(0.0, 0.003, 0.04, 0.15, 0.4), fs=1.0):
+def rhythm_spectrum(metadata, **kwargs):
+    """Расчет частотных составляющих сердечного ритма
 
-    plot_rhythm_resamp(metadata, dx=1/fs)
+    :param metadata: список метаданных (только чтение). Требуемые ключи:
+        - qrs_center
+        - RR
+    :param kwargs:
+        - freq_bands - список границ частотных диапазонов (Гц)
+        - sampling - желаемая частота дискретизации сигнала ритма.
+    :return:
+        - retn - относительная мощность спектра по заданных диапазонам
+        - fp - частоты для построения амплитудного спектра
+        - sp - значения для построения амплитудного спектра
+    """
+
+    bands = kwargs.get(
+        "freq_bands",
+        config.RSVAR["freq_bands"]
+    )
+
+    fs = kwargs.get(
+        "sampling",
+        config.RSVAR["sampling"]
+    )
 
     r = resample_rhythm(metadata, dx=1/fs)
 

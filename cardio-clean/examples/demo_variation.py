@@ -6,7 +6,7 @@ from matplotlib import pyplot as plt
 
 
 from cardio_clean.metadata import metadata_postprocessing, calculate_histogram
-from cardio_clean.wavdetect import ddwt, find_points, zcfind
+from cardio_clean.wavdetect import find_points
 from cardio_clean.arrythmia import *
 from cardio_clean.spectralvariation import *
 
