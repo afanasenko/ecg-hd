@@ -1,5 +1,12 @@
 # coding: utf-8
 
+"""
+.. module:: util
+   :platform: Unix, Windows
+   :synopsis: Вспомогательные функции для чтения/записи сигналов ЭКГ
+Модуль содержит вспомогательные функции для чтения/записи сигналов ЭКГ
+"""
+
 import wfdb
 import numpy as np
 
@@ -12,7 +19,13 @@ legacy_headers=True
 
 
 def read_buffer(buf):
+    """Чтение сигнала из открытого двоичного файла
 
+    :param buf: Файловый объект
+    :type buf: fileobj
+    :returns: dict - заголовок файла
+    :returns: numpy.array - Массив отсчетов
+    """
     offset = 0
     count = 4 if legacy_headers else 5
 
@@ -84,10 +97,10 @@ def write_buffer(buf, header, samples):
 
 
 def signal_channels(signal):
-    """
-        Генератор для перебора каналов многоканального ЭКС
-    :param signal: np.array [samples x channels]
-    :return:
+    """Перебор каналов многоканального ЭКС
+
+    :param signal: np.array массив с размерностью (samples, channels)
+    :return: объект-генератор возвращает № канала и массив отсчетов
     """
     if len(signal.shape) == 1:
         yield 0, np.array(signal, np.float32)
@@ -98,9 +111,16 @@ def signal_channels(signal):
 
 
 def ecgread(filename):
+    """Чтение сигнала из файла (поддерживаются форматы ecg и MIT-BIH)
+
+    :param filename: имя файла (в случае MIT-BIH передается без расширения)
+    :type filename: str
+    :return:
+    """
     if filename.endswith(".ecg"):
         with open(filename, "rb") as fi:
             hdr, data = read_buffer(fi)
+            print(hdr)
             return data, hdr
 
     else:
@@ -116,6 +136,7 @@ def ecgread(filename):
         }
 
         print(fields["sig_name"])
+
 
         return data, hdr
 

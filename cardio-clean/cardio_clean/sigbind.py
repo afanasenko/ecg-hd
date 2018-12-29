@@ -1,5 +1,7 @@
-#!/usr/bin/env python
 #coding: utf-8
+
+"""Модуль содержит функции обработки сигнала общего назначения (не
+специфичные для ЭКГ)"""
 
 
 from scipy.signal import convolve, hann, argrelmax
@@ -7,12 +9,11 @@ import numpy as np
 from scipy.fftpack import fft, ifft
 from util import signal_channels
 
-"""
-    Расчет усредненного амплитудного спектра
-"""
 
 def mean_spectrum(x, aperture=1024, log_output=True):
+    """Расчет усредненного амплитудного спектра
 
+    """
     N = len(x)
     acc = None
     ham = np.array(hann(aperture))
@@ -43,8 +44,8 @@ def mean_spectrum(x, aperture=1024, log_output=True):
 
 
 def build_comb_filter(fs, n, att, base_freq=50.0, q=5.0):
-    """
-    Построение АЧХ гребенчатого режекторного фильтра
+    """Построение АЧХ гребенчатого режекторного фильтра
+
     :param fs: частота дискретизации
     :param n: число точек в спектре
     :param att: ослабление гармоник 0 - 1
@@ -67,8 +68,8 @@ def build_comb_filter(fs, n, att, base_freq=50.0, q=5.0):
 
 
 def mains_filter(sig, fs, bias, mains, attenuation, aperture):
-    """
-    Подавление гармоник частоты электрической сети
+    """Подавление гармоник частоты электрической сети
+
     :param sig:
     :param fs: частота дискретизации в Гц
     :param mains: частота сети
@@ -114,8 +115,8 @@ def mains_filter(sig, fs, bias, mains, attenuation, aperture):
 
 
 def fix_baseline(sig, fs, bias_window_ms):
-    """
-    fix_baseline выравнивает базовую линию
+    """Подавление дрейфа изолинии
+
     :param sig: numpy array - отсчеты сигнала
     :param fs: частота дискретизации, Гц
     :param bias_window_ms: ширина окна для подаввления фона (мс)
@@ -144,10 +145,10 @@ def fix_baseline(sig, fs, bias_window_ms):
 
 
 def detect_periodic(s):
-    """
-    Детектор периодичности на основе измерения амплитуды первого бокового
+    """Детектор периодичности на основе измерения амплитуды первого бокового
     всплеска АКФ
-    :param s:
+
+    :param s: массив отсчетов сигнала
     :return:
     """
     acf = np.correlate(s, s, mode="same")
