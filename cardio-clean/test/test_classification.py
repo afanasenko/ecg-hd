@@ -38,7 +38,7 @@ def test_classify():
         print("classes found: {}".format(len(classes)))
         print(classes)
 
-        assert len(classes) == 2
+        assert len(classes) == 1
 
         artifacts = [i for i,x in enumerate(meta) if is_artifact(x)]
         print(artifacts)

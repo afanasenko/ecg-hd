@@ -13,7 +13,7 @@ from cardio_clean.ishemia import mock_ishemia_episodes, define_ishemia_episodes
 
 from cardio_clean.sigbind import fix_baseline
 from cardio_clean.qrsdetect import qrs_detection
-from cardio_clean.util import ecgread, common_signal_names
+from cardio_clean.util import ecgread, signal_channels
 
 
 def dummy_shift(x, n):
@@ -148,6 +148,10 @@ def print_summary(metadata, chan):
     wcount = {w: 0 for w in ("p", "q", "r", "s", "t", "r'", "s'")}
     pvc_count = 0
 
+    p_amp = []
+    r_amp = []
+    t_amp = []
+
     for ncycle, qrs in enumerate(metadata):
 
         classletter = qrs["complex_type"]
@@ -183,6 +187,15 @@ def print_summary(metadata, chan):
         if is_pvc(qrs):
             pvc_count += 1
 
+        if qrs["p_height"][chan] is not None:
+            p_amp.append(qrs["p_height"][chan])
+
+        if qrs["r_height"][chan] is not None:
+            r_amp.append(qrs["r_height"][chan])
+
+        if qrs["t_height"][chan] is not None:
+            t_amp.append(qrs["t_height"][chan])
+
     print("Комплексы: {}".format(len(metadata)))
     print("Зубцы: {}".format(wcount))
 
@@ -204,6 +217,20 @@ def print_summary(metadata, chan):
         len(rr_intervals), 1000 * np.mean(rr_intervals)
     ))
 
+    if p_amp:
+        print("Средняя высота P-зубца {} мВ".format(
+            np.mean(p_amp)
+        ))
+
+    if t_amp:
+        print("Средняя высота T-зубца {} мВ".format(
+            np.mean(t_amp)
+        ))
+
+    if r_amp:
+        print("Средняя высота R-зубца {} мВ".format(
+            np.mean(r_amp)
+        ))
 
 def show_qrs(filename, chan, lim):
     sig, header = ecgread(filename)
@@ -326,6 +353,11 @@ def show_waves(filename, chan, smp_from=0, smp_to=0, draw=False):
             if qrs["qrs_center"] > 120:
                 break
 
+            lb = qrs["p_start"][chan]
+            rb = qrs["p_end"][chan]
+            if all((lb, rb)):
+                plt.plot(np.arange(lb, rb), s[lb:rb], "y")
+
             lb = qrs["t_start"][chan]
             rb = qrs["t_end"][chan]
             if all((lb, rb)):
@@ -417,11 +449,12 @@ def main():
     # Rh2024 - p(q)RsT
     # Rh2025 = rs
     # Rh2010 - дрейф, шум, артефакты
+    # 2004 av block
 
-    #filename = "/Users/arseniy/SERDECH/data/PHYSIONET/I39"
+    #filename = "/Users/arseniy/SERDECH/data/PHYSIONET/I11"
     #filename = "testI59.ecg"
-    #filename = "TestFromDcm.ecg"
-    filename = "/Users/arseniy/SERDECH/data/ROXMINE/Rh2021"
+    filename = "TestFromDcm.ecg"
+    #filename = "/Users/arseniy/SERDECH/data/ROXMINE/Rh2004"
 
     if not filename.endswith(".ecg") and not os.path.isfile(filename + ".hea"):
         print("Файл не найден")
@@ -450,9 +483,9 @@ def main():
 
     show_waves(
         filename,
-        chan=1,#common_signal_names.index("V1"),
+        chan=0,#common_signal_names.index("I"),
         smp_from=0,
-        smp_to=20000,
+        smp_to=30000,
         draw=True
     )
 
