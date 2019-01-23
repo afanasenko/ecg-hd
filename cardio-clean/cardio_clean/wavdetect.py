@@ -530,7 +530,7 @@ def find_points(
                 int((tight_bounds[1] + next_qrs)/2)
             ]
 
-            #if ncycle==79 and chan==1:
+            #if ncycle==34 and chan==0:
             #    fig, axarr = plt.subplots(2, 1, sharex="col")
             #    fleft = int(metadata[ncycle-1]["qrs_end"]*fs)
             #    fright = int(qrs["qrs_start"]*fs)
@@ -586,7 +586,7 @@ def find_points(
                 approx[r_scale+1],
                 bias=iso,
                 limits=pwindow,
-                height=noise
+                height=noise/2
             )
 
             qrs["p_pos"][chan] = pcenter
