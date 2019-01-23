@@ -21,6 +21,7 @@ class RecusiveStat():
         return self.count
 
     def add(self, value):
+        self.count += 1
         self.sum_val += value
         self.sum_sq += value*value
 
@@ -81,8 +82,12 @@ def rhythm_stats(metadata):
         if x["qrs_start"] - timestamp > 300:
             # начало нового 5-минутного интервала
             if five_stat.size():
-                ann_stat.add(five_stat.average())
-                nni_stat.add(five_stat.std_dev())
+                five_av = five_stat.average()
+                if five_av is not None:
+                    ann_stat.add(five_av)
+                five_std = five_stat.std_dev()
+                if five_std is not None:
+                    nni_stat.add(five_std)
                 five_stat.reset()
 
             timestamp = x["qrs_start"]
@@ -107,7 +112,7 @@ def rhythm_stats(metadata):
 
     rrm = nn_stat.average()
     rrsd = nn_stat.std_dev()
-    pnn = 100.0 * count50 / nn_stat.size()
+    pnn = 100.0 * count50 / nn_stat.size() if nn_stat.size() else None
     rmssd = dnn_stat.std_dev()
     sdann = ann_stat.std_dev()
     sdnni = nni_stat.average()
