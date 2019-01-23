@@ -3,12 +3,14 @@
 
 import os
 from matplotlib import pyplot as plt
+import json
 
 
 from cardio_clean.metadata import metadata_postprocessing, calculate_histogram
 from cardio_clean.wavdetect import find_points
 from cardio_clean.arrythmia import *
 from cardio_clean.spectralvariation import *
+from cardio_clean.statvariation import rhythm_stats
 
 from cardio_clean.sigbind import fix_baseline
 from cardio_clean.qrsdetect import qrs_detection
@@ -34,7 +36,6 @@ def show_rspec(filename, chan, smp_from=0, smp_to=0):
         smp_to = min(smp_to, sig.shape[0])
     else:
         smp_to = sig.shape[0]
-    s = sig[smp_from:smp_to, chan]
 
     metadata, foo = qrs_detection(
         sig[smp_from:smp_to,:],
@@ -53,6 +54,16 @@ def show_rspec(filename, chan, smp_from=0, smp_to=0):
         sig[smp_from:smp_to, :],
         header
     )
+
+    compl = {}
+    for x in metadata:
+        c = x["complex_type"]
+        compl[c] = compl.get(c,0) + 1
+    print(json.dumps(compl, indent=1))
+
+    print("stat started")
+    stat_vals = rhythm_stats(metadata)
+    print(json.dumps(stat_vals, indent=1))
 
     print("spectrun started")
     v, fp, sp = rhythm_spectrum(metadata)
@@ -84,7 +95,7 @@ def main():
     show_rspec(
         filename,
         chan=1,#common_signal_names.index("I"),
-        smp_to=60000
+        smp_to=0
     )
 
 
