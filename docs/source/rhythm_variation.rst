@@ -18,7 +18,8 @@
 
 :
     metrics = rhythm_stats(metadata):
-    >>>metrics
+
+    metrics
     {
      "SDNN": 73.62313799711724,
      "SDNNi": 36.29170836692598,
