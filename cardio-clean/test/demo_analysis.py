@@ -485,8 +485,8 @@ def main():
         filename,
         chan=0,#common_signal_names.index("I"),
         smp_from=0,
-        smp_to=30000,
-        draw=True
+        smp_to=60000,
+        draw=False
     )
 
 
