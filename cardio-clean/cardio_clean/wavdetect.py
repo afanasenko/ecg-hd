@@ -462,6 +462,7 @@ def find_points(
     :param metadata: первичная сегментация, содержащая qrs_start, qrs_end,
     qrs_center
     :param bias: уровень изолинии
+    :param gain: усиление
     :return: None (результатом являются измененные значения в metadata)
     """
 
