@@ -26,6 +26,7 @@ find_points(sig,
             fs=header["fs"],
             metadata=metadata,
             bias=header["baseline"],
+            gain=header["adc_gain"],
             debug=False)
 
 print('start metadata_postprocessing')

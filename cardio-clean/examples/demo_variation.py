@@ -46,6 +46,7 @@ def show_rspec(filename, chan, smp_from=0, smp_to=0):
         sig[smp_from:smp_to, :],
         fs=header["fs"],
         bias=header["baseline"],
+        gain=header["adc_gain"],
         metadata=metadata
     )
 

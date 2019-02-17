@@ -123,7 +123,7 @@ def define_ishemia_episodes(sig, header, metadata, **kwargs):
                 stlev *= gain
             iso = meta["isolevel"][ch]
             if iso is not None:
-                iso += bias
+                iso = iso*gain + bias
             slope = meta["st_slope"][ch]
 
             # критерии применимы только при положительном зубце T

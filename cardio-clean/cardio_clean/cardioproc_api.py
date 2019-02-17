@@ -84,6 +84,7 @@ def blobapi_detect_qrs(
         fs=header["fs"],
         metadata=metadata,
         bias=header["baseline"],
+        gain=header["adc_gain"],
         debug=False
     )
     if postprocessing:

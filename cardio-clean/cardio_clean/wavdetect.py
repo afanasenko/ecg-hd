@@ -453,6 +453,7 @@ def find_points(
         fs,
         metadata,
         bias,
+        gain,
         **kwargs):
     """
         Поиск характерных точек
@@ -506,7 +507,7 @@ def find_points(
 
             # оценка изолинии
             iso = np.percentile(approx[r_scale][prev_r:next_r], 15)
-            qrs["isolevel"][chan] = iso
+            qrs["isolevel"][chan] = iso / gain[chan]
 
             # Поиск зубцов Q, R, S
             # узкое окно для поиска только R
@@ -602,7 +603,7 @@ def find_points(
                     pq_end = qrs["r_pos"][chan]
                 if pq_end is not None and pq_end - pright > 1:
                     iso = np.median(approx[r_scale][pright:pq_end])
-                    qrs["isolevel"][chan] = iso
+                    qrs["isolevel"][chan] = iso / gain[chan]
 
             # поиск T-зубца
             # окно для поиска

@@ -61,6 +61,7 @@ def get_qrsclass(recordname, tend):
         fs=fs,
         metadata=metadata,
         bias=hdr["baseline"]
+        gain=hdr["adc_gain"]
     )
 
     qrs_classes = incremental_classifier(
