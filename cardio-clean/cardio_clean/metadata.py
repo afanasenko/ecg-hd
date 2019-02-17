@@ -57,7 +57,7 @@ def metadata_new(num_channels):
         "heartrate": None,  # [удары в минуту] float
 
         # оценка уровня изолинии
-        "isolevel": [None]*num_channels,  # float array
+        "isolevel": [0]*num_channels,  # float array
 
         # ST-сегмент
         "st_start": [None]*num_channels,  # int array
@@ -88,12 +88,12 @@ def ms_to_samples(ms, fs):
     return int(ms * fs / 1000.0)
 
 
-def level_from_pos(d, chan, pos_key, val_key, sig, bias, gain):
+def level_from_pos(d, chan, pos_key, val_key, sig, bias, gain, iso):
     pos = d[pos_key][chan]
     if pos is None:
         d[val_key][chan] = None
     else:
-        d[val_key][chan] = (sig[pos] - bias) / gain
+        d[val_key][chan] = ((sig[pos] - bias) / gain) - iso
 
 
 def erase_qrs(meta, chan):
@@ -333,40 +333,40 @@ def metadata_postprocessing(metadata, sig, header, **kwargs):
     classification_channel = 1 if numch > 1 else 0
 
     # Удаление выбросов
-    for ncycle, cycledata in enumerate(metadata):
+    for ncycle, qrs in enumerate(metadata):
         delta = ms_to_samples(60, fs)
-        remove_outliers(cycledata, "p_pos", ("p_start", "p_end"), delta)
-        remove_outliers(cycledata, "q_pos", [], delta)
-        remove_outliers(cycledata, "r_pos", ("r_start", "r_end"), delta)
-        remove_outliers(cycledata, "s_pos", [], delta)
-        remove_outliers(cycledata, "t_pos", ("t_start", "t_end"), delta)
+        remove_outliers(qrs, "p_pos", ("p_start", "p_end"), delta)
+        remove_outliers(qrs, "q_pos", [], delta)
+        remove_outliers(qrs, "r_pos", ("r_start", "r_end"), delta)
+        remove_outliers(qrs, "s_pos", [], delta)
+        remove_outliers(qrs, "t_pos", ("t_start", "t_end"), delta)
 
-    for ncycle, cycledata in enumerate(metadata):
+    for ncycle, qrs in enumerate(metadata):
 
         # ######################################
         # RR и ЧСС
         rr = estimate_rr(metadata, ncycle)
         if rr is None:
-            set_artifact(cycledata)
-            cycledata["RR"] = None
-            cycledata["heartrate"] = None
+            set_artifact(qrs)
+            qrs["RR"] = None
+            qrs["heartrate"] = None
         else:
             rr /= fs
-            cycledata["RR"] = rr
-            cycledata["heartrate"] = 60.0 / rr
+            qrs["RR"] = rr
+            qrs["heartrate"] = 60.0 / rr
 
         for chan, x in signal_channels(sig):
 
             # ######################################
             # точки J и J+
             # ставится со смещением от R-зубца
-            rc = cycledata["r_pos"][chan]
+            rc = qrs["r_pos"][chan]
             if rc is not None:
                 j_point = rc + ms_to_samples(j_offset_ms, fs)
                 # J не может быть раньше конца S или R
-                rs_end = cycledata["s_pos"][chan]
+                rs_end = qrs["s_pos"][chan]
                 if rs_end is None:
-                    rs_end = cycledata["r_end"][chan]
+                    rs_end = qrs["r_end"][chan]
                 if rs_end is not None:
                     j_point = max(j_point, rs_end)
                 if j_point > len(x) - 1:
@@ -377,8 +377,8 @@ def metadata_postprocessing(metadata, sig, header, **kwargs):
                     if jplus_point > len(x) - 1:
                         jplus_point = None
 
-                    elif cycledata["t_start"][chan] is not None:
-                        tstart = cycledata["t_start"][chan]
+                    elif qrs["t_start"][chan] is not None:
+                        tstart = qrs["t_start"][chan]
                         jplus_point = min(j_point, tstart)
 
             else:
@@ -387,81 +387,78 @@ def metadata_postprocessing(metadata, sig, header, **kwargs):
 
             # ######################################
             # ST
-            st_end = cycledata["t_start"][chan]
-            cycledata["st_start"][chan] = j_point
-            cycledata["st_plus"][chan] = jplus_point
-            cycledata["st_end"][chan] = st_end
+            st_end = qrs["t_start"][chan]
+            qrs["st_start"][chan] = j_point
+            qrs["st_plus"][chan] = jplus_point
+            qrs["st_end"][chan] = st_end
 
             # ######################################
             # запись высоты зубцов
-            bias = cycledata["isolevel"][chan]
+            iso = qrs["isolevel"][chan]
             gain = header["adc_gain"][chan]
+            dc = header["baseline"][chan]
 
-            level_from_pos(cycledata, chan, "p_pos", "p_height", x, bias, gain)
-            level_from_pos(cycledata, chan, "q_pos", "q_height", x, bias, gain)
-            level_from_pos(cycledata, chan, "r_pos", "r_height", x, bias, gain)
-            level_from_pos(cycledata, chan, "s_pos", "s_height", x, bias, gain)
-            level_from_pos(cycledata, chan, "t_pos", "t_height", x, bias, gain)
-            level_from_pos(cycledata, chan, "r2_pos", "r2_height", x, bias,
-                           gain)
-            level_from_pos(cycledata, chan, "s2_pos", "s2_height", x, bias,
-                           gain)
-            level_from_pos(cycledata, chan, "st_start",
-                           "st_start_level", x, bias, gain)
-            level_from_pos(cycledata, chan, "st_plus", "st_plus_level", x,
-                           bias, gain)
-            level_from_pos(cycledata, chan, "st_end", "st_end_level", x,
-                           bias, gain)
+            level_from_pos(qrs, chan, "p_pos", "p_height", x, dc, gain, iso)
+            level_from_pos(qrs, chan, "q_pos", "q_height", x, dc, gain, iso)
+            level_from_pos(qrs, chan, "r_pos", "r_height", x, dc, gain, iso)
+            level_from_pos(qrs, chan, "s_pos", "s_height", x, dc, gain, iso)
+            level_from_pos(qrs, chan, "t_pos", "t_height", x, dc, gain, iso)
+            level_from_pos(qrs, chan, "r2_pos", "r2_height", x, dc, gain, iso)
+            level_from_pos(qrs, chan, "s2_pos", "s2_height", x, dc, gain, iso)
+            level_from_pos(qrs, chan, "st_start",
+                           "st_start_level", x, dc, gain, iso)
+            level_from_pos(qrs, chan, "st_plus", "st_plus_level", x, dc, gain, iso)
+            level_from_pos(qrs, chan, "st_end", "st_end_level", x, dc, gain, iso)
 
             # ######################################
             # ST (продолжение)
             if all((j_point, st_end)):
                 dur = samples_to_ms(st_end - j_point, fs)
                 if dur > kwargs.get("min_st_ms", 40):
-                    cycledata["st_duration"][chan] = dur
+                    qrs["st_duration"][chan] = dur
 
-                    cycledata["st_offset"][chan] = (np.mean(
-                        sig[j_point:st_end]) - bias) / gain
+                    qrs["st_offset"][chan] = (np.mean(
+                        sig[j_point:st_end]) - dc) / gain
 
-                    cycledata["st_slope"][chan] = \
-                        (cycledata["st_end_level"][chan] -
-                         cycledata["st_start_level"][chan]) / \
-                        cycledata["st_duration"][chan]
+                    qrs["st_slope"][chan] = \
+                        (qrs["st_end_level"][chan] -
+                         qrs["st_start_level"][chan]) / \
+                        qrs["st_duration"][chan]
                 else:
-                    cycledata["st_duration"][chan] = None
-                    cycledata["st_offset"][chan] = None
-                    cycledata["st_slope"][chan] = None
+                    qrs["st_duration"][chan] = None
+                    qrs["st_offset"][chan] = None
+                    qrs["st_slope"][chan] = None
 
             # ######################################
             # QT
-            qt_start = cycledata["q_pos"][chan]
+            qt_start = qrs["q_pos"][chan]
             if qt_start is None:
-                qt_start = cycledata["r_start"][chan]
+                qt_start = qrs["r_start"][chan]
 
-            qt_end = cycledata["t_end"][chan]
+            qt_end = qrs["t_end"][chan]
 
             if qt_start is not None and qt_end is not None:
-                cycledata["qt_duration"][chan] = samples_to_sec(
+                qrs["qt_duration"][chan] = samples_to_sec(
                     qt_end - qt_start, fs)
             else:
-                cycledata["qt_duration"][chan] = None
+                qrs["qt_duration"][chan] = None
 
             # QTc
 
-            qt = cycledata["qt_duration"][chan]
-            if qt is not None and cycledata["RR"] is not None:
-                cycledata["qtc_duration"][chan] = qt / np.sqrt(
-                    cycledata["RR"])
+            qt = qrs["qt_duration"][chan]
+            if qt is not None and qrs["RR"] is not None:
+                qrs["qtc_duration"][chan] = qt / np.sqrt(
+                    qrs["RR"])
             else:
-                cycledata["qtc_duration"][chan] = None
+                qrs["qtc_duration"][chan] = None
 
         # уточняем правую границу QRS
-        qrsend = cycledata["st_start"][classification_channel]
+        qrsend = qrs["st_start"][classification_channel]
         if qrsend is not None:
-            cycledata["qrs_end"] = max(cycledata["qrs_end"], float(qrsend)/fs)
+            qrs["qrs_end"] = max(qrs["qrs_end"], float(qrsend)/fs)
 
-        cycledata["complex_type"] = define_complex(
-            cycledata, fs, classification_channel, ventricular_min_qrs
+        qrs["complex_type"] = define_complex(
+            qrs, fs, classification_channel, ventricular_min_qrs
         )
 
 

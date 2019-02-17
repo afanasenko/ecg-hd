@@ -48,6 +48,7 @@ def show_qt(filename, chan, lim):
         sig[:lim, :],
         fs=header["fs"],
         bias=header["baseline"],
+        gain=header["adc_gain"],
         metadata=metadata
     )
 

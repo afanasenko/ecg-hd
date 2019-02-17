@@ -8,7 +8,6 @@ import json
 
 from cardio_clean.metadata import metadata_postprocessing, calculate_histogram
 from cardio_clean.wavdetect import find_points
-from cardio_clean.arrythmia import *
 from cardio_clean.spectralvariation import *
 from cardio_clean.statvariation import rhythm_stats
 
@@ -46,6 +45,7 @@ def show_rspec(filename, chan, smp_from=0, smp_to=0):
         sig[smp_from:smp_to, :],
         fs=header["fs"],
         bias=header["baseline"],
+        gain=header["adc_gain"],
         metadata=metadata
     )
 
@@ -66,7 +66,7 @@ def show_rspec(filename, chan, smp_from=0, smp_to=0):
     print(json.dumps(stat_vals, indent=1))
 
     print("spectrun started")
-    v, fp, sp = rhythm_spectrum(metadata)
+    v, r, fp, sp = rhythm_spectrum(metadata)
     print("df = {:.5f} Hz".format(fp[1]))
     print(v)
     plt.plot(fp, sp, "b")

@@ -314,6 +314,7 @@ def show_waves(filename, chan, smp_from=0, smp_to=0, draw=False):
         sig[smp_from:smp_to, :],
         fs=header["fs"],
         bias=header["baseline"],
+        gain=header["adc_gain"],
         metadata=metadata
     )
 
@@ -342,7 +343,8 @@ def show_waves(filename, chan, smp_from=0, smp_to=0, draw=False):
 
             lb = int(qrs["qrs_start"] * fs)
             rb = int(qrs["qrs_end"] * fs)
-            iso = qrs["isolevel"][chan] + header["baseline"][chan]
+            iso = qrs["isolevel"][chan]*header["adc_gain"][chan] + header[
+                "baseline"][chan]
             plt.plot([lb, rb], [iso]*2, "g:")
 
             for k in pt_keys:
@@ -451,9 +453,9 @@ def main():
     # Rh2010 - дрейф, шум, артефакты
     # 2004 av block
 
-    #filename = "/Users/arseniy/SERDECH/data/PHYSIONET/I11"
-    #filename = "testI59.ecg"
-    filename = "TestFromDcm.ecg"
+    #filename = "/Users/arseniy/SERDECH/data/PHYSIONET/102"
+    filename = "testI59.ecg"
+    #filename = "TestFromDcm.ecg"
     #filename = "/Users/arseniy/SERDECH/data/ROXMINE/Rh2004"
 
     if not filename.endswith(".ecg") and not os.path.isfile(filename + ".hea"):
@@ -470,7 +472,7 @@ def main():
 
     #show_decomposition(
     #    filename,
-    #    chan=1,
+    #    chan=0,
     #    smp_from=0,
     #    smp_to=20000
     #)
@@ -483,10 +485,10 @@ def main():
 
     show_waves(
         filename,
-        chan=0,#common_signal_names.index("I"),
+        chan=0,  # common_signal_names.index("I"),
         smp_from=0,
-        smp_to=60000,
-        draw=False
+        smp_to=30000,
+        draw=True
     )
 
 
