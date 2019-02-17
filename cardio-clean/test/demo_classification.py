@@ -60,7 +60,7 @@ def get_qrsclass(recordname, tend):
         sig[:, 0],
         fs=fs,
         metadata=metadata,
-        bias=hdr["baseline"]
+        bias=hdr["baseline"],
         gain=hdr["adc_gain"]
     )
 
