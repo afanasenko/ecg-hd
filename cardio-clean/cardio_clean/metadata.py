@@ -51,6 +51,7 @@ def metadata_new(num_channels):
         "f_waves": [0]*num_channels,  # float array
         "qrs_shape": [""]*num_channels,  # string array
         "flutter": [0]*num_channels, # float array
+        "pma": [[]]*num_channels,
 
         # параметры ритма
         "RR": None,  # [секунды] float
