@@ -83,9 +83,10 @@ def main():
     # Rh2010 - дрейф, шум, артефакты
     # 2004 av block
 
-    #filename = "/Users/arseniy/SERDECH/data/PHYSIONET/I11"
-    #filename = "testI59.ecg"
-    filename = "../test/TestFromDcm.ecg"
+    filename = "/Users/arseniy/SERDECH/data/PHYSIONET/I11"
+    #filename = "/Users/arseniy/SERDECH/data/PHYSIONET/217"
+    #filename = "../test/testI59.ecg"
+    #filename = "../test/TestFromDcm.ecg"
     #filename = "/Users/arseniy/SERDECH/data/ROXMINE/Rh2004"
 
     if not filename.endswith(".ecg") and not os.path.isfile(filename + ".hea"):
