@@ -448,6 +448,31 @@ def find_extrema(band, start_idx, end_idx, thresh):
     return moda
 
 
+def pma_search(modes, smp_from, smp_to, max_dur):
+    if len(modes) < 2:
+        return 0
+
+    # Фронты самого крутого положительного зубца (ищем самую мощную пару +-)
+    r0, r1 = detect_r_pair(modes, smp_from=smp_from,
+                           smp_to=smp_to, bipol=False)
+
+    # флаг показывает, есть ли у нас R-зубец
+    have_r = r0 >= 0
+
+    if not have_r:
+        # не найдено ни одного положительного зубца, ищем отрицательный
+        r0, r1 = detect_r_pair(modes, smp_from=smp_from,
+                           smp_to=smp_to, bipol=True)
+
+        if r0 < 0:
+            return 0
+
+    dur = modes[r1][0] - modes[r0][0]
+    if dur < max_dur:
+        return int(0.5*(modes[r1][0] + modes[r0][0]))
+
+
+
 def find_points(
         sig,
         fs,
@@ -471,11 +496,22 @@ def find_points(
         config.WAVES["qrs_duration_max"]
     ))
 
-    r_scale = 2
-    p_scale = 4
-    t_scale = 4
-    # для обнаружения трепетаний
-    f_scale = 4
+    pma_detection_on = kwargs.get(
+        "pma_detection_on",
+        config.PACEMAKER["detection"]
+    )
+
+    pma_duration_max = fs*kwargs.get(
+        "pma_duration_max",
+        config.PACEMAKER["spike_duration_max"]
+    )
+
+    pma_scale = 1   # номер уровня для поиска артефактов кардиостимулятора
+    r_scale = 2     # номер уровня для поиска R-зубца
+    p_scale = 4     # номер уровня для поиска P-зубца
+    t_scale = 4     # номер уровня для поиска T-зубца
+    f_scale = 4     # номер уровня для обнаружения трепетаний
+
     t_window_fraction = 0.6
     p_window_fraction = 1.0 - t_window_fraction
 
@@ -552,6 +588,19 @@ def find_points(
             #    print("Look at the plots")
             #    plt.show(block=False)
             #print(ncycle, chan)
+
+            if pma_detection_on:
+                pma_modes = find_extrema(
+                    detail[pma_scale], loose_bounds[0], loose_bounds[1],
+                    noise / 2
+                )
+
+                pma = pma_search(pma_modes, tight_bounds[0], tight_bounds[1],
+                           max_dur=pma_duration_max)
+
+                if pma:
+                    qrs["pma"][chan].append(pma)
+                    print("PMA: {}".format(pma))
 
             # все пики производной в широком окне
             modes = find_extrema(
