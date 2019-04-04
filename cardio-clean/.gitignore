@@ -1,7 +1,10 @@
-.cache/*
-.pytest_cache/*
-.idea/*
-*.egg-info/*
+.cache/
+.pytest_cache/
+
+# IDE settings
+.idea/
+.DS_Store
+*.egg-info/
 *.hea
 *.dat
 *.atr
