@@ -9,7 +9,8 @@ from scipy.fftpack import fft
 from cardio_clean.metadata import metadata_postprocessing, calculate_histogram
 from cardio_clean.wavdetect import ddwt, find_points, zcfind
 from cardio_clean.arrythmia import *
-from cardio_clean.ishemia import mock_ishemia_episodes, define_ishemia_episodes
+from cardio_clean.ishemia import define_ishemia_episodes
+from cardio_clean.pmdetect import define_pacemaker_episodes
 
 from cardio_clean.sigbind import fix_baseline
 from cardio_clean.qrsdetect import qrs_detection
@@ -414,8 +415,11 @@ def show_waves(filename, chan, smp_from=0, smp_to=0, draw=False):
         print(m)
         print("Число эпизодов: {}".format(len(m)))
 
-    #for x in r:
-    #    print("ритм {}: {} с".format(x["desc"], x["end"] - x["start"]))
+    print("Стимулятор...")
+    m = define_pacemaker_episodes(metadata)
+    if m:
+        print(m)
+        print("Число эпизодов: {}".format(len(m)))
 
     print_summary(metadata, chan)
 
@@ -454,8 +458,8 @@ def main():
     # Rh2010 - дрейф, шум, артефакты
     # 2004 av block
 
-    #filename = "/Users/arseniy/SERDECH/data/PHYSIONET/102"
-    filename = "/Users/arseniy/SERDECH/data/PHYSIONET/I59"
+    filename = "/Users/arseniy/SERDECH/data/PHYSIONET/102"
+    #filename = "/Users/arseniy/SERDECH/data/PHYSIONET/I59"
     #filename = "testI59.ecg"
     #filename = "TestFromDcm.ecg"
     #filename = "/Users/arseniy/SERDECH/data/ROXMINE/Rh2004"
