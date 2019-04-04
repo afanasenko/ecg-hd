@@ -61,6 +61,7 @@ def multilinespec(siglist):
 
 def show_filter_responses(spectral=False):
 
+    # пропускаем дельта-функцю через банк фильтров
     T = 256
     x = np.zeros(T, float)
     mid = int(T/2)
@@ -454,7 +455,8 @@ def main():
     # 2004 av block
 
     #filename = "/Users/arseniy/SERDECH/data/PHYSIONET/102"
-    filename = "testI59.ecg"
+    filename = "/Users/arseniy/SERDECH/data/PHYSIONET/I59"
+    #filename = "testI59.ecg"
     #filename = "TestFromDcm.ecg"
     #filename = "/Users/arseniy/SERDECH/data/ROXMINE/Rh2004"
 
@@ -472,7 +474,7 @@ def main():
 
     #show_decomposition(
     #    filename,
-    #    chan=0,
+    #    chan=1,
     #    smp_from=0,
     #    smp_to=20000
     #)
@@ -487,7 +489,7 @@ def main():
         filename,
         chan=0,  # common_signal_names.index("I"),
         smp_from=0,
-        smp_to=30000,
+        smp_to=20000,
         draw=True
     )
 
