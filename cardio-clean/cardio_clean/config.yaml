@@ -49,3 +49,6 @@
     - 0.04
     - 0.15
     - 0.4
+  PACEMAKER:
+    detection: True
+    spike_duration_max: 0.01
