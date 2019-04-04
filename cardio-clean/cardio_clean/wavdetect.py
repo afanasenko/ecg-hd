@@ -472,7 +472,6 @@ def pma_search(modes, smp_from, smp_to, max_dur):
         return int(0.5*(modes[r1][0] + modes[r0][0]))
 
 
-
 def find_points(
         sig,
         fs,
@@ -600,7 +599,6 @@ def find_points(
 
                 if pma:
                     qrs["pma"][chan].append(pma)
-                    print("PMA: {}".format(pma))
 
             # все пики производной в широком окне
             modes = find_extrema(
