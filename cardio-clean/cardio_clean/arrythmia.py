@@ -7,11 +7,7 @@ from config import config
 from rhythms import *
 from pvcdetect import detect_pvc_episodes
 from blockades import *
-
-
-# Цифровые коды ритмов
-rhythm_names = {a:b[0] for a,b in enumerate(rhythm_signatures)}
-rhythm_codes = {b[0]:a for a,b in enumerate(rhythm_signatures)}
+from pmdetect import define_pacemaker_episodes
 
 
 def arrythmia_name(s):

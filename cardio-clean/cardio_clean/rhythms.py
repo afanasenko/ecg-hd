@@ -43,8 +43,15 @@ rhythm_signatures = [
     ("SAB_III", u"СА-блокада 3 степени"),
     ("AVB_I", u"АВ-блокада 1 степени"),
     ("AVB_II", u"АВ-блокада 2 степени"),
-    ("AVB_III", u"АВ-блокада 3 степени")
+    ("AVB_III", u"АВ-блокада 3 степени"),
+    ("PACED_V", u"Желудочковый кардиостимулятор"),
+    ("PACED_A", u"Предсердный кардиостимулятор"),
+    ("PACED_D", u"Двухкамерный кардиостимулятор")
 ]
+
+# Цифровые коды ритмов
+rhythm_names = {a: b[0] for a,b in enumerate(rhythm_signatures)}
+rhythm_codes = {b[0]: a for a,b in enumerate(rhythm_signatures)}
 
 
 def is_migration(metadata_block, pilot_chan):
@@ -81,7 +88,7 @@ def is_flutter(qrs):
     return qrs["flutter"][pilot_chan] > 0.3
 
 
-def find_episodes(rythm_marks, min_episode, metadata):
+def find_episodes(rythm_marks, min_episode, metadata, signatures=rhythm_signatures):
     rythms = []
     last_r = None
     count = 0
@@ -96,7 +103,7 @@ def find_episodes(rythm_marks, min_episode, metadata):
                     start_time = metadata[i-count]["qrs_start"]
                     end_time = metadata[i-1]["qrs_end"]
 
-                    desc = last_r if type(last_r) == str else rhythm_signatures[last_r][0]
+                    desc = last_r if type(last_r) == str else signatures[last_r][0]
 
                     rythms.append({
                         "desc": desc,
