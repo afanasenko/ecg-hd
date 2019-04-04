@@ -50,5 +50,6 @@
     - 0.15
     - 0.4
   PACEMAKER:
-    detection: True
+    detection: True         # включает обнаружение кардиостимулятора
     spike_duration_max: 0.01
+    min_episode: 5          # минимальное число циклов для создания эпизода
