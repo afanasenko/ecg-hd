@@ -139,6 +139,9 @@ def define_rythm(metadata, **kwargs):
     rythms += define_sablock(metadata)
     rythms += define_avblock(metadata, fs, min_episode)
 
+    # и кардиостимулятор
+    rythms += define_pacemaker_episodes(metadata)
+
     return rythms
 
 
