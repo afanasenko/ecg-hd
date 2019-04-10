@@ -109,6 +109,7 @@ def find_episodes(rythm_marks, min_episode, metadata, signatures=rhythm_signatur
                         "desc": desc,
                         "start": start_time,
                         "end": end_time,
+                        "count": count,
                         "modified": False
                     })
                 last_r = r
