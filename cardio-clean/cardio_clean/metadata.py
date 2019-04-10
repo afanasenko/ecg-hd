@@ -48,7 +48,6 @@ def metadata_new(num_channels):
         "t_end": [None]*num_channels,  # int array
         "t_pos": [None]*num_channels,  # int array
         "t_height": [None]*num_channels,  # float array
-        "f_waves": [0]*num_channels,  # float array
         "qrs_shape": [""]*num_channels,  # string array
         "flutter": [0]*num_channels, # float array
         "pma": [[] for x in range(num_channels)],

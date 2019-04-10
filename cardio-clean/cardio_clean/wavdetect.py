@@ -686,12 +686,6 @@ def find_points(
                 fleft = get_cycle_end(metadata[ncycle-1], chan, fs)
                 fright = get_cycle_start(qrs, chan, fs)
 
-
-                fpeaks = [fpk for fpk in fibpos if
-                                            fleft<fpk<fright]
-                numf = len(fpeaks)
-                qrs["f_waves"][chan] = numf
-
                 # Берем промежуток между QRS (с возможным захватом P и T)
                 # и обнаруживаем в нем периодичность
                 rest_range = [

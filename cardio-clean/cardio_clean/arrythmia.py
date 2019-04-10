@@ -77,7 +77,6 @@ def define_rythm(metadata, **kwargs):
         # обнаруживаем трепетания во II-м отведении
         if is_flutter(qrs):
             flutter_marks[ncycle] = rhythm_codes["AFL"]
-            #print(ncycle, qrs["f_waves"][1])
 
         # ЧСС
         hr = np.array(
