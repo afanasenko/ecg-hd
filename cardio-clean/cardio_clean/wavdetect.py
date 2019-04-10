@@ -698,8 +698,14 @@ def find_points(
                     int(metadata[ncycle-1]["qrs_end"]*fs),
                     int(qrs["qrs_start"]*fs)
                     ]
-                pk = detect_periodic(detail[f_scale][
-                                     rest_range[0]:rest_range[1]])[1]
+
+                # защита от слишком коротких пауз
+                # TODO: разобраться, почему это происходит
+                if rest_range[1] - rest_range[0] > 8:
+                    pk = detect_periodic(detail[f_scale][
+                                         rest_range[0]:rest_range[1]])[1]
+                else:
+                    pk = 0
 
                 qrs["flutter"][chan] = pk
 

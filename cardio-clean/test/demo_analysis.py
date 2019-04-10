@@ -244,9 +244,6 @@ def show_qrs(filename, chan, lim):
         bias_window_ms=1500
     )
 
-    if fs != 250:
-        print("Warning! fs={}".format(fs))
-
     if lim:
         lim = min(lim, sig.shape[0])
     else:
@@ -292,8 +289,6 @@ def show_waves(filename, chan, smp_from=0, smp_to=0, draw=False):
     print(sig.shape)
 
     fs = header["fs"]
-    if fs != 250:
-        print("Warning! fs={}".format(fs))
 
     sig = fix_baseline(
         sig,
@@ -458,14 +453,16 @@ def main():
     # Rh2010 - дрейф, шум, артефакты
     # 2004 av block
 
-    filename = "/Users/arseniy/SERDECH/data/PHYSIONET/102"
+    #filename = "/Users/arseniy/SERDECH/data/PHYSIONET/217"
     #filename = "/Users/arseniy/SERDECH/data/PHYSIONET/I59"
+    filename = "/Users/arseniy/SERDECH/data/th-0002"
     #filename = "testI59.ecg"
     #filename = "TestFromDcm.ecg"
+    #filename = "TestFindPoint.ecg"
     #filename = "/Users/arseniy/SERDECH/data/ROXMINE/Rh2004"
 
     if not filename.endswith(".ecg") and not os.path.isfile(filename + ".hea"):
-        print("Файл не найден")
+        print("Файл не подходит")
         return
 
     #show_filter_responses()
@@ -492,9 +489,9 @@ def main():
     show_waves(
         filename,
         chan=0,  # common_signal_names.index("I"),
-        smp_from=0,
-        smp_to=20000,
-        draw=True
+        #smp_from=0,
+        #smp_to=20000,
+        draw=False
     )
 
 

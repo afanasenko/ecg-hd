@@ -26,8 +26,11 @@ def qrs_preprocessing(sig, fs):
     :return: характеристическая функция для дальнейшего детектирования
     """
     #TODO: реализовать синтез полосового фильтра 5-15 для произвольной fs
-    if fs != 250:
-        print("WARNING! выделение QRS для частоты дискретизации 250 Гц")
+    fse = 250
+    fs_err = abs(float(fs-fse))/fse
+    if fs_err > 0.05:
+        print("WARNING! Частота дискретизации fs={} отличается от "
+              "требуемого значения 250 Гц +/-5%".format(fs))
 
     result = np.zeros(sig.shape[0], float)
 

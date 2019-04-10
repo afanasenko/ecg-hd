@@ -23,6 +23,9 @@ def define_pacemaker_episodes(metadata, **kwargs):
         config.PACEMAKER["min_episode"]
     )
 
+    if not metadata:
+        return []
+
     numch = len(metadata[0].get("pma",[]))
     if not numch:
         return []

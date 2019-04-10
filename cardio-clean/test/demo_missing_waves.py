@@ -69,8 +69,6 @@ def show_waves(filename, chan):
 
     sig, header = ecgread(filename)
     fs = header["fs"]
-    if fs != 250:
-        print("Warning! fs != 250 Hz, fs={}".format(fs))
 
     sig = fix_baseline(
         sig,

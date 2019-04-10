@@ -22,9 +22,8 @@ def show_qt(filename, chan, lim):
     sig, header = ecgread(filename)
 
     fs = header["fs"]
-    if fs != 250:
-        print("Warning! fs={}".format(fs))
 
+    print("fs={}".format(fs))
     print("Усиление: {}".format(header["adc_gain"]))
 
     sig = fix_baseline(

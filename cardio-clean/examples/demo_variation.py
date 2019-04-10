@@ -22,8 +22,6 @@ def show_rspec(filename, chan, smp_from=0, smp_to=0):
     print(sig.shape)
 
     fs = header["fs"]
-    if fs != 250:
-        print("Warning! fs={}".format(fs))
 
     sig = fix_baseline(
         sig,
@@ -83,8 +81,8 @@ def main():
     # Rh2010 - дрейф, шум, артефакты
     # 2004 av block
 
-    filename = "/Users/arseniy/SERDECH/data/PHYSIONET/I11"
-    #filename = "/Users/arseniy/SERDECH/data/PHYSIONET/217"
+    #filename = "/Users/arseniy/SERDECH/data/PHYSIONET/I11"
+    filename = "/Users/arseniy/SERDECH/data/PHYSIONET/104"
     #filename = "../test/testI59.ecg"
     #filename = "../test/TestFromDcm.ecg"
     #filename = "/Users/arseniy/SERDECH/data/ROXMINE/Rh2004"
@@ -95,8 +93,7 @@ def main():
 
     show_rspec(
         filename,
-        chan=1,#common_signal_names.index("I"),
-        smp_to=0
+        chan=1,  # common_signal_names.index("I")
     )
 
 
