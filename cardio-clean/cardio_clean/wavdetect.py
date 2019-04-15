@@ -597,7 +597,7 @@ def find_points(
             #    plt.show(block=False)
             #print(ncycle, chan)
 
-            if pma_detection_on:
+            if pma_detection_on and fs > 260:
                 pma_modes = find_extrema(
                     detail[pma_scale], loose_bounds[0], loose_bounds[1],
                     noise / 2
