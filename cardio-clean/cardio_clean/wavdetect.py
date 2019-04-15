@@ -468,7 +468,16 @@ def pma_search(modes, smp_from, smp_to, max_dur):
             return 0
 
     dur = modes[r1][0] - modes[r0][0]
-    if dur < max_dur:
+
+    e = 1e-18
+    m1 = abs(modes[r1][1])
+    m0 = abs(modes[r0][1])
+    rat = max(m0, m1) / (min(m0, m1) + e)
+    max_rat = 2.0
+
+    if dur < max_dur and rat < max_rat:
+
+        print(modes[r0][0], modes[r1][0] , dur, abs(rat))
         return int(0.5*(modes[r1][0] + modes[r0][0]))
 
 
