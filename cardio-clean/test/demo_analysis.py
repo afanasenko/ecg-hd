@@ -2,6 +2,8 @@
 
 import time
 import os
+import json
+
 from matplotlib import pyplot as plt
 from scipy.signal import hann
 from scipy.fftpack import fft
@@ -15,6 +17,8 @@ from cardio_clean.pmdetect import define_pacemaker_episodes
 from cardio_clean.sigbind import fix_baseline
 from cardio_clean.qrsdetect import qrs_detection
 from cardio_clean.util import ecgread, signal_channels
+
+from memory_profiler import memory_usage
 
 
 def dummy_shift(x, n):
@@ -283,12 +287,13 @@ def show_qrs(filename, chan, lim):
     plt.show()
 
 
-def show_waves(filename, chan, smp_from=0, smp_to=0, draw=False):
+def show_waves(filename, chan, sec_from=0, sec_to=0, draw=False):
     sig, header = ecgread(filename)
 
     print(sig.shape)
 
     fs = header["fs"]
+    print("fs = {} Hz".format(fs))
 
     sig = fix_baseline(
         sig,
@@ -296,8 +301,10 @@ def show_waves(filename, chan, smp_from=0, smp_to=0, draw=False):
         bias_window_ms=1500
     )
 
-    if smp_to:
-        smp_to = min(smp_to, sig.shape[0])
+    smp_from = int(sec_from*fs)
+
+    if sec_to:
+        smp_to = min(int(sec_to*fs), sig.shape[0])
     else:
         smp_to = sig.shape[0]
     s = sig[smp_from:smp_to, chan]
@@ -314,13 +321,15 @@ def show_waves(filename, chan, smp_from=0, smp_to=0, draw=False):
         gain=header["adc_gain"],
         metadata=metadata
     )
-
+    print("...")
     metadata_postprocessing(
         metadata,
         sig[smp_from:smp_to, :],
         header
     )
 
+    junk = json.dumps(metadata)
+    print("...")
     if draw:
         plt.plot(s, "b")
 
@@ -396,6 +405,8 @@ def show_waves(filename, chan, smp_from=0, smp_to=0, draw=False):
     #plt.xlim((200,700))
 
     ry = define_rythm(metadata)
+    junk = json.dumps(ry)
+
     rtm = {}
     for r in ry:
         desc = r["desc"]
@@ -406,6 +417,7 @@ def show_waves(filename, chan, smp_from=0, smp_to=0, draw=False):
 
     print("Ишемия...")
     m = define_ishemia_episodes(sig[smp_from:smp_to, :], header, metadata)
+    junk = json.dumps(m)
     if m:
         print(m)
         print("Число эпизодов: {}".format(len(m)))
@@ -453,15 +465,21 @@ def main():
     # Rh2010 - дрейф, шум, артефакты
     # 2004 av block
 
-    #filename = "/Users/arseniy/SERDECH/data/PHYSIONET/217"
+    #filename = "/Users/arseniy/SERDECH/data/PHYSIONET/222"
+    #filename = "/Users/arseniy/SERDECH/data/PHYSIONET/104"
+    #filename = "/Users/arseniy/SERDECH/data/PHYSIONET/107"
     #filename = "/Users/arseniy/SERDECH/data/PHYSIONET/I59"
-    filename = "/Users/arseniy/SERDECH/data/th-0002"
+    #filename = "/Users/arseniy/SERDECH/data/PHYSIONET/I11"
+    #filename = "/Users/arseniy/SERDECH/data/th-0002"
     #filename = "testI59.ecg"
     #filename = "TestFromDcm.ecg"
     #filename = "TestFindPoint.ecg"
-    #filename = "/Users/arseniy/SERDECH/data/ROXMINE/Rh2004"
+    #filename = "/Users/arseniy/SERDECH/data/ROXMINE/Rh2022"
+    filename = "/Users/arseniy/SERDECH/data/ROXMINE2/pat00023.edf"
 
-    if not filename.endswith(".ecg") and not os.path.isfile(filename + ".hea"):
+    if not (filename.endswith(".ecg") or
+                    filename.endswith(".edf") or
+                    os.path.isfile(filename + ".hea")):
         print("Файл не подходит")
         return
 
@@ -470,30 +488,32 @@ def main():
     #show_raw(
     #    filename,
     #    smp_from=0,
-    #    smp_to=2000
+    #    smp_to=0
     #)
 
     #show_decomposition(
     #    filename,
     #    chan=1,
     #    smp_from=0,
-    #    smp_to=20000
+    #    smp_to=10000
     #)
 
     #show_qrs(
     #    filename,
-    #    chan=6,
-    #    lim=20000
+    #    chan=0,
+    #    lim=10000
     #)
 
     show_waves(
         filename,
-        chan=0,  # common_signal_names.index("I"),
-        #smp_from=0,
-        #smp_to=20000,
-        draw=False
+        chan=1,  # common_signal_names.index("I"),
+        sec_from=0,
+        sec_to=0,
+        draw=True
     )
 
 
 if __name__ == "__main__":
-    main()
+    #main()
+    mem = max(memory_usage(proc=main))
+    print("Maximum memory used: {0} MiB".format(str(mem)))
