@@ -9,7 +9,7 @@
 
 import wfdb
 import numpy as np
-
+from cardio_clean.EDF import EDFReader
 
 # Числовые коды для поддерживаемых форматов
 SAMPLE_TYPE_SHORT = 1  # 16-битный целочисленный со знаком
@@ -123,6 +123,35 @@ def ecgread(filename):
             print(hdr)
             return data, hdr
 
+    elif filename.endswith(".edf"):
+        file_in = EDFReader()
+        file_in.open(filename)
+        header = file_in.readHeader()
+
+        meas_info = header[0]
+        sig_info = header[1]
+
+        numch = meas_info['nchan']
+        fs = sig_info['n_samps'][0] / meas_info['record_length']
+        data = []
+
+        for i in range(numch):
+            data.append(file_in.readSamples(i, 0, sig_info['n_samps'][i]-1))
+
+        data = np.stack(data,1)
+
+        hdr = {
+            "fs": fs,
+            "adc_gain": np.array([1.0]*numch),
+            "baseline": np.array([0.0]*numch),
+            "samples": header[1]['n_samps'][0],
+            "channels": numch
+        }
+
+        file_in.close()
+
+        return data, hdr
+
     else:
         data, fields = wfdb.rdsamp(filename)
         # rdsamp возвращает сигнал без смещения в физических единицах
@@ -136,7 +165,6 @@ def ecgread(filename):
         }
 
         print(fields["sig_name"])
-
 
         return data, hdr
 
