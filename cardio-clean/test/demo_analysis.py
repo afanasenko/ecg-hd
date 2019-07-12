@@ -8,7 +8,7 @@ from matplotlib import pyplot as plt
 from scipy.signal import hann
 from scipy.fftpack import fft
 
-from cardio_clean.metadata import metadata_postprocessing, calculate_histogram
+from cardio_clean.metadata import *
 from cardio_clean.wavdetect import ddwt, find_points, zcfind
 from cardio_clean.arrythmia import *
 from cardio_clean.ishemia import define_ishemia_episodes
@@ -153,6 +153,7 @@ def print_summary(metadata, chan):
     rr_intervals = []
     wcount = {w: 0 for w in ("p", "q", "r", "s", "t", "r'", "s'")}
     pvc_count = 0
+    pvcv_count = 0
 
     p_amp = []
     r_amp = []
@@ -192,6 +193,8 @@ def print_summary(metadata, chan):
 
         if is_pvc(qrs):
             pvc_count += 1
+            if is_ve(qrs):
+                pvcv_count += 1
 
         if qrs["p_height"][chan] is not None:
             p_amp.append(qrs["p_height"][chan])
@@ -206,7 +209,7 @@ def print_summary(metadata, chan):
     print("Зубцы: {}".format(wcount))
 
     print("Типы комплексов: {}".format(classes))
-    print("Экстрасистолы: {}".format(pvc_count))
+    print("Экстрасистолы: {}, ЖЭ: {}".format(pvc_count, pvcv_count))
 
     print("Автоклассы:")
     print(classids)
@@ -329,6 +332,9 @@ def show_waves(filename, chan, sec_from=0, sec_to=0, draw=False):
     )
 
     junk = json.dumps(metadata)
+
+    print(len(metadata))
+
     print("...")
     if draw:
         plt.plot(s, "b")
@@ -438,6 +444,7 @@ def show_waves(filename, chan, sec_from=0, sec_to=0, draw=False):
         plt.grid(True)
         plt.show()
 
+    return metadata
 
 def show_qt_hist(ax, metadata, key):
     numch = len(metadata[0]["r_pos"])
@@ -467,20 +474,22 @@ def main():
 
     #filename = "/Users/arseniy/SERDECH/data/PHYSIONET/222"
     #filename = "/Users/arseniy/SERDECH/data/PHYSIONET/104"
-    #filename = "/Users/arseniy/SERDECH/data/PHYSIONET/107"
+    #filename = "/Users/arseniy/SERDECH/data/PHYSIONET/I16"
     #filename = "/Users/arseniy/SERDECH/data/PHYSIONET/I59"
     #filename = "/Users/arseniy/SERDECH/data/PHYSIONET/I11"
+    filename = "/Users/arseniy/SERDECH/data/PHYSIONET/I13"
     #filename = "/Users/arseniy/SERDECH/data/th-0002"
     #filename = "testI59.ecg"
     #filename = "TestFromDcm.ecg"
     #filename = "TestFindPoint.ecg"
-    #filename = "/Users/arseniy/SERDECH/data/ROXMINE/Rh2022"
-    filename = "/Users/arseniy/SERDECH/data/ROXMINE2/pat00023.edf"
+    #filename = "/Users/arseniy/SERDECH/data/ROXMINE/Rh2021"
+    #filename = "/Users/arseniy/SERDECH/data/ROXMINE/I16/I16.ecg"
+    #filename = "/Users/arseniy/SERDECH/data/ROXMINE2/pat00022.edf"
 
     if not (filename.endswith(".ecg") or
                     filename.endswith(".edf") or
                     os.path.isfile(filename + ".hea")):
-        print("Файл не подходит")
+        print("Файл не подходит или отсутствует")
         return
 
     #show_filter_responses()
@@ -504,16 +513,19 @@ def main():
     #    lim=10000
     #)
 
-    show_waves(
+    mdmp = show_waves(
         filename,
         chan=1,  # common_signal_names.index("I"),
         sec_from=0,
         sec_to=0,
-        draw=True
+        draw=False
     )
+
+    with open(filename + ".json", "w") as fw:
+        json.dump(mdmp, fw)
 
 
 if __name__ == "__main__":
-    #main()
-    mem = max(memory_usage(proc=main))
-    print("Maximum memory used: {0} MiB".format(str(mem)))
+    main()
+    #mem = max(memory_usage(proc=main))
+    #print("Maximum memory used: {0} MiB".format(str(mem)))
