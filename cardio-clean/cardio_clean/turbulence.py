@@ -8,9 +8,9 @@ import json
 
 def calculate_to_ts(rr_buf, pvc_pos, regres_window=4):
 
-    delta_rr_left = rr_buf[pvc_pos-2] - rr_buf[pvc_pos-3]
-    delta_rr_right = rr_buf[pvc_pos+2] - rr_buf[pvc_pos+1]
-    to = 100.0 * (delta_rr_right - delta_rr_left) / delta_rr_right
+    sum_rr_left = rr_buf[pvc_pos-2] + rr_buf[pvc_pos-3]
+    sum_rr_right = rr_buf[pvc_pos+2] + rr_buf[pvc_pos+1]
+    to = 100.0 * (sum_rr_right - sum_rr_left) / sum_rr_left
 
     ts = 0
     for i in range(pvc_pos+1, len(rr_buf)-regres_window):
