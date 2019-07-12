@@ -34,7 +34,8 @@ def turbulence_analyse(metadata):
     """
 
     # сразу в мс
-    rrbuf = [1000.0*qrs["RR"] for qrs in metadata]
+    rrbuf = [1000.0*qrs["RR"] if qrs["RR"] is not None else 0 for qrs in \
+            metadata]
     pvc = [is_pvc(qrs) for qrs in metadata]
 
     lh = 4
@@ -92,7 +93,7 @@ def turbulence_analyse(metadata):
 
 if __name__ == "__main__":
 
-    meta = json.load(open("/Users/arseniy/SERDECH/data/PHYSIONET/I13.json"))
+    meta = json.load(open("/Users/arseniy/SERDECH/data/PHYSIONET/I24.json"))
     turb_data, trend_data = turbulence_analyse(meta)
 
     print([x["qrs_index"] for x in turb_data])
@@ -101,7 +102,7 @@ if __name__ == "__main__":
     for turb in turb_data:
         plt.plot(turb["curve"], 'b', alpha=0.3)
 
-    print(json.dumps(turb_data[0:2], indent=1))
+    #print(json.dumps(turb_data[0:2], indent=1))
 
     plt.plot(trend_data["curve"], "r")
 
