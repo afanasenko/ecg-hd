@@ -127,6 +127,15 @@ def is_pvc(cycledata):
     return "E" in cycledata["flags"]
 
 
+def is_ve(cycledata):
+    """
+    Проверка признака ЖЭ в данном комплексе
+    :param cycledata:
+    :return: bool
+    """
+    return is_pvc and cycledata["complex_type"] == "V"
+
+
 def set_pvc(cycledata):
     """
     Установка признака ЭС в данном комплексе
