@@ -25,22 +25,32 @@ def calculate_to_ts(rr_buf, pvc_pos, regres_window=4):
     return to, ts
 
 
-def turbulence_analyse(metadata):
+def turbulence_analyse(metadata, **kwargs):
     """ Анализ турбулентности ритма
 
     :param metadata: метаданные
+    :param kwargs: beats_before, beats_after
     :return: turbulence_data - данные об эпизодах, отобранных для анализа
              mean_turbulence_data - усредненные показатели турбулентности
     """
+
+    lh = int(kwargs.get(
+        "beats_before",
+        config.HRT["beats_before"]
+    ))
+    rh = int(kwargs.get(
+        "beats_after",
+        config.HRT["beats_after"]
+    ))
+    tswnd = int(kwargs.get(
+        "regression_window",
+        config.HRT["regression_window"]
+    ))
 
     # сразу в мс
     rrbuf = [1000.0*qrs["RR"] if qrs["RR"] is not None else 0 for qrs in \
             metadata]
     pvc = [is_pvc(qrs) for qrs in metadata]
-
-    lh = 4
-    rh = 15
-    tswnd = 4
 
     turbulence_data = []
 
@@ -62,6 +72,7 @@ def turbulence_analyse(metadata):
                     turbulence_data.append(
                         {
                             "qrs_index": i,
+                            "start_index": -lh + 1,
                             "TO": to,
                             "TS": ts,
                             "curve": rrbuf[i-lh:i+rh]
@@ -77,15 +88,17 @@ def turbulence_analyse(metadata):
 
     if turbulence_data:
         mean_turbulence_data = {
+            "start_index": -lh+1,
             "TO": np.mean(to_buf),
             "TS": np.mean(ts_buf),
             "curve": trend / len(turbulence_data)
         }
     else:
         mean_turbulence_data = {
+            "start_index": 0,
             "TO": None,
             "TS": None,
-            "curve": None
+            "curve": np.array([])
         }
 
     return turbulence_data, mean_turbulence_data
@@ -93,17 +106,28 @@ def turbulence_analyse(metadata):
 
 if __name__ == "__main__":
 
-    meta = json.load(open("/Users/arseniy/SERDECH/data/PHYSIONET/I24.json"))
+    metaname = "/Users/arseniy/SERDECH/data/PHYSIONET/I24.json"
+    #metaname = "/Users/arseniy/SERDECH/data/ROXMINE/Rh2021.json"
+
+    meta = json.load(open(metaname))
     turb_data, trend_data = turbulence_analyse(meta)
 
     print([x["qrs_index"] for x in turb_data])
     print("TO={}, TS={}".format(trend_data["TO"], trend_data["TS"]))
 
+    x0 = trend_data["start_index"]
+    x1 = x0 + len(trend_data["curve"])
+
+    xx = [i for i in range(x0, x1)]
+
     for turb in turb_data:
-        plt.plot(turb["curve"], 'b', alpha=0.3)
+        plt.plot(xx, turb["curve"], 'b', alpha=0.3)
 
     #print(json.dumps(turb_data[0:2], indent=1))
 
-    plt.plot(trend_data["curve"], "r")
+    if trend_data["curve"] is not None:
+        plt.plot(xx, trend_data["curve"], "r")
+
+    plt.xticks(xx)
 
     plt.show()
