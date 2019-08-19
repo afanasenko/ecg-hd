@@ -14,7 +14,8 @@ from cardio_clean.util import ecgread
 
 def plot_with_markup(sig, fs, metadata, txt):
 
-    numch = len(metadata[0]["r_pos"])
+    numch = 2 if len(sig.shape) == 1 else sig.shape[1] #len(metadata[0][
+    # "r_pos"])
 
     pt_keys = {"q_pos": "b","r_pos": "r", "s_pos": "b", "p_pos": "y", "t_pos":
     "g"}
@@ -85,6 +86,7 @@ def show_waves(filename, chan):
         sig[:, :],
         fs=header["fs"],
         bias=header["baseline"],
+        gain=header["adc_gain"],
         metadata=metadata
     )
 
@@ -94,9 +96,9 @@ def show_waves(filename, chan):
         header
     )
 
-    suspicious = []
-    suspicious.append(128)
-    suspicious.append(131)
+    suspicious = [172, 278, 431, 435, 442, 569]
+    #suspicious.append(128)
+    #suspicious.append(131)
 
     for ncycle, qrs in enumerate(metadata):
 
@@ -109,9 +111,15 @@ def show_waves(filename, chan):
         #if any(qrs["qt_duration"]) and max(qrs["qt_duration"]) < 0.2:
         #    suspicious.append(ncycle)
 
-        if "E" in qrs["flags"]:
-            suspicious.append(ncycle)
-            print(qrs["heartrate"])
+        #if "E" in qrs["flags"]:
+        #    suspicious.append(ncycle)
+        #    print(qrs["heartrate"])
+
+        #if qrs["heartrate"] > 600:
+        #    suspicious.append(ncycle)
+        #    print(qrs["heartrate"])
+        pass
+
 
     missing_hrt = [i for i,x in enumerate(metadata) if x["heartrate"] is None]
     print("Heartrate missing in beats\n{}".format(missing_hrt))
@@ -126,8 +134,8 @@ def show_waves(filename, chan):
             sus,
             metadata[sus]["qt_duration"]
         ))
-        i1 = max(0, sus-2)
-        i2 = min(len(metadata), sus+3)
+        i1 = max(0, sus-3)
+        i2 = min(len(metadata), sus+10)
 
         tag = "[{}] ".format(sus)
         if is_artifact(metadata[sus]):
@@ -137,14 +145,15 @@ def show_waves(filename, chan):
         else:
             tag += "other"
 
-        plot_with_markup(sig, fs, metadata[i1:i2], tag)
+        plot_with_markup(sig[:,chan], fs, metadata[i1:i2], tag)
 
 
 if __name__ == "__main__":
     # 2025 RsR in ch.2
     # I60 ST elevation
     #filename = "/Users/arseniy/SERDECH/data/PHYSIONET/I59"
-    filename = "/Users/arseniy/SERDECH/data/ROXMINE/Rh2021"
+    #filename = "/Users/arseniy/SERDECH/data/ROXMINE/Rh2021"
+    filename = "/Users/arseniy/SERDECH/data/PHYSIONET/I13"
     #filename = "TestFromDcm.ecg"
 
     if len(sys.argv) > 1:

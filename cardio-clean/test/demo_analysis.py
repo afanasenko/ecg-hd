@@ -10,6 +10,7 @@ from scipy.fftpack import fft
 
 from cardio_clean.metadata import *
 from cardio_clean.wavdetect import ddwt, find_points, zcfind
+from cardio_clean.qrsclassify import incremental_classifier
 from cardio_clean.arrythmia import *
 from cardio_clean.ishemia import define_ishemia_episodes
 from cardio_clean.pmdetect import define_pacemaker_episodes
@@ -298,8 +299,11 @@ def show_waves(filename, chan, sec_from=0, sec_to=0, draw=False):
     fs = header["fs"]
     print("fs = {} Hz".format(fs))
 
+
+    print("detection...")
+
     sig = fix_baseline(
-        sig,
+        -sig,
         fs=fs,
         bias_window_ms=1500
     )
@@ -324,7 +328,21 @@ def show_waves(filename, chan, sec_from=0, sec_to=0, draw=False):
         gain=header["adc_gain"],
         metadata=metadata
     )
-    print("...")
+
+    print("incremental_classifier...")
+
+    qrs_classes = incremental_classifier(
+        sig,
+        header,
+        metadata,
+        classgen_t=0.7,
+        include_data=3
+    )
+
+    print("classes found: {}".format(len(qrs_classes)))
+
+    print("metadata_postprocessing...")
+
     metadata_postprocessing(
         metadata,
         sig[smp_from:smp_to, :],
@@ -335,7 +353,7 @@ def show_waves(filename, chan, sec_from=0, sec_to=0, draw=False):
 
     print(len(metadata))
 
-    print("...")
+    print("stats...")
     if draw:
         plt.plot(s, "b")
 
@@ -477,12 +495,12 @@ def main():
     #filename = "/Users/arseniy/SERDECH/data/PHYSIONET/I16"
     #filename = "/Users/arseniy/SERDECH/data/PHYSIONET/I59"
     #filename = "/Users/arseniy/SERDECH/data/PHYSIONET/I11"
-    filename = "/Users/arseniy/SERDECH/data/PHYSIONET/I13"
+    #filename = "/Users/arseniy/SERDECH/data/PHYSIONET/I15"
     #filename = "/Users/arseniy/SERDECH/data/th-0002"
     #filename = "testI59.ecg"
     #filename = "TestFromDcm.ecg"
     #filename = "TestFindPoint.ecg"
-    #filename = "/Users/arseniy/SERDECH/data/ROXMINE/Rh2021"
+    filename = "/Users/arseniy/SERDECH/data/Holter_24h"
     #filename = "/Users/arseniy/SERDECH/data/ROXMINE/I16/I16.ecg"
     #filename = "/Users/arseniy/SERDECH/data/ROXMINE2/pat00022.edf"
 
@@ -515,9 +533,9 @@ def main():
 
     mdmp = show_waves(
         filename,
-        chan=1,  # common_signal_names.index("I"),
+        chan=0,  # common_signal_names.index("I"),
         sec_from=0,
-        sec_to=0,
+        sec_to=36000,
         draw=False
     )
 

@@ -82,7 +82,8 @@ def main():
     # 2004 av block
 
     #filename = "/Users/arseniy/SERDECH/data/PHYSIONET/I11"
-    filename = "/Users/arseniy/SERDECH/data/PHYSIONET/104"
+    #filename = "/Users/arseniy/SERDECH/data/PHYSIONET/104"
+    filename = "/Users/arseniy/SERDECH/data/PHYSIONET/222"
     #filename = "../test/testI59.ecg"
     #filename = "../test/TestFromDcm.ecg"
     #filename = "/Users/arseniy/SERDECH/data/ROXMINE/Rh2004"

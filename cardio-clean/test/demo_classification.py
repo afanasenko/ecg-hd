@@ -27,7 +27,7 @@ def build_args():
     options, filenames = parser.parse_known_args()
     if not filenames:
         #filenames.append("/Users/arseniy/SERDECH/data/ROXMINE/Rh2004")
-        filenames.append("/Users/arseniy/SERDECH/data/ROXMINE/Rh2022")
+        filenames.append("/Users/arseniy/SERDECH/data/PHYSIONET/I16")
         #filenames.append("/Users/arseniy/heart-research/cardio-clean/test
         # /TestFromDcm.ecg")
         # 1003 2018
