@@ -350,21 +350,23 @@ def metadata_postprocessing(metadata, sig, header, **kwargs):
         remove_outliers(qrs, "s_pos", [], delta)
         remove_outliers(qrs, "t_pos", ("t_start", "t_end"), delta)
 
-    for ncycle, qrs in enumerate(metadata):
 
-        # ######################################
-        # RR и ЧСС
-        rr = estimate_rr(metadata, ncycle)
-        if rr is None:
-            set_artifact(qrs)
-            qrs["RR"] = None
-            qrs["heartrate"] = None
-        else:
-            rr /= fs
-            qrs["RR"] = rr
-            qrs["heartrate"] = 60.0 / rr
+    for chan, x in signal_channels(sig):
 
-        for chan, x in signal_channels(sig):
+        for ncycle, qrs in enumerate(metadata):
+
+            if chan == 0:
+                # ######################################
+                # RR и ЧСС
+                rr = estimate_rr(metadata, ncycle)
+                if rr is None:
+                    set_artifact(qrs)
+                    qrs["RR"] = None
+                    qrs["heartrate"] = None
+                else:
+                    rr /= fs
+                    qrs["RR"] = rr
+                    qrs["heartrate"] = 60.0 / rr
 
             # ######################################
             # точки J и J+
@@ -461,14 +463,15 @@ def metadata_postprocessing(metadata, sig, header, **kwargs):
             else:
                 qrs["qtc_duration"][chan] = None
 
-        # уточняем правую границу QRS
-        qrsend = qrs["st_start"][classification_channel]
-        if qrsend is not None:
-            qrs["qrs_end"] = max(qrs["qrs_end"], float(qrsend)/fs)
+            if chan == 0:
+                # уточняем правую границу QRS
+                qrsend = qrs["st_start"][classification_channel]
+                if qrsend is not None:
+                    qrs["qrs_end"] = max(qrs["qrs_end"], float(qrsend)/fs)
 
-        qrs["complex_type"] = define_complex(
-            qrs, fs, classification_channel, ventricular_min_qrs
-        )
+                qrs["complex_type"] = define_complex(
+                    qrs, fs, classification_channel, ventricular_min_qrs
+                )
 
 
 def is_sinus_cycle(meta):
