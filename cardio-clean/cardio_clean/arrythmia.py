@@ -63,7 +63,7 @@ def define_rythm(metadata, **kwargs):
             syndrome_marks[ncycle] = rhythm_codes["RBBB"]
 
         if ncycle < wnd:
-            bnd = [0,2*wnd]
+            bnd = [0, 2*wnd]
         elif ncycle > total_cycles-wnd:
             bnd = [total_cycles-2*wnd,total_cycles]
         else:
@@ -81,15 +81,19 @@ def define_rythm(metadata, **kwargs):
         # ЧСС
         hr = np.array(
             [x["heartrate"] for x in metadata[bnd[0]:bnd[1]] if x[
-            "heartrate"] is not None]
+                "heartrate"] is not None]
         )
+
+        # ???
+        if not hr:
+            continue
 
         avg_hr = np.mean(hr)
 
         # Доминирующий тип комплексов
         ct = np.array(
             [x["complex_type"] for x in metadata[bnd[0]:bnd[1]] if x[
-            "complex_type"] != "U"]
+                "complex_type"] != "U"]
         )
 
         dominant = "N"
@@ -103,15 +107,19 @@ def define_rythm(metadata, **kwargs):
 
         # постоянный RR-интервал
         r_mark = "sin_norm"
+
+        min_hr = config.RHYTHM["norm_bpm_min"]
+        max_hr = config.RHYTHM["norm_bpm_max"]
+
         if np.std(hr) < 0.1 * avg_hr:
-            if 60.0 <= avg_hr <= 100.0:
+            if min_hr <= avg_hr <= max_hr:
                 if dominant == "S":
                     r_mark = "atrial"
                 elif dominant == "V":
                     # для желудочкового ритма это уже тахикардия
                     r_mark = "VT"
 
-            elif avg_hr < 60.0:
+            elif avg_hr < min_hr:
                 if dominant == "V":
                     r_mark = "ventricular"
                 else:
