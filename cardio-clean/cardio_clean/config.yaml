@@ -18,6 +18,8 @@
     qrs_duration_min: 0.02
     qrs_duration_max: 0.2
     qrs_ventricular_min: 0.12
+  CLASSIFIER:
+    class_generation: 0.9 # чем больше значение, тем больше классов
   QT:                   # Анализ QT
     histogram_bins: 10  # Число интервалов для построения гистограммы распределения
     3sigma: False       # Цензурирование гистограммы по правилу трех сигм
