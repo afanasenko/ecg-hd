@@ -15,7 +15,7 @@ from cardio_clean.arrythmia import *
 from cardio_clean.ishemia import define_ishemia_episodes
 from cardio_clean.pmdetect import define_pacemaker_episodes
 
-from cardio_clean.sigbind import fix_baseline
+from cardio_clean.sigbind import fix_baseline, mains_filter
 from cardio_clean.qrsdetect import qrs_detection
 from cardio_clean.util import ecgread, signal_channels
 
@@ -212,19 +212,22 @@ def print_summary(metadata, chan):
     print("Типы комплексов: {}".format(classes))
     print("Экстрасистолы: {}, ЖЭ: {}".format(pvc_count, pvcv_count))
 
-    print("Автоклассы:")
-    print(classids)
+    if len(classids) < 10:
+        print("Автоклассы:")
+        print(classids)
 
     print("ST-интервалы: {}, в среднем {} мс".format(
-        len(st_intervals), np.mean(st_intervals)
+        len(st_intervals), np.mean(st_intervals) if st_intervals else "-"
     ))
 
     print("QT-интервалы: {}, в среднем {} мс".format(
-        len(qt_intervals), 1000 * np.mean(qt_intervals)
+        len(qt_intervals), 1000 * np.mean(qt_intervals) if qt_intervals else
+        "-"
     ))
 
     print("RR-интервалы: {}, в среднем {} мс".format(
-        len(rr_intervals), 1000 * np.mean(rr_intervals)
+        len(rr_intervals), 1000 * np.mean(rr_intervals) if rr_intervals else
+        "-"
     ))
 
     if p_amp:
@@ -241,6 +244,7 @@ def print_summary(metadata, chan):
         print("Средняя высота R-зубца {} мВ".format(
             np.mean(r_amp)
         ))
+
 
 def show_qrs(filename, chan, lim):
     sig, header = ecgread(filename)
@@ -299,13 +303,23 @@ def show_waves(filename, chan, sec_from=0, sec_to=0, draw=False):
     fs = header["fs"]
     print("fs = {} Hz".format(fs))
 
-
-    print("detection...")
+    print("bias...")
 
     sig = fix_baseline(
         -sig,
         fs=fs,
         bias_window_ms=1500
+    )
+
+    print("mains...")
+
+    sig = mains_filter(
+        sig,
+        fs=fs,
+        bias=header["baseline"],
+        mains=50,
+        attenuation=0.05,
+        aperture=512
     )
 
     smp_from = int(sec_from*fs)
@@ -315,6 +329,8 @@ def show_waves(filename, chan, sec_from=0, sec_to=0, draw=False):
     else:
         smp_to = sig.shape[0]
     s = sig[smp_from:smp_to, chan]
+
+    print("detection...")
 
     metadata, foo = qrs_detection(
         sig[smp_from:smp_to,:],
@@ -331,6 +347,8 @@ def show_waves(filename, chan, sec_from=0, sec_to=0, draw=False):
 
     print("incremental_classifier...")
 
+    ts = time.clock()
+
     qrs_classes = incremental_classifier(
         sig,
         header,
@@ -338,6 +356,8 @@ def show_waves(filename, chan, sec_from=0, sec_to=0, draw=False):
         classgen_t=0.7,
         include_data=3
     )
+
+    print("incremental_classifier took {} s".format(time.clock() - ts))
 
     print("classes found: {}".format(len(qrs_classes)))
 
@@ -426,8 +446,6 @@ def show_waves(filename, chan, sec_from=0, sec_to=0, draw=False):
     if missing_hrt:
         print("Heartrate missing in beats\n{}".format(missing_hrt))
 
-    #plt.xlim((200,700))
-
     ry = define_rythm(metadata)
     junk = json.dumps(ry)
 
@@ -500,7 +518,8 @@ def main():
     #filename = "testI59.ecg"
     #filename = "TestFromDcm.ecg"
     #filename = "TestFindPoint.ecg"
-    filename = "/Users/arseniy/SERDECH/data/Holter_24h"
+    #filename = "/Users/arseniy/SERDECH/data/Holter_24h"
+    filename = "/Users/arseniy/Downloads/Test20191007.ecg"
     #filename = "/Users/arseniy/SERDECH/data/ROXMINE/I16/I16.ecg"
     #filename = "/Users/arseniy/SERDECH/data/ROXMINE2/pat00022.edf"
 
@@ -535,7 +554,7 @@ def main():
         filename,
         chan=0,  # common_signal_names.index("I"),
         sec_from=0,
-        sec_to=36000,
+        sec_to=0,
         draw=False
     )
 

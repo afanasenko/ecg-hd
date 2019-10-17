@@ -33,7 +33,7 @@ def test_qrs_result(input_file, kod_elev, kod_depr, elles_elev, elles_depr,
         qrs_classes = incremental_classifier(mains_out,
                                             header,
                                             metadata,
-                                            classgen_t=0.998)
+                                                classgen_t=0.998)
     except Exception as exception_obj:
         qrs_classes = []
 

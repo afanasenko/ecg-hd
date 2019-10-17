@@ -96,14 +96,15 @@ def show_waves(filename, chan):
         header
     )
 
-    suspicious = [172, 278, 431, 435, 442, 569]
+    suspicious = []
+    #suspicious = [172, 278, 431, 435, 442, 569]
     #suspicious.append(128)
     #suspicious.append(131)
 
     for ncycle, qrs in enumerate(metadata):
 
-        #if qrs["heartrate"] is None or is_artifact(qrs):
-        #    suspicious.append(ncycle)
+        if qrs["heartrate"] is None or is_artifact(qrs):
+            suspicious.append(ncycle)
 
         #if qrs["st_start"][chan] >= qrs["st_end"][chan]:
         #    suspicious.append(ncycle)
@@ -118,7 +119,7 @@ def show_waves(filename, chan):
         #if qrs["heartrate"] > 600:
         #    suspicious.append(ncycle)
         #    print(qrs["heartrate"])
-        pass
+        #pass
 
 
     missing_hrt = [i for i,x in enumerate(metadata) if x["heartrate"] is None]
@@ -153,7 +154,8 @@ if __name__ == "__main__":
     # I60 ST elevation
     #filename = "/Users/arseniy/SERDECH/data/PHYSIONET/I59"
     #filename = "/Users/arseniy/SERDECH/data/ROXMINE/Rh2021"
-    filename = "/Users/arseniy/SERDECH/data/PHYSIONET/I13"
+    #filename = "/Users/arseniy/SERDECH/data/PHYSIONET/I13"
+    filename = "/Users/arseniy/Downloads/Test20191007.ecg"
     #filename = "TestFromDcm.ecg"
 
     if len(sys.argv) > 1:
