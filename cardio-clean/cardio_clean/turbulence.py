@@ -1,9 +1,24 @@
 # coding: utf-8
 
 from cardio_clean.metadata import *
-from scipy.stats import linregress
+import numpy as np
 from matplotlib import pyplot as plt
 import json
+
+
+def prepare_linplan(npoints):
+    """ Расчет матрицы плана эксперимента для линейной регрессии
+
+    :param npoints: число точек
+    :return: матрица [npoints X 2]
+    """
+    p = np.ones((npoints,2))
+    for i in xrange(npoints):
+        p[i,0] = i
+
+    pp = np.dot(np.transpose(p), p)
+
+    return np.dot(np.linalg.pinv(pp), np.transpose(p))
 
 
 def calculate_to_ts(rr_buf, pvc_pos, regres_window=4):
@@ -13,12 +28,18 @@ def calculate_to_ts(rr_buf, pvc_pos, regres_window=4):
     to = 100.0 * (sum_rr_right - sum_rr_left) / sum_rr_left
 
     ts = 0
+
+    pln = prepare_linplan(regres_window)
+
     for i in range(pvc_pos+1, len(rr_buf)-regres_window):
 
-        slope, intercept, r_value, p_value, std_err1 = linregress(
-            [n for n in range(i, i + regres_window + 1)],
-            rr_buf[i:i+regres_window+1]
-        )
+        cf = np.dot(pln, rr_buf[i:i+regres_window])
+        slope = cf[0]
+
+        #slope, intercept, r_value, p_value, std_err1 = linregress(
+        #    [n for n in range(i, i + regres_window + 1)],
+        #    rr_buf[i:i+regres_window+1]
+        #)
         if slope > ts:
             ts = slope
 
@@ -106,10 +127,13 @@ def turbulence_analyse(metadata, **kwargs):
 
 if __name__ == "__main__":
 
-    metaname = "/Users/arseniy/SERDECH/data/PHYSIONET/I24.json"
-    #metaname = "/Users/arseniy/SERDECH/data/ROXMINE/Rh2021.json"
+    #metaname = "/Users/arseniy/SERDECH/data/PHYSIONET/I24.json"
+    metaname = "/Users/arseniy//Downloads/Test20191007.ecg.json"
 
+    print("Load...")
     meta = json.load(open(metaname))
+    print("{} cycles".format(len(meta)))
+    print("Start...")
     turb_data, trend_data = turbulence_analyse(meta)
 
     print([x["qrs_index"] for x in turb_data])
