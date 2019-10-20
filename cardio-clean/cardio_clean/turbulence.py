@@ -3,6 +3,7 @@
 from cardio_clean.metadata import *
 import numpy as np
 from matplotlib import pyplot as plt
+from scipy.stats import linregress
 import json
 
 
@@ -37,8 +38,8 @@ def calculate_to_ts(rr_buf, pvc_pos, regres_window=4):
         slope = cf[0]
 
         #slope, intercept, r_value, p_value, std_err1 = linregress(
-        #    [n for n in range(i, i + regres_window + 1)],
-        #    rr_buf[i:i+regres_window+1]
+        #    [n for n in range(i, i + regres_window)],
+        #    rr_buf[i:i+regres_window]
         #)
         if slope > ts:
             ts = slope
@@ -50,7 +51,7 @@ def turbulence_analyse(metadata, **kwargs):
     """ Анализ турбулентности ритма
 
     :param metadata: метаданные
-    :param kwargs: beats_before, beats_after
+    :param kwargs: beats_before, beats_after, "regression_window"
     :return: turbulence_data - данные об эпизодах, отобранных для анализа
              mean_turbulence_data - усредненные показатели турбулентности
     """
@@ -127,8 +128,8 @@ def turbulence_analyse(metadata, **kwargs):
 
 if __name__ == "__main__":
 
-    #metaname = "/Users/arseniy/SERDECH/data/PHYSIONET/I24.json"
-    metaname = "/Users/arseniy//Downloads/Test20191007.ecg.json"
+    metaname = "/Users/arseniy/SERDECH/data/PHYSIONET/I24.json"
+    #metaname = "/Users/arseniy//Downloads/Test20191007.ecg.json"
 
     print("Load...")
     meta = json.load(open(metaname))
