@@ -7,7 +7,9 @@
 from scipy.signal import convolve, hann, argrelmax
 import numpy as np
 from scipy.fftpack import fft, ifft
-from util import signal_channels
+
+from cardio_clean.util import signal_channels
+from cardio_clean.config import config
 
 
 def mean_spectrum(x, aperture=1024, log_output=True):
@@ -114,14 +116,20 @@ def mains_filter(sig, fs, bias, mains, attenuation, aperture):
     return result
 
 
-def fix_baseline(sig, fs, bias_window_ms):
+def fix_baseline(sig, fs, bias_window_ms, **kwargs):
     """Подавление дрейфа изолинии
 
     :param sig: numpy array - отсчеты сигнала
     :param fs: частота дискретизации, Гц
     :param bias_window_ms: ширина окна для подаввления фона (мс)
+    :param replace_nan: заменять значения NaN на соседние
     :return: сигнал с подавленным фоном
     """
+
+    replace_nan = kwargs.get(
+        "replace_nan",
+        config.CLASSIFIER["replace_nan"]
+    )
 
     samples_per_ms = float(fs)/1000
 
@@ -134,6 +142,15 @@ def fix_baseline(sig, fs, bias_window_ms):
     ofs = len(h)-1
 
     for chan, x in signal_channels(sig):
+
+        if replace_nan:
+            for i, smp in enumerate(x):
+                if np.isnan(smp):
+                    if i:
+                        x[i] = x[i-1]
+                    else:
+                        x[i] = 0.0
+
         bias = np.mean(x)
         # огибающая (фон) вычисляется путем свертки со сглаживающей
         # апертурой и затем вычитается из входного сигнала
