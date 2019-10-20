@@ -6,7 +6,7 @@ from setuptools import find_packages
 from setuptools import setup
 
 name = 'cardio-clean'
-version = '0.0.2'
+version = '0.0.3'
 
 
 def find_requires():
