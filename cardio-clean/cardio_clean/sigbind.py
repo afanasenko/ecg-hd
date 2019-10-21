@@ -128,7 +128,7 @@ def fix_baseline(sig, fs, bias_window_ms, **kwargs):
 
     replace_nan = kwargs.get(
         "replace_nan",
-        config.CLASSIFIER["replace_nan"]
+        config.SIGNAL["replace_nan"]
     )
 
     samples_per_ms = float(fs)/1000
