@@ -21,11 +21,13 @@ def correlate(sig1, sig2):
     sy = 0.0
     sxy = 0.0
     for i in range(samples):
-        sxy += np.dot(sig1[i,:], sig2[i,:])
-        sx += np.dot(sig1[i,:], sig1[i,:])
-        sy += np.dot(sig2[i,:], sig2[i,:])
+        sg1 = sig1[i,:]
+        sg2 = sig2[i,:]
+        sxy += np.dot(sg1,sg2)
+        sx += np.dot(sg1,sg1)
+        sy += np.dot(sg2,sg2)
 
-    return sxy / (np.sqrt(sx) * np.sqrt(sy))
+    return sxy / np.sqrt(sx * sy)
 
 
 def get_qrs_bounds(meta, fs):
