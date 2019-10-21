@@ -85,7 +85,7 @@ def define_rythm(metadata, **kwargs):
         )
 
         # ???
-        if not hr:
+        if not hr.any():
             continue
 
         avg_hr = np.mean(hr)
