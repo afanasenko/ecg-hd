@@ -18,6 +18,7 @@ from cardio_clean.pmdetect import define_pacemaker_episodes
 from cardio_clean.sigbind import fix_baseline, mains_filter
 from cardio_clean.qrsdetect import qrs_detection
 from cardio_clean.util import ecgread, signal_channels
+from cardio_clean.turbulence import turbulence_analyse
 
 from memory_profiler import memory_usage
 
@@ -121,17 +122,32 @@ def show_decomposition2(filename, chan, smp_from=0, smp_to=0):
     plt.show()
 
 
-
 def show_raw(filename, smp_from=0, smp_to=0):
 
     sig, header = ecgread(filename)
     fs = header["fs"]
+
+    for i, sch in signal_channels(sig):
+        n = len(sch)
+        nn = len([x for x in sch if np.isnan(x)])
+        print("channel {}, len {}, nans {}, mean {}".format(
+            i,
+            n,
+            nn,
+            sum(sch)/n
+        ))
+
+    print(sig.shape)
+    print(sig[:10,:])
+    print(np.min(sig), np.max(sig), np.mean(sig))
 
     sig = fix_baseline(
         sig,
         fs=fs,
         bias_window_ms=1500
     )
+
+    print(sig[:10,:])
 
     if smp_to:
         smp_to = min(smp_to, sig.shape[0])
@@ -353,8 +369,7 @@ def show_waves(filename, chan, sec_from=0, sec_to=0, draw=False):
         sig,
         header,
         metadata,
-        classgen_t=0.7,
-        include_data=3
+        class_generation=0.9
     )
 
     print("incremental_classifier took {} s".format(time.clock() - ts))
@@ -372,6 +387,12 @@ def show_waves(filename, chan, sec_from=0, sec_to=0, draw=False):
     junk = json.dumps(metadata)
 
     print(len(metadata))
+
+    ts = time.clock()
+
+    turb_data, trend_data = turbulence_analyse(metadata)
+
+    print("turbulence_analyse took {} s".format(time.clock() - ts))
 
     print("stats...")
     if draw:
@@ -444,7 +465,7 @@ def show_waves(filename, chan, sec_from=0, sec_to=0, draw=False):
 
     missing_hrt = [i for i,x in enumerate(metadata) if x["heartrate"] is None]
     if missing_hrt:
-        print("Heartrate missing in beats\n{}".format(missing_hrt))
+        print("Heartrate missing in {} beats".format(len(missing_hrt)))
 
     ry = define_rythm(metadata)
     junk = json.dumps(ry)
@@ -470,6 +491,12 @@ def show_waves(filename, chan, sec_from=0, sec_to=0, draw=False):
         print(m)
         print("Число эпизодов: {}".format(len(m)))
 
+    print("Турбулентность...")
+    turb_data, trend_data = turbulence_analyse(metadata)
+
+    print("N={}, TO={}, TS={}".format(len(turb_data), trend_data["TO"],
+                                          trend_data["TS"]))
+
     print_summary(metadata, chan)
 
     if draw:
@@ -481,6 +508,7 @@ def show_waves(filename, chan, sec_from=0, sec_to=0, draw=False):
         plt.show()
 
     return metadata
+
 
 def show_qt_hist(ax, metadata, key):
     numch = len(metadata[0]["r_pos"])
@@ -519,9 +547,10 @@ def main():
     #filename = "TestFromDcm.ecg"
     #filename = "TestFindPoint.ecg"
     #filename = "/Users/arseniy/SERDECH/data/Holter_24h"
-    filename = "/Users/arseniy/Downloads/Test20191007.ecg"
+    #filename = "/Users/arseniy/Downloads/Test20191007.ecg"
     #filename = "/Users/arseniy/SERDECH/data/ROXMINE/I16/I16.ecg"
     #filename = "/Users/arseniy/SERDECH/data/ROXMINE2/pat00022.edf"
+    filename = "/Users/arseniy/SERDECH/data/24h/Holter_001"
 
     if not (filename.endswith(".ecg") or
                     filename.endswith(".edf") or
@@ -534,9 +563,8 @@ def main():
     #show_raw(
     #    filename,
     #    smp_from=0,
-    #    smp_to=0
+    #    smp_to=1000
     #)
-
     #show_decomposition(
     #    filename,
     #    chan=1,
@@ -554,7 +582,7 @@ def main():
         filename,
         chan=0,  # common_signal_names.index("I"),
         sec_from=0,
-        sec_to=0,
+        sec_to=7200,
         draw=False
     )
 
