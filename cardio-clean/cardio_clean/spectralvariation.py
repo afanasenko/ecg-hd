@@ -5,8 +5,6 @@ import numpy as np
 from config import config
 from metadata import is_artifact, is_pvc
 
-from matplotlib import pyplot as plt
-
 
 def resample_rhythm(metadata, dx):
     """resample_rhythm
@@ -24,10 +22,13 @@ def resample_rhythm(metadata, dx):
 
     for pos in np.arange(0, metadata[-1]["qrs_center"]+dx, dx):
 
-        m = buf[0][0] if buf else -sinc_wnd
-        while m < pos-sinc_wnd and buf:
+        m = buf[0][0] if len(buf) else -sinc_wnd
+        while m < pos-sinc_wnd and len(buf):
             buf.pop(0)
-            m = buf[0][0]
+            if len(buf):
+                m = buf[0][0]
+            else:
+                break
 
         m = metadata[rdpos]["qrs_center"]
         while m < pos+sinc_wnd:
@@ -45,30 +46,19 @@ def resample_rhythm(metadata, dx):
             break
 
         s = 0
+        ws = 0
         for x, y in buf:
-            s += np.sinc(x-pos)
-        resamp.append(s)
+            w = np.sinc(x-pos)
+            ws += w
+            s += w * y
 
-    plt.plot()
+        if ws:
+            resamp.append(s / ws)
+        else:
+            if len(resamp):
+                resamp.append(resamp[-1])
 
     return np.array(resamp)
-
-
-def plot_rhythm_resamp(metadata, dx):
-
-    x0 = []
-    y0 = []
-    for x in metadata:
-        if not (is_artifact(x) or is_pvc(x)):
-            x0.append(x["qrs_center"])
-            y0.append(1000.0 * x["RR"])
-
-    y1 = resample_rhythm(metadata, dx=dx)
-    x1 = np.arange(0, dx*len(y1), dx)
-
-    plt.stem(x0, y0)
-    plt.plot(x1, y1, "r")
-    plt.show()
 
 
 def rhythm_spectrum(metadata, **kwargs):
@@ -97,7 +87,7 @@ def rhythm_spectrum(metadata, **kwargs):
         config.RSVAR["sampling"]
     )
 
-    r = resample_rhythm(metadata, dx=1/fs)
+    r = resample_rhythm(metadata, dx=1.0/fs)
 
     n = len(r)
     sp = np.sqrt(1.0 / n) * np.abs(fft(r))
