@@ -16,6 +16,23 @@ from cardio_clean.qrsdetect import qrs_detection
 from cardio_clean.util import ecgread, signal_channels
 
 
+def plot_rhythm_resamp(metadata, dx):
+
+    x0 = []
+    y0 = []
+    for x in metadata:
+        if not (is_artifact(x) or is_pvc(x)):
+            x0.append(x["qrs_center"])
+            y0.append(1000.0 * x["RR"])
+
+    y1 = resample_rhythm(metadata, dx=dx)
+    x1 = np.arange(0, dx*len(y1), dx)
+
+    plt.stem(x0, y0)
+    plt.plot(x1, y1, "r")
+    plt.show()
+
+
 def show_rspec(filename, chan, smp_from=0, smp_to=0):
     sig, header = ecgread(filename)
 

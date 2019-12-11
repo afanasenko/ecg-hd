@@ -102,7 +102,7 @@ def signal_channels(signal):
     :param signal: np.array массив с размерностью (samples, channels)
     :return: объект-генератор возвращает № канала и массив отсчетов
     """
-    if len(signal.shape) == 1:
+    if signal.ndim == 1:
         yield 0, np.array(signal, np.float32)
     else:
         numch = signal.shape[1]

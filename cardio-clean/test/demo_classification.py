@@ -39,7 +39,7 @@ def build_args():
     return options, filenames
 
 
-def get_qrsclass(recordname, tend):
+def get_qrsclass(recordname):
 
     # загрузили сигнал
     sig, hdr = ecgread(recordname)
@@ -122,7 +122,7 @@ def get_qrsclass(recordname, tend):
 def main():
     options, filenames = build_args()
 
-    get_qrsclass(filenames[0], options.time_range)
+    get_qrsclass(filenames[0])
 
 
 if __name__ == "__main__":

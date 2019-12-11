@@ -525,7 +525,9 @@ def find_points(
 
     num_scales = max(r_scale, p_scale, t_scale)
     num_cycles = len(metadata)
-    pilot_chan = 1 if sig.shape[1] > 1 else 0
+
+    channel_seq = config.SIGNAL["default_channel_sequence"]
+    pilot_chan = 0 if sig.ndim == 1 else channel_seq.index("II")
 
     for chan, x in signal_channels(sig):
 

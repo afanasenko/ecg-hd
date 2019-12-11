@@ -1,6 +1,5 @@
 # coding: utf-8
 
-import time
 import os
 import json
 
@@ -19,6 +18,8 @@ from cardio_clean.sigbind import fix_baseline, mains_filter
 from cardio_clean.qrsdetect import qrs_detection
 from cardio_clean.util import ecgread, signal_channels
 from cardio_clean.turbulence import turbulence_analyse
+from cardio_clean.spectralvariation import rhythm_spectrum
+from cardio_clean.itimer import itimer
 
 from memory_profiler import memory_usage
 
@@ -319,7 +320,9 @@ def show_waves(filename, chan, sec_from=0, sec_to=0, draw=False):
     fs = header["fs"]
     print("fs = {} Hz".format(fs))
 
-    print("bias...")
+    tm = itimer()
+
+    print("Дрейф... ")
 
     sig = fix_baseline(
         -sig,
@@ -327,7 +330,8 @@ def show_waves(filename, chan, sec_from=0, sec_to=0, draw=False):
         bias_window_ms=1500
     )
 
-    print("mains...")
+    print("{} сек".format(tm.interval()))
+    print("Сетевая помеха...")
 
     sig = mains_filter(
         sig,
@@ -338,6 +342,8 @@ def show_waves(filename, chan, sec_from=0, sec_to=0, draw=False):
         aperture=512
     )
 
+    print("{} сек".format(tm.interval()))
+
     smp_from = int(sec_from*fs)
 
     if sec_to:
@@ -346,7 +352,7 @@ def show_waves(filename, chan, sec_from=0, sec_to=0, draw=False):
         smp_to = sig.shape[0]
     s = sig[smp_from:smp_to, chan]
 
-    print("detection...")
+    print("Сегментация... ")
 
     metadata, foo = qrs_detection(
         sig[smp_from:smp_to,:],
@@ -361,22 +367,20 @@ def show_waves(filename, chan, sec_from=0, sec_to=0, draw=False):
         metadata=metadata
     )
 
-    print("incremental_classifier...")
+    print("{} сек".format(tm.interval()))
+    #print("incremental_classifier... ")
+#
+    #qrs_classes = incremental_classifier(
+    #    sig,
+    #    header,
+    #    metadata,
+    #    class_generation=0.7
+    #)
+#
+    #print("{} сек".format(tm.interval()))
+    #print("classes found: {}".format(len(qrs_classes)))
 
-    ts = time.clock()
-
-    qrs_classes = incremental_classifier(
-        sig,
-        header,
-        metadata,
-        class_generation=0.9
-    )
-
-    print("incremental_classifier took {} s".format(time.clock() - ts))
-
-    print("classes found: {}".format(len(qrs_classes)))
-
-    print("metadata_postprocessing...")
+    print("metadata_postprocessing... ")
 
     metadata_postprocessing(
         metadata,
@@ -384,15 +388,11 @@ def show_waves(filename, chan, sec_from=0, sec_to=0, draw=False):
         header
     )
 
+    print("{} сек".format(tm.interval()))
+
     junk = json.dumps(metadata)
 
     print(len(metadata))
-
-    ts = time.clock()
-
-    turb_data, trend_data = turbulence_analyse(metadata)
-
-    print("turbulence_analyse took {} s".format(time.clock() - ts))
 
     print("stats...")
     if draw:
@@ -467,7 +467,11 @@ def show_waves(filename, chan, sec_from=0, sec_to=0, draw=False):
     if missing_hrt:
         print("Heartrate missing in {} beats".format(len(missing_hrt)))
 
+
+    tm.reset()
+    print("Ритмы... ")
     ry = define_rythm(metadata)
+    print("{} s".format(tm.interval()))
     junk = json.dumps(ry)
 
     rtm = {}
@@ -478,24 +482,35 @@ def show_waves(filename, chan, sec_from=0, sec_to=0, draw=False):
     print("Ритмы:")
     print(rtm)
 
+    tm.reset()
     print("Ишемия...")
     m = define_ishemia_episodes(sig[smp_from:smp_to, :], header, metadata)
+    print("{} сек".format(tm.interval()))
     junk = json.dumps(m)
     if m:
         print(m)
         print("Число эпизодов: {}".format(len(m)))
 
-    print("Стимулятор...")
+    print("Стимулятор... ")
     m = define_pacemaker_episodes(metadata)
+    print("{} сек".format(tm.interval()))
     if m:
         print(m)
         print("Число эпизодов: {}".format(len(m)))
 
-    print("Турбулентность...")
+    print("Турбулентность... ")
+
     turb_data, trend_data = turbulence_analyse(metadata)
+
+    print("{} сек".format(tm.interval()))
 
     print("N={}, TO={}, TS={}".format(len(turb_data), trend_data["TO"],
                                           trend_data["TS"]))
+
+    print("Спектральная вариабельность... ")
+    s_var = rhythm_spectrum(metadata)
+    print("{} сек".format(tm.interval()))
+    print(s_var[0])
 
     print_summary(metadata, chan)
 
@@ -550,7 +565,7 @@ def main():
     #filename = "/Users/arseniy/Downloads/Test20191007.ecg"
     #filename = "/Users/arseniy/SERDECH/data/ROXMINE/I16/I16.ecg"
     #filename = "/Users/arseniy/SERDECH/data/ROXMINE2/pat00022.edf"
-    filename = "/Users/arseniy/SERDECH/data/24h/Holter_001"
+    filename = "/Users/arseniy/SERDECH/data/24h/Holter_002"
 
     if not (filename.endswith(".ecg") or
                     filename.endswith(".edf") or
@@ -582,7 +597,7 @@ def main():
         filename,
         chan=0,  # common_signal_names.index("I"),
         sec_from=0,
-        sec_to=7200,
+        sec_to=0,
         draw=False
     )
 
@@ -591,6 +606,6 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
-    #mem = max(memory_usage(proc=main))
-    #print("Maximum memory used: {0} MiB".format(str(mem)))
+    #main()
+    mem = max(memory_usage(proc=main))
+    print("Maximum memory used: {0} MiB".format(str(mem)))
