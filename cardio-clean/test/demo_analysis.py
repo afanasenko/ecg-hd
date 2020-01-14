@@ -123,10 +123,17 @@ def show_decomposition2(filename, chan, smp_from=0, smp_to=0):
     plt.show()
 
 
-def show_raw(filename, smp_from=0, smp_to=0):
+def show_raw(filename, sec_from=0, sec_to=0):
 
     sig, header = ecgread(filename)
     fs = header["fs"]
+
+    smp_from = int(sec_from*fs)
+
+    if sec_to:
+        smp_to = min(int(sec_to*fs), sig.shape[0])
+    else:
+        smp_to = sig.shape[0]
 
     for i, sch in signal_channels(sig):
         n = len(sch)
@@ -565,7 +572,7 @@ def main():
     #filename = "/Users/arseniy/Downloads/Test20191007.ecg"
     #filename = "/Users/arseniy/SERDECH/data/ROXMINE/I16/I16.ecg"
     #filename = "/Users/arseniy/SERDECH/data/ROXMINE2/pat00022.edf"
-    filename = "/Users/arseniy/SERDECH/data/24h/Holter_002"
+    filename = "/Users/arseniy/SERDECH/data/24h/Holter_001"
 
     if not (filename.endswith(".ecg") or
                     filename.endswith(".edf") or

@@ -122,13 +122,19 @@ def fix_baseline(sig, fs, bias_window_ms, **kwargs):
     :param sig: numpy array - отсчеты сигнала
     :param fs: частота дискретизации, Гц
     :param bias_window_ms: ширина окна для подаввления фона (мс)
-    :param replace_nan: заменять значения NaN на соседние
+    :param replace_nan: (опционально) заменять значения NaN на соседние
+    :param get_baseline
     :return: сигнал с подавленным фоном
     """
 
     replace_nan = kwargs.get(
         "replace_nan",
         config.SIGNAL["replace_nan"]
+    )
+
+    get_b = kwargs.get(
+        "get_baseline",
+        False
     )
 
     samples_per_ms = float(fs)/1000
@@ -140,6 +146,8 @@ def fix_baseline(sig, fs, bias_window_ms, **kwargs):
     result = np.zeros(sig.shape)
     sig_len = sig.shape[0]
     ofs = len(h)-1
+
+    bk_signal = np.zeros(sig.shape)
 
     for chan, x in signal_channels(sig):
 
@@ -156,9 +164,12 @@ def fix_baseline(sig, fs, bias_window_ms, **kwargs):
         # апертурой и затем вычитается из входного сигнала
 
         bks = convolve(x - bias, h, mode="full")[ofs:ofs+sig_len]
+        if get_b:
+            bk_signal[:,chan] = bks
+
         result[:,chan] = x - bks
 
-    return result
+    return result, bk_signal
 
 
 def detect_periodic(s):
